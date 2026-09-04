@@ -58,6 +58,9 @@ public class TopicService {
 
     @Transactional
     public void unsubscribe(Long userId, Long topicId) {
+        topicRepository.findById(topicId)
+                .orElseThrow(() -> new TopicNotFoundException("Ce topic n'existe pas"));
+
         subscriptionRepository.deleteByUserIdAndTopicId(userId, topicId);
     }
 }
