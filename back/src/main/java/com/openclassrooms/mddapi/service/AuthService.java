@@ -5,6 +5,7 @@ import com.openclassrooms.mddapi.dto.AuthenticatedUserResponse;
 import com.openclassrooms.mddapi.dto.LoginRequest;
 import com.openclassrooms.mddapi.dto.RegisterRequest;
 import com.openclassrooms.mddapi.exception.EmailAlreadyUsedException;
+import com.openclassrooms.mddapi.exception.UserNotFoundException;
 import com.openclassrooms.mddapi.exception.UsernameAlreadyUsedException;
 import com.openclassrooms.mddapi.model.User;
 import com.openclassrooms.mddapi.repository.UserRepository;
@@ -60,6 +61,12 @@ public class AuthService {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
         return new AuthResponse(jwtService.generateToken(userDetails.getId().toString()));
+    }
+
+    public AuthenticatedUserResponse getCurrentUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("Cet utilisateur n'existe pas"));
+        return new AuthenticatedUserResponse(user.getId(), user.getUsername());
     }
 
 }

@@ -210,11 +210,11 @@ Tests `UserControllerTest.getProfile_sansJwt_retourne401` et `updateProfile_sans
 
 1. **`prepa/Etapes d'implémentations.md` — section « Points ouverts avant soutenance » obsolète.** La note indique encore « Profil utilisateur […] : fonctionnalité backend non commencée, choix d'endpoint (extension de `GET /api/auth/me` vs nouvel endpoint `GET`/`PUT /api/me` dédié) à trancher avant de coder ». Le code a tranché pour une **troisième** option, `GET`/`PUT /api/users/me`, non listée dans la note. Aucune note de justification `prepa/Justifications/` ne documente ce choix d'endpoint (ni pourquoi `/api/users/me` plutôt que `/api/me` ou l'extension de `/api/auth/me`). La section « Points ouverts » et l'historique des PR de cette note sont à mettre à jour, et une note de décision est à écrire — hors périmètre de cet audit (lecture seule).
 
-2. **Coexistence de `GET /api/auth/me` et `GET /api/users/me`** (`controller/AuthController.java:37-39` vs `controller/UserController.java:23-27`). Les deux endpoints renvoient l'identité de l'utilisateur courant, avec des DTOs différents (`AuthenticatedUserResponse` : `id`, `username` ; `UserProfileResponse` : `id`, `email`, `username`, `subscriptions`). Le second est un sur-ensemble fonctionnel du premier. Point informatif, hors périmètre de la branche : à trancher (conserver les deux, ou retirer `/api/auth/me` une fois le front branché sur `/api/users/me`).
+2. **Coexistence de `GET /api/auth/me` et `GET /api/users/me`** (`controller/AuthController.java:37-39` vs `controller/UserController.java:23-27`). Les deux endpoints renvoient l'identité de l'utilisateur courant, avec des DTOs différents (`AuthenticatedUserResponse` : `id`, `username` ; `UserProfileResponse` : `id`, `email`, `username`, `subscriptions`). Le second est un sur-ensemble fonctionnel du premier. Tranché (décision produit, voir « Correctif post-audit ») : les deux sont conservés avec des rôles distincts — `/api/auth/me` vérification légère du token au chargement du front, `/api/users/me` profil complet.
 
 3. **`MethodArgumentNotValidException` toujours non gérée dans `GlobalExceptionHandler`** — point déjà signalé dans `POSTS_MERGE_AUDIT.md` (divergence 2) et listé dans les « Points ouverts avant soutenance » du vault. Il s'applique désormais aussi à `PUT /api/users/me` : les 400 de validation (`UpdateProfileRequest`) sont bien produits (code correct, confirmé par les 5 tests 400 de `UserControllerTest` et par les traces `DefaultHandlerExceptionResolver : Resolved [MethodArgumentNotValidException…]` observées à l'exécution), mais le corps de réponse ne suit pas le format `ErrorResponse` unifié documenté dans *DTOs et gestion des erreurs.md* section 8.3 (`handleValidation` → 400 avec `fieldErrors`). Non bloquant (code retour correct), inchangé par rapport aux branches précédentes.
 
-4. **Point informatif hors périmètre — `GET /api/auth/me` et type du principal.** `controller/AuthController.java:37` déclare `@AuthenticationPrincipal UserDetailsImpl userDetails`, alors que `SecurityConfig` utilise `oauth2ResourceServer().jwt()` sans `JwtAuthenticationConverter` personnalisé, ce qui place un `Jwt` (et non un `UserDetailsImpl`) comme principal. `UserController` utilise correctement `@AuthenticationPrincipal Jwt` (`controller/UserController.java:24`, `:30`), comme `PostController` et `TopicController`. Ce point préexiste à la branche (fichier non modifié) et n'est pas couvert par cet audit ; il est signalé car il renforce l'intérêt de `GET /api/users/me` comme endpoint de référence pour le profil. À vérifier manuellement (`GET /api/auth/me` avec JWT valide) avant de conclure.
+4. **`GET /api/auth/me` et type du principal — bug confirmé, corrigé (voir section « Correctif post-audit » ci-dessous).** `controller/AuthController.java:38` déclarait `@AuthenticationPrincipal UserDetailsImpl userDetails`, alors que `SecurityConfig` utilise `oauth2ResourceServer().jwt()` sans `JwtAuthenticationConverter` personnalisé, ce qui place un `Jwt` (et non un `UserDetailsImpl`) comme principal. Le point préexistait à la branche (présent sur `main`) et n'était pas dans le périmètre initial des 9 points ; il a été traité dans un commit dédié sur cette même branche.
 
 ---
 
@@ -224,13 +224,83 @@ Les éléments suivants ne bloquent pas ce merge (aucun ❌) mais restent à tra
 
 1. **Vault à mettre à jour** (divergence 1) : section « Points ouverts » de *Etapes d'implémentations.md*, ajout d'une entrée « PR `feat/user-profile` », et note de justification du choix d'endpoint `/api/users/me`.
 2. **`MethodArgumentNotValidException` non gérée explicitement** (divergence 3) — hérité des branches précédentes.
-3. **Doublon fonctionnel `/api/auth/me` / `/api/users/me`** (divergences 2 et 4) — à trancher.
+3. **Coexistence `/api/auth/me` / `/api/users/me`** (divergence 2) — tranchée : les deux sont conservés avec des rôles distincts (voir « Correctif post-audit », décision produit).
 4. **Checklist de tests manuels non exécutée** : `back/docs/USER_PROFILE_TEST_CHECKLIST.md` liste les scénarios de test manuel pour les 2 endpoints. Toutes les colonnes « Résultat observé » et « Statut » sont vides à ce jour.
+
+---
+
+## Correctif post-audit — `GET /api/auth/me` répondait 500 (NPE)
+
+### Bug
+
+`controller/AuthController.java:38` (état au commit `a8c3ac9`, identique à `main`) :
+```java
+public ResponseEntity<AuthenticatedUserResponse> me(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+    return ResponseEntity.ok(new AuthenticatedUserResponse(userDetails.getId(), userDetails.getUsername()));
+}
+```
+
+`security/SecurityConfig.java:22-23` configure `oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder)))` sans `JwtAuthenticationConverter` personnalisé : l'`Authentication` placée dans le `SecurityContext` est une `JwtAuthenticationToken` dont le principal est un `org.springframework.security.oauth2.jwt.Jwt`. `@AuthenticationPrincipal` avec un type de paramètre incompatible (`UserDetailsImpl`) injecte `null` (comportement par défaut, `errorOnInvalidType = false`), et `userDetails.getId()` lève une `NullPointerException` → **500 sur toute requête**, quel que soit le JWT. `UserDetailsImpl` n'est produit que par `UserDetailsServiceImpl` au moment du `login` via l'`AuthenticationManager` (`service/AuthService.java:57-61`), jamais lors de la validation d'un JWT.
+
+**Preuve par test, avant correction** — un `AuthControllerTest` minimal (`@WebMvcTest(AuthController.class)`, `@Import({SecurityConfig.class, GlobalExceptionHandler.class})`, `GET /api/auth/me` avec `jwt().jwt(jwt -> jwt.subject("1"))`, attendu 200) exécuté contre le code non corrigé :
+```
+Tests run: 1, Failures: 0, Errors: 1
+jakarta.servlet.ServletException: Request processing failed: java.lang.NullPointerException:
+  Cannot invoke "com.openclassrooms.mddapi.security.services.UserDetailsImpl.getId()" because "userDetails" is null
+```
+Le bug était réel, pas une fausse lecture d'audit.
+
+### Décision produit
+
+`/api/auth/me` et `/api/users/me` sont **tous deux conservés**, avec des rôles distincts :
+- `GET /api/auth/me` — endpoint léger « suis-je toujours authentifié ? », utilisé par le front au chargement de l'application pour valider le token. Renvoie `AuthenticatedUserResponse` (`id`, `username`).
+- `GET /api/users/me` — endpoint complet du profil (`email`, `username`, `subscriptions`). Renvoie `UserProfileResponse`.
+
+Aucun des deux n'est fusionné ni supprimé.
+
+### Correction
+
+`controller/AuthController.java:37-41` — alignement sur le pattern déjà en place dans `UserController`/`TopicController`/`PostController` :
+```java
+@GetMapping("/me")
+public ResponseEntity<AuthenticatedUserResponse> me(@AuthenticationPrincipal Jwt jwt) {
+    Long userId = Long.valueOf(jwt.getSubject());
+    return ResponseEntity.ok(authService.getCurrentUser(userId));
+}
+```
+L'import de `UserDetailsImpl` est retiré du contrôleur. `UserDetailsImpl` reste utilisé par `UserDetailsServiceImpl` et `AuthService.login` (cast du principal de l'`AuthenticationManager`) — il n'est pas supprimé.
+
+`service/AuthService.java:66-70` — le JWT ne porte que l'id (`sub`), le `username` est rechargé depuis la base :
+```java
+public AuthenticatedUserResponse getCurrentUser(Long userId) {
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException("Cet utilisateur n'existe pas"));
+    return new AuthenticatedUserResponse(user.getId(), user.getUsername());
+}
+```
+`UserNotFoundException` (créée dans ce chantier) est réutilisée : un JWT valide dont le `sub` ne correspond plus à aucun utilisateur (compte supprimé après émission du token) répond désormais 404 via `handleUserNotFound` (`exception/GlobalExceptionHandler.java:27-30`), au lieu de 500.
+
+### Tests ajoutés — `controller/AuthControllerTest.java` (nouveau, 4 tests)
+
+| Test | Vérifie |
+|---|---|
+| `me_avecJwtValide_retourne200EtIdPlusUsername` | 200, `id` et `username` corrects, absence de `email`/`passwordHash` dans le corps |
+| `me_utiliseLeSubDuJwtCommeIdUtilisateur` | `authService.getCurrentUser` est appelé avec `Long.valueOf(sub)` (sub `"42"` → `42L`) |
+| `me_userNotFoundException_retourne404` | 404 au format `ErrorResponse` (`status`, `message`) |
+| `me_sansJwt_retourne401` | 401 sans `Authorization`, service jamais appelé |
+
+Périmètre volontairement limité à `/api/auth/me` (`/register` et `/login` hors périmètre de ce fix).
+
+### Résultat après correction
+
+Suite complète (`./mvnw test`, variables `.env` exportées) : **79/79 verts** — `AuthControllerTest` 4/4, `UserControllerTest` 14/14, `PostControllerTest` 18/18, `TopicControllerTest` 10/10, `AuthServiceTest` 3/3, `UserServiceTest` 11/11, `PostServiceTest` 10/10, `TopicServiceTest` 8/8, `MddApiApplicationTests` 1/1. Aucune régression.
+
+Les 9 verdicts de l'audit initial (a–i) sont inchangés : ce correctif ne touche ni `UserController`, ni `UserService`, ni les DTOs du profil.
 
 ---
 
 ## Conclusion
 
-Les 9 points de l'audit sont ✅ dès la première lecture, sans correction nécessaire. Les 28 tests unitaires et d'intégration de la branche passent. Les divergences relevées concernent exclusivement la documentation du vault (obsolète sur le sujet du profil) et des points préexistants hors périmètre ; aucune ne remet en cause le code de la branche.
+Les 9 points de l'audit sont ✅ dès la première lecture, sans correction nécessaire sur le périmètre du profil. Le bug préexistant sur `GET /api/auth/me` (500 par NPE, hors périmètre initial) a été corrigé dans un commit dédié sur la même branche, avec 4 tests d'intégration ; la suite complète passe à 79/79. Les divergences relevées concernent exclusivement la documentation du vault (obsolète sur le sujet du profil) et des points préexistants hors périmètre ; aucune ne remet en cause le code de la branche.
 
 Conformément à la procédure spécifique à cette branche : **aucun merge local n'est effectué**. Les deux fichiers de documentation (`USER_PROFILE_MERGE_AUDIT.md`, `USER_PROFILE_TEST_CHECKLIST.md`) sont commités sur `feat/user-profile`, la branche est poussée sur `origin`, et le merge dans `main` se fera par Pull Request GitHub squashée, ouverte manuellement.
