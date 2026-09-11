@@ -24,8 +24,23 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException ex) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
     @ExceptionHandler(AlreadySubscribedException.class)
     public ResponseEntity<ErrorResponse> handleAlreadySubscribed(AlreadySubscribedException ex) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(EmailAlreadyUsedException.class)
+    public ResponseEntity<ErrorResponse> handleEmailAlreadyUsed(EmailAlreadyUsedException ex) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(UsernameAlreadyUsedException.class)
+    public ResponseEntity<ErrorResponse> handleUsernameAlreadyUsed(UsernameAlreadyUsedException ex) {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
     }
 

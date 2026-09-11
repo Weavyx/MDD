@@ -1,6 +1,7 @@
 package com.openclassrooms.mddapi.repository;
 
 import com.openclassrooms.mddapi.model.Subscription;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -13,6 +14,8 @@ import java.util.List;
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
 
     boolean existsByUserIdAndTopicId(Long userId, Long topicId);
+
+    @EntityGraph(attributePaths = "topic")
     List<Subscription> findByUserId(Long userId);
 
     @Query("SELECT s.topic.id FROM Subscription s WHERE s.user.id = :userId")
