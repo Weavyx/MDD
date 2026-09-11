@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 public class PostSummaryResponse {
     private Long id;
     private String title;
-    private String content;
+    private String excerpt;
     private LocalDateTime createdAt;
     private String topicName;
     private String author;

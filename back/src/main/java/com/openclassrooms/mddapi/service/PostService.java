@@ -23,6 +23,8 @@ import java.util.List;
 
 @Service
 public class PostService {
+    private static final int EXCERPT_MAX_LENGTH = 200;
+
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final TopicRepository topicRepository;
@@ -41,12 +43,19 @@ public class PostService {
                 .map(post -> new PostSummaryResponse(
                         post.getId(),
                         post.getTitle(),
-                        post.getContent(),
+                        excerpt(post.getContent()),
                         post.getCreatedAt(),
                         post.getTopic().getName(),
                         post.getUser().getUsername()
                 ))
                 .toList();
+    }
+
+    private String excerpt(String content) {
+        if (content.length() <= EXCERPT_MAX_LENGTH) {
+            return content;
+        }
+        return content.substring(0, EXCERPT_MAX_LENGTH) + "…";
     }
 
     @Transactional

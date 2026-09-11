@@ -53,8 +53,8 @@ class PostControllerTest {
     @Test
     void findFeed_sansParametreSort_retourne200EtLeFilTrieDesc() throws Exception {
         List<PostSummaryResponse> feed = List.of(
-                new PostSummaryResponse(2L, "Titre 2", "Contenu 2", LocalDateTime.of(2026, 9, 2, 10, 0), "Java", "alice"),
-                new PostSummaryResponse(1L, "Titre 1", "Contenu 1", LocalDateTime.of(2026, 9, 1, 10, 0), "Angular", "bob")
+                new PostSummaryResponse(2L, "Titre 2", "Extrait 2", LocalDateTime.of(2026, 9, 2, 10, 0), "Java", "alice"),
+                new PostSummaryResponse(1L, "Titre 1", "Extrait 1", LocalDateTime.of(2026, 9, 1, 10, 0), "Angular", "bob")
         );
         when(postService.findFeed(1L, Sort.Direction.DESC)).thenReturn(feed);
 
@@ -63,6 +63,7 @@ class PostControllerTest {
                 .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(2)))
                 .andExpect(jsonPath("$[0].id").value(2))
                 .andExpect(jsonPath("$[0].title").value("Titre 2"))
+                .andExpect(jsonPath("$[0].excerpt").value("Extrait 2"))
                 .andExpect(jsonPath("$[0].topicName").value("Java"))
                 .andExpect(jsonPath("$[0].author").value("alice"))
                 .andExpect(jsonPath("$[1].id").value(1));
@@ -71,7 +72,7 @@ class PostControllerTest {
     @Test
     void findFeed_sortAsc_retourne200EtAppelleLeServiceAvecAsc() throws Exception {
         List<PostSummaryResponse> feed = List.of(
-                new PostSummaryResponse(1L, "Titre 1", "Contenu 1", LocalDateTime.of(2026, 9, 1, 10, 0), "Angular", "bob")
+                new PostSummaryResponse(1L, "Titre 1", "Extrait 1", LocalDateTime.of(2026, 9, 1, 10, 0), "Angular", "bob")
         );
         when(postService.findFeed(1L, Sort.Direction.ASC)).thenReturn(feed);
 

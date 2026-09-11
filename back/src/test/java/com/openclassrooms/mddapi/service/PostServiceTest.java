@@ -68,10 +68,33 @@ class PostServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getId()).isEqualTo(1L);
         assertThat(result.get(0).getTitle()).isEqualTo("Titre");
-        assertThat(result.get(0).getContent()).isEqualTo("Contenu");
+        assertThat(result.get(0).getExcerpt()).isEqualTo("Contenu");
         assertThat(result.get(0).getCreatedAt()).isEqualTo(LocalDateTime.of(2026, 9, 1, 10, 0));
         assertThat(result.get(0).getTopicName()).isEqualTo("Java");
         assertThat(result.get(0).getAuthor()).isEqualTo("alice");
+    }
+
+    @Test
+    void findFeed_contenuDeExactement200Caracteres_extraitNonTronque() {
+        String content = "a".repeat(200);
+        Post post = new Post("Titre", content, new User(), new Topic("Java", "Description Java"));
+        when(postRepository.findPostsByUserId(10L, Sort.by(Sort.Direction.DESC, "createdAt"))).thenReturn(List.of(post));
+
+        List<PostSummaryResponse> result = postService.findFeed(10L, Sort.Direction.DESC);
+
+        assertThat(result.get(0).getExcerpt()).isEqualTo(content);
+    }
+
+    @Test
+    void findFeed_contenuDePlusDe200Caracteres_extraitTronqueA200SuiviDePointsDeSuspension() {
+        String content = "a".repeat(200) + "b".repeat(50);
+        Post post = new Post("Titre", content, new User(), new Topic("Java", "Description Java"));
+        when(postRepository.findPostsByUserId(10L, Sort.by(Sort.Direction.DESC, "createdAt"))).thenReturn(List.of(post));
+
+        List<PostSummaryResponse> result = postService.findFeed(10L, Sort.Direction.DESC);
+
+        assertThat(result.get(0).getExcerpt()).isEqualTo("a".repeat(200) + "…");
+        assertThat(result.get(0).getExcerpt()).hasSize(201);
     }
 
     @Test
