@@ -70,7 +70,7 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public PostDetailResponse findById(Long postId) {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findWithUserAndTopicById(postId)
                 .orElseThrow(() -> new PostNotFoundException("Cet article n'existe pas"));
 
         List<CommentResponse> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId).stream()

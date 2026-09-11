@@ -166,7 +166,7 @@ class PostServiceTest {
         Comment second = new Comment(commenter, post, "Second");
         setField(second, "id", 2L);
         setField(second, "createdAt", LocalDateTime.of(2026, 9, 1, 12, 0));
-        when(postRepository.findById(5L)).thenReturn(Optional.of(post));
+        when(postRepository.findWithUserAndTopicById(5L)).thenReturn(Optional.of(post));
         when(commentRepository.findByPostIdOrderByCreatedAtAsc(5L)).thenReturn(List.of(first, second));
 
         PostDetailResponse result = postService.findById(5L);
@@ -184,7 +184,7 @@ class PostServiceTest {
 
     @Test
     void findById_articleInexistant_postNotFoundExceptionEtCommentairesJamaisCharges() {
-        when(postRepository.findById(99L)).thenReturn(Optional.empty());
+        when(postRepository.findWithUserAndTopicById(99L)).thenReturn(Optional.empty());
 
         assertThrows(PostNotFoundException.class, () -> postService.findById(99L));
 

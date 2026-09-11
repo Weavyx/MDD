@@ -9,10 +9,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
     @EntityGraph(attributePaths = {"user", "topic"})
     @Query("SELECT p FROM Post p WHERE p.topic IN (SELECT s.topic FROM Subscription s WHERE s.user.id = :userId)")
     List<Post> findPostsByUserId(@Param("userId") Long userId, Sort sort);
+
+    @EntityGraph(attributePaths = {"user", "topic"})
+    Optional<Post> findWithUserAndTopicById(Long id);
 }
