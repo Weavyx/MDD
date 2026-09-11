@@ -1,6 +1,8 @@
 package com.openclassrooms.mddapi.repository;
 
 import com.openclassrooms.mddapi.model.Post;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,6 +12,7 @@ import java.util.List;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
+    @EntityGraph(attributePaths = {"user", "topic"})
     @Query("SELECT p FROM Post p WHERE p.topic IN (SELECT s.topic FROM Subscription s WHERE s.user.id = :userId)")
-    List<Post> findPostsByUserId(@Param("userId") Long userId);
+    List<Post> findPostsByUserId(@Param("userId") Long userId, Sort sort);
 }
