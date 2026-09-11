@@ -4,6 +4,9 @@ import com.openclassrooms.mddapi.dto.AuthResponse;
 import com.openclassrooms.mddapi.dto.AuthenticatedUserResponse;
 import com.openclassrooms.mddapi.dto.LoginRequest;
 import com.openclassrooms.mddapi.dto.RegisterRequest;
+import com.openclassrooms.mddapi.exception.EmailAlreadyUsedException;
+import com.openclassrooms.mddapi.exception.UserNotFoundException;
+import com.openclassrooms.mddapi.exception.UsernameAlreadyUsedException;
 import com.openclassrooms.mddapi.model.User;
 import com.openclassrooms.mddapi.repository.UserRepository;
 import com.openclassrooms.mddapi.security.jwt.JwtService;
@@ -33,10 +36,10 @@ public class AuthService {
         String requestUsername = request.getUsername();
 
         if(userRepository.existsByEmail(requestEmail)){
-            throw new RuntimeException("Cet email est déjà utilisé");
+            throw new EmailAlreadyUsedException("Cet email est déjà utilisé");
         }
         if(userRepository.existsByUsername(requestUsername)){
-            throw new RuntimeException("Ce nom d'utilisateur est déjà utilisé");
+            throw new UsernameAlreadyUsedException("Ce nom d'utilisateur est déjà utilisé");
         }
 
         User user = new User();
@@ -58,6 +61,12 @@ public class AuthService {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
         return new AuthResponse(jwtService.generateToken(userDetails.getId().toString()));
+    }
+
+    public AuthenticatedUserResponse getCurrentUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("Cet utilisateur n'existe pas"));
+        return new AuthenticatedUserResponse(user.getId(), user.getUsername());
     }
 
 }

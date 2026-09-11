@@ -4,12 +4,12 @@ import com.openclassrooms.mddapi.dto.AuthResponse;
 import com.openclassrooms.mddapi.dto.AuthenticatedUserResponse;
 import com.openclassrooms.mddapi.dto.LoginRequest;
 import com.openclassrooms.mddapi.dto.RegisterRequest;
-import com.openclassrooms.mddapi.security.services.UserDetailsImpl;
 import com.openclassrooms.mddapi.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -35,7 +35,8 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<AuthenticatedUserResponse> me(@AuthenticationPrincipal UserDetailsImpl userDetails) {
-        return ResponseEntity.ok(new AuthenticatedUserResponse(userDetails.getId(), userDetails.getUsername()));
+    public ResponseEntity<AuthenticatedUserResponse> me(@AuthenticationPrincipal Jwt jwt) {
+        Long userId = Long.valueOf(jwt.getSubject());
+        return ResponseEntity.ok(authService.getCurrentUser(userId));
     }
 }
