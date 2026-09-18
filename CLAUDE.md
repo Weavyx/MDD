@@ -20,7 +20,7 @@ Guidance for Claude Code when working in this repository (MDD — "Monde de Dev"
 ```
 
 - JaCoCo report is produced by `verify` in `target/site/jacoco/` (one agent for both Surefire and Failsafe; no threshold, no excludes on purpose).
-- Maven does **not** read the root `.env`. Tests need nothing from it (Testcontainers overrides the datasource via `@DynamicPropertySource`). Running the app does: `application-local.properties` (gitignored, not tracked) holds only `spring.datasource.password=${MYSQL_PASSWORD}` and `mdd.jwt.secret=${JWT_SECRET}`, so export the `.env` variables into the shell first.
+- Maven does **not** read the root `.env`, so export its variables into the shell before `verify` or `spring-boot:run`. `application-local.properties` (gitignored, not tracked) holds only `spring.datasource.password=${MYSQL_PASSWORD}` and `mdd.jwt.secret=${JWT_SECRET}`; the datasource is overridden by Testcontainers, but `MddApiApplicationIT` (`@SpringBootTest`) loads `JwtConfig` and fails with `Could not resolve placeholder 'JWT_SECRET'` if the variable is missing (verified). `./mvnw test` alone needs nothing.
 - `docker compose up -d` at the root starts `mdd-mysql` from the same `.env`.
 
 ### Frontend (`front/`)
