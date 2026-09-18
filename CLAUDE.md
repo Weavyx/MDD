@@ -5,7 +5,7 @@ Guidance for Claude Code when working in this repository (MDD — "Monde de Dev"
 ## State of the project
 
 - `back/` — Spring Boot 4.1 / Java 21 API, **complete for the MVP**: 11 endpoints (2 public: `POST /api/auth/register|login`; 9 under JWT), 5 JPA entities (`User`, `Topic`, `Subscription`, `Post`, `Comment`), 126 tests green. Deliverable reports live in `back/docs/` (`RAPPORT_DE_TESTS.md`, `REVUE_TECHNIQUE.md`); `TESTS_REVIEW.md` is the dated journal of the test review; `*_MERGE_AUDIT.md` are historical PR audits partly superseded by later refactors (#12, #13); `*_TEST_CHECKLIST.md` are manual Postman checklists that were **never executed** (result columns empty).
-- `front/` — Angular 21 standalone skeleton only: `app.routes.ts` is `[]`, no feature, service, guard or interceptor exists. Angular Material/CDK are installed but not imported anywhere.
+- `front/` — Angular 21 standalone skeleton only: `app.routes.ts` is `[]`, no feature, service, guard or interceptor exists. Angular Material/CDK are installed; only the Material theme is used (`src/styles.scss`), no Material component anywhere.
 - `front-legacy/` — gitignored Angular 14 reference; never build there.
 
 ## Commands
