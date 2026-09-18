@@ -4,7 +4,6 @@ import com.openclassrooms.mddapi.dto.CommentResponse;
 import com.openclassrooms.mddapi.dto.CreateCommentRequest;
 import com.openclassrooms.mddapi.dto.CreatePostRequest;
 import com.openclassrooms.mddapi.dto.PostDetailResponse;
-import com.openclassrooms.mddapi.dto.PostSummaryResponse;
 import com.openclassrooms.mddapi.exception.GlobalExceptionHandler;
 import com.openclassrooms.mddapi.exception.PostNotFoundException;
 import com.openclassrooms.mddapi.exception.TopicNotFoundException;
@@ -14,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -49,66 +47,6 @@ class PostControllerIT {
 
     @MockitoBean
     private JwtDecoder jwtDecoder;
-
-    @Test
-    void findFeed_sansParametreSort_retourne200EtLeFilTrieDesc() throws Exception {
-        List<PostSummaryResponse> feed = List.of(
-                new PostSummaryResponse(2L, "Titre 2", "Extrait 2", LocalDateTime.of(2026, 9, 2, 10, 0), "Java", "alice"),
-                new PostSummaryResponse(1L, "Titre 1", "Extrait 1", LocalDateTime.of(2026, 9, 1, 10, 0), "Angular", "bob")
-        );
-        when(postService.findFeed(1L, Sort.Direction.DESC)).thenReturn(feed);
-
-        mockMvc.perform(get("/api/posts").with(jwt().jwt(jwt -> jwt.subject("1"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(2)))
-                .andExpect(jsonPath("$[0].id").value(2))
-                .andExpect(jsonPath("$[0].title").value("Titre 2"))
-                .andExpect(jsonPath("$[0].excerpt").value("Extrait 2"))
-                .andExpect(jsonPath("$[0].topicName").value("Java"))
-                .andExpect(jsonPath("$[0].author").value("alice"))
-                .andExpect(jsonPath("$[1].id").value(1));
-    }
-
-    @Test
-    void findFeed_sortAsc_retourne200EtAppelleLeServiceAvecAsc() throws Exception {
-        List<PostSummaryResponse> feed = List.of(
-                new PostSummaryResponse(1L, "Titre 1", "Extrait 1", LocalDateTime.of(2026, 9, 1, 10, 0), "Angular", "bob")
-        );
-        when(postService.findFeed(1L, Sort.Direction.ASC)).thenReturn(feed);
-
-        mockMvc.perform(get("/api/posts").param("sort", "asc").with(jwt().jwt(jwt -> jwt.subject("1"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)))
-                .andExpect(jsonPath("$[0].id").value(1));
-
-        verify(postService).findFeed(1L, Sort.Direction.ASC);
-    }
-
-    @Test
-    void findFeed_sortDesc_retourne200EtAppelleLeServiceAvecDesc() throws Exception {
-        when(postService.findFeed(1L, Sort.Direction.DESC)).thenReturn(List.of());
-
-        mockMvc.perform(get("/api/posts").param("sort", "desc").with(jwt().jwt(jwt -> jwt.subject("1"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(0)));
-
-        verify(postService).findFeed(1L, Sort.Direction.DESC);
-    }
-
-    @Test
-    void findFeed_sortInvalide_retourne400() throws Exception {
-        mockMvc.perform(get("/api/posts").param("sort", "random").with(jwt().jwt(jwt -> jwt.subject("1"))))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400));
-
-        verify(postService, never()).findFeed(anyLong(), any());
-    }
-
-    @Test
-    void findFeed_sansJwt_retourne401() throws Exception {
-        mockMvc.perform(get("/api/posts"))
-                .andExpect(status().isUnauthorized());
-    }
 
     @Test
     void create_avecJwtValideEtCorpsValide_retourne201EtLocation() throws Exception {

@@ -3,11 +3,8 @@ package com.openclassrooms.mddapi.controller;
 import com.openclassrooms.mddapi.dto.CreateCommentRequest;
 import com.openclassrooms.mddapi.dto.CreatePostRequest;
 import com.openclassrooms.mddapi.dto.PostDetailResponse;
-import com.openclassrooms.mddapi.dto.PostSummaryResponse;
 import com.openclassrooms.mddapi.service.PostService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Pattern;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -26,14 +22,6 @@ public class PostController {
 
     public PostController(PostService postService) {
         this.postService = postService;
-    }
-
-    @GetMapping
-    public ResponseEntity<List<PostSummaryResponse>> findFeed(
-            @AuthenticationPrincipal Jwt jwt,
-            @RequestParam(defaultValue = "desc") @Pattern(regexp = "asc|desc") String sort) {
-        Long userId = Long.valueOf(jwt.getSubject());
-        return ResponseEntity.ok(postService.findFeed(userId, Sort.Direction.fromString(sort)));
     }
 
     @PostMapping
