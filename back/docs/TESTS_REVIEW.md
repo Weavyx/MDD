@@ -263,8 +263,8 @@ différentes**, ce qui n'était documenté nulle part :
 
 `fieldErrors` est une `Map` indexée par **nom de champ du DTO** (`email`, `username`,
 `title`…), dont les valeurs sont les `message` déclarés dans les annotations de
-validation. Aucun des 16 tests de validation ne l'assertait ; trois d'entre eux le font
-désormais, un par contrôleur concerné.
+validation. Aucun des 15 tests de validation de corps ne l'assertait ; six assertions
+`fieldErrors.<champ>` existent désormais, deux par contrôleur concerné.
 
 Les deux formes divergentes sont désormais **figées par un test**, ce qui ne les corrige
 pas mais rend toute régression visible et le comportement explicite pour le front.
@@ -303,8 +303,9 @@ Relevés pendant l'audit, hors du périmètre de ce chantier :
   entre deux couches resterait invisible. Quelques `@SpringBootTest` sur Testcontainers
   (l'infrastructure `AbstractContainerIT` existe déjà) couvriraient ce trou — c'est une
   limite assumée de l'architecture en strates, pas un oubli.
-- **Aucun test de JWT présent mais invalide ou expiré.** Les onze tests de sécurité
-  vérifient tous l'*absence* de token ; le `JwtDecoder` mocké dans les contrôleurs n'est
+- **Aucun test de JWT présent mais invalide ou expiré.** Les dix tests assertant un 401
+  vérifient soit l'*absence* de token (neuf), soit des identifiants de connexion
+  invalides (un) ; le `JwtDecoder` mocké dans les contrôleurs n'est
   jamais configuré pour lever une `JwtException`. Le scénario le plus fréquent en
   production — un utilisateur revenant après expiration — n'est pas couvert.
 - **Mutation testing outillé** : PIT automatiserait ce que ce chantier a fait à la main.
@@ -331,3 +332,10 @@ informative.
 code de production et en contrôlant que le test concerné échoue bien. Aucun outil de
 mutation testing n'a été ajouté au projet ; le code de production est resté intact à
 chaque étape (`git diff src/main/java` vide).
+
+---
+
+**Correctif du 19 septembre 2026** — trois décomptes corrigés dans ce document, le reste est inchangé :
+- « 16 tests de validation » → 15 : nombre de tests `*ControllerIT` dont le nom se termine par `retourne400…` et qui exercent la validation `@Valid` d'un corps de requête (mesuré par grep sur `void \w+400`, hors JSON malformé et hors paramètres d'URL).
+- « trois d'entre eux le font désormais, un par contrôleur » → six assertions `jsonPath("$.fieldErrors.<champ>")`, deux par contrôleur (mesuré par grep `fieldErrors\.` dans `AuthControllerIT`, `PostControllerIT`, `UserControllerIT`).
+- « onze tests de sécurité » → dix tests assertant `status().isUnauthorized()` : neuf `*_sansJwt_retourne401` (Topic 1, Post 3, User 5) et `login_identifiantsInvalides_retourne401` (mesuré par grep `isUnauthorized\(\)` dans `src/test/java`).
