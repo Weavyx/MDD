@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -75,7 +76,10 @@ class UserControllerIT {
                 .andExpect(jsonPath("$.subscriptions[0].id").value(10))
                 .andExpect(jsonPath("$.subscriptions[0].name").value("Java"))
                 .andExpect(jsonPath("$.subscriptions[0].subscribed").value(true))
-                .andExpect(jsonPath("$.subscriptions[1].id").value(20));
+                .andExpect(jsonPath("$.subscriptions[1].id").value(20))
+                // Séparation DTO/entité : aucun secret ne doit fuiter dans la réponse.
+                .andExpect(jsonPath("$.passwordHash").doesNotExist())
+                .andExpect(jsonPath("$.password").doesNotExist());
     }
 
     @Test
@@ -117,7 +121,10 @@ class UserControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.email").value("alice2@mail.com"))
-                .andExpect(jsonPath("$.username").value("alice2"));
+                .andExpect(jsonPath("$.username").value("alice2"))
+                // Séparation DTO/entité : aucun secret ne doit fuiter dans la réponse.
+                .andExpect(jsonPath("$.passwordHash").doesNotExist())
+                .andExpect(jsonPath("$.password").doesNotExist());
 
         verify(userService).updateProfile(1L, request);
     }
@@ -196,7 +203,13 @@ class UserControllerIT {
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"pas-un-email\",\"username\":\"alice\"}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                // Contrat d'erreur de validation : fieldErrors indexé par nom de champ du DTO,
+                // valeur = message déclaré dans l'annotation (affichage par champ côté front).
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Requête invalide"))
+                .andExpect(jsonPath("$.fieldErrors").isMap())
+                .andExpect(jsonPath("$.fieldErrors.email").value("L'adresse e-mail doit être valide"));
 
         verify(userService, never()).updateProfile(anyLong(), any());
     }
@@ -224,6 +237,19 @@ class UserControllerIT {
     }
 
     @Test
+    void updateProfile_usernameAbsent_retourne400EtServiceJamaisAppele() throws Exception {
+        mockMvc.perform(put("/api/users/me")
+                        .with(jwt().jwt(jwt -> jwt.subject("1")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"alice@mail.com\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.fieldErrors.username").value("Le nom d'utilisateur est obligatoire"));
+
+        verify(userService, never()).updateProfile(anyLong(), any());
+    }
+
+    @Test
     void updateProfile_sansJwt_retourne401() throws Exception {
         mockMvc.perform(put("/api/users/me")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -233,10 +259,13 @@ class UserControllerIT {
 
     @Test
     void subscribe_avecJwtValideEtSucces_retourne200() throws Exception {
-        doNothing().when(userService).subscribe(1L, 1L);
+        // Ids distincts : une inversion (topicId, userId) dans le controller doit être détectée.
+        doNothing().when(userService).subscribe(42L, 7L);
 
-        mockMvc.perform(post("/api/users/me/subscriptions/{topicId}", 1L).with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(post("/api/users/me/subscriptions/{topicId}", 7L).with(jwt().jwt(jwt -> jwt.subject("42"))))
                 .andExpect(status().isOk());
+
+        verify(userService).subscribe(42L, 7L);
     }
 
     @Test
@@ -245,7 +274,9 @@ class UserControllerIT {
                 .when(userService).subscribe(1L, 99L);
 
         mockMvc.perform(post("/api/users/me/subscriptions/{topicId}", 99L).with(jwt().jwt(jwt -> jwt.subject("1"))))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message").value("Ce topic n'existe pas"));
     }
 
     @Test
@@ -254,7 +285,20 @@ class UserControllerIT {
                 .when(userService).subscribe(1L, 1L);
 
         mockMvc.perform(post("/api/users/me/subscriptions/{topicId}", 1L).with(jwt().jwt(jwt -> jwt.subject("1"))))
-                .andExpect(status().isConflict());
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message").value("Vous êtes déjà abonné à ce topic"));
+    }
+
+    @Test
+    void subscribe_dataIntegrityViolationException_retourne409() throws Exception {
+        doThrow(new DataIntegrityViolationException("Duplicate entry"))
+                .when(userService).subscribe(1L, 1L);
+
+        mockMvc.perform(post("/api/users/me/subscriptions/{topicId}", 1L).with(jwt().jwt(jwt -> jwt.subject("1"))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message").value("La ressource entre en conflit avec une contrainte existante"));
     }
 
     @Test
@@ -266,15 +310,22 @@ class UserControllerIT {
     @Test
     void subscribe_topicIdNonNumeriqueDansUrl_retourne400() throws Exception {
         mockMvc.perform(post("/api/users/me/subscriptions/{topicId}", "abc").with(jwt().jwt(jwt -> jwt.subject("1"))))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Le paramètre fourni est invalide"));
+
+        verify(userService, never()).subscribe(anyLong(), anyLong());
     }
 
     @Test
     void unsubscribe_avecJwtValideEtSucces_retourne204() throws Exception {
-        doNothing().when(userService).unsubscribe(1L, 1L);
+        // Ids distincts : une inversion (topicId, userId) dans le controller doit être détectée.
+        doNothing().when(userService).unsubscribe(42L, 7L);
 
-        mockMvc.perform(delete("/api/users/me/subscriptions/{topicId}", 1L).with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(delete("/api/users/me/subscriptions/{topicId}", 7L).with(jwt().jwt(jwt -> jwt.subject("42"))))
                 .andExpect(status().isNoContent());
+
+        verify(userService).unsubscribe(42L, 7L);
     }
 
     @Test
@@ -283,7 +334,19 @@ class UserControllerIT {
                 .when(userService).unsubscribe(1L, 99L);
 
         mockMvc.perform(delete("/api/users/me/subscriptions/{topicId}", 99L).with(jwt().jwt(jwt -> jwt.subject("1"))))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message").value("Ce topic n'existe pas"));
+    }
+
+    @Test
+    void unsubscribe_topicIdNonNumeriqueDansUrl_retourne400() throws Exception {
+        mockMvc.perform(delete("/api/users/me/subscriptions/{topicId}", "abc").with(jwt().jwt(jwt -> jwt.subject("1"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Le paramètre fourni est invalide"));
+
+        verify(userService, never()).unsubscribe(anyLong(), anyLong());
     }
 
     @Test

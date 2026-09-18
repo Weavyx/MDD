@@ -83,7 +83,26 @@ class PostControllerIT {
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"topicId\":3,\"title\":\"   \",\"content\":\"Le contenu\"}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                // Contrat d'erreur de validation : fieldErrors indexé par nom de champ du DTO,
+                // valeur = message déclaré dans l'annotation (affichage par champ côté front).
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Requête invalide"))
+                .andExpect(jsonPath("$.fieldErrors").isMap())
+                .andExpect(jsonPath("$.fieldErrors.title").value("Le titre est obligatoire"));
+
+        verify(postService, never()).create(anyLong(), any());
+    }
+
+    @Test
+    void create_contenuVide_retourne400EtServiceJamaisAppele() throws Exception {
+        mockMvc.perform(post("/api/posts")
+                        .with(jwt().jwt(jwt -> jwt.subject("1")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"topicId\":3,\"title\":\"Mon article\",\"content\":\"   \"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.fieldErrors.content").value("Le contenu est obligatoire"));
 
         verify(postService, never()).create(anyLong(), any());
     }
@@ -142,7 +161,11 @@ class PostControllerIT {
     @Test
     void findById_idNonNumeriqueDansUrl_retourne400() throws Exception {
         mockMvc.perform(get("/api/posts/{id}", "abc").with(jwt().jwt(jwt -> jwt.subject("1"))))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Le paramètre fourni est invalide"));
+
+        verify(postService, never()).findById(anyLong());
     }
 
     @Test

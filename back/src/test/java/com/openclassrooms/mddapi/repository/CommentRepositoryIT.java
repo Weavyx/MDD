@@ -4,9 +4,9 @@ import com.openclassrooms.mddapi.model.Comment;
 import com.openclassrooms.mddapi.model.Post;
 import com.openclassrooms.mddapi.model.Topic;
 import com.openclassrooms.mddapi.model.User;
+import org.hibernate.Hibernate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDateTime;
@@ -15,9 +15,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CommentRepositoryIT extends AbstractRepositoryIT {
-
-    @Autowired
-    private TestEntityManager entityManager;
 
     @Autowired
     private CommentRepository commentRepository;
@@ -51,32 +48,15 @@ class CommentRepositoryIT extends AbstractRepositoryIT {
 
         assertThat(comments).extracting(Comment::getId)
                 .containsExactly(comment2.getId(), comment3.getId(), comment1.getId());
+        // La session de @DataJpaTest reste ouverte : getUser() réussirait même sans
+        // @EntityGraph (chargement lazy silencieux). On vérifie donc que la relation
+        // est déjà initialisée AVANT tout accès.
+        assertThat(comments).allSatisfy(comment -> assertThat(Hibernate.isInitialized(comment.getUser())).isTrue());
         assertThat(comments).allSatisfy(comment -> assertThat(comment.getUser().getUsername()).isEqualTo("alice"));
     }
 
     private void setCreatedAt(Long commentId, LocalDateTime createdAt) {
         jdbcTemplate.update("UPDATE comments SET created_at = ? WHERE id = ?", createdAt, commentId);
-    }
-
-    private User persistUser(String email, String username) {
-        User user = new User();
-        user.setEmail(email);
-        user.setUsername(username);
-        user.setPasswordHash("hashed-password");
-        entityManager.persistAndFlush(user);
-        return user;
-    }
-
-    private Topic persistTopic(String name, String description) {
-        Topic topic = new Topic(name, description);
-        entityManager.persistAndFlush(topic);
-        return topic;
-    }
-
-    private Post persistPost(String title, String content, User user, Topic topic) {
-        Post post = new Post(title, content, user, topic);
-        entityManager.persistAndFlush(post);
-        return post;
     }
 
     private Comment persistComment(User user, Post post, String content) {
