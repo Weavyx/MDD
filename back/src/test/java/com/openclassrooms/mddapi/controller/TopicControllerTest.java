@@ -67,7 +67,7 @@ class TopicControllerTest {
     void subscribe_avecJwtValideEtSucces_retourne200() throws Exception {
         doNothing().when(topicService).subscribe(1L, 1L);
 
-        mockMvc.perform(post("/api/topics/{id}/subscribe", 1L).with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(post("/api/topics/{id}/subscription", 1L).with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isOk());
     }
 
@@ -76,7 +76,7 @@ class TopicControllerTest {
         doThrow(new TopicNotFoundException("Ce topic n'existe pas"))
                 .when(topicService).subscribe(1L, 99L);
 
-        mockMvc.perform(post("/api/topics/{id}/subscribe", 99L).with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(post("/api/topics/{id}/subscription", 99L).with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isNotFound());
     }
 
@@ -85,19 +85,19 @@ class TopicControllerTest {
         doThrow(new AlreadySubscribedException("Vous êtes déjà abonné à ce topic"))
                 .when(topicService).subscribe(1L, 1L);
 
-        mockMvc.perform(post("/api/topics/{id}/subscribe", 1L).with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(post("/api/topics/{id}/subscription", 1L).with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isConflict());
     }
 
     @Test
     void subscribe_sansJwt_retourne401() throws Exception {
-        mockMvc.perform(post("/api/topics/{id}/subscribe", 1L))
+        mockMvc.perform(post("/api/topics/{id}/subscription", 1L))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void subscribe_idNonNumeriqueDansUrl_retourne400() throws Exception {
-        mockMvc.perform(post("/api/topics/{id}/subscribe", "abc").with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(post("/api/topics/{id}/subscription", "abc").with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -105,7 +105,7 @@ class TopicControllerTest {
     void unsubscribe_avecJwtValideEtSucces_retourne204() throws Exception {
         doNothing().when(topicService).unsubscribe(1L, 1L);
 
-        mockMvc.perform(delete("/api/topics/{id}/subscribe", 1L).with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(delete("/api/topics/{id}/subscription", 1L).with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isNoContent());
     }
 
@@ -114,13 +114,13 @@ class TopicControllerTest {
         doThrow(new TopicNotFoundException("Ce topic n'existe pas"))
                 .when(topicService).unsubscribe(1L, 99L);
 
-        mockMvc.perform(delete("/api/topics/{id}/subscribe", 99L).with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(delete("/api/topics/{id}/subscription", 99L).with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void unsubscribe_sansJwt_retourne401() throws Exception {
-        mockMvc.perform(delete("/api/topics/{id}/subscribe", 1L))
+        mockMvc.perform(delete("/api/topics/{id}/subscription", 1L))
                 .andExpect(status().isUnauthorized());
     }
 }

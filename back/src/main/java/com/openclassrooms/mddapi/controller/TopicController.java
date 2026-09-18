@@ -25,14 +25,14 @@ public class TopicController {
         return ResponseEntity.ok(topicService.findAllWithSubscriptionStatus(userId));
     }
 
-    @PostMapping("/{id}/subscribe")
+    @PostMapping("/{id}/subscription")
     public ResponseEntity<Void> subscribe(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         Long userId = Long.valueOf(jwt.getSubject());
         topicService.subscribe(userId, id);
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/{id}/subscribe")
+    @DeleteMapping("/{id}/subscription")
     public ResponseEntity<Void> unsubscribe(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         Long userId = Long.valueOf(jwt.getSubject());
         topicService.unsubscribe(userId, id);
