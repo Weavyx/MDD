@@ -8,7 +8,7 @@ Préalable commun : deux comptes existants en base, désignés ci-dessous **A** 
 |---|----------|--------------------------------------------------|--------------|--------------------------|-------------------|--------|
 | 1 | Profil nominal, avec abonnements | `GET /api/users/me` avec JWT de A ; A abonné à au moins deux topics | 200 | `UserProfileResponse` : `id` = id de A, `email`, `username`, `subscriptions` = tableau de `TopicResponse` (`id`, `name`, `description`, `subscribed: true`) contenant exactement les topics suivis par A ; aucun champ `passwordHash`/`password` | | |
 | 2 | Profil nominal, sans abonnement | `GET /api/users/me` avec JWT de A ; A n'a aucun abonnement (ou après désabonnement de tous ses topics) | 200 | Même structure, `subscriptions: []` | | |
-| 3 | Abonnements reflétés après modification | `POST /api/topics/{id}/subscribe` puis `GET /api/users/me` | 200 (sur le `GET`) | Le topic nouvellement suivi apparaît dans `subscriptions` avec `subscribed: true` | | |
+| 3 | Abonnements reflétés après modification | `POST /api/topics/{id}/subscription` puis `GET /api/users/me` | 200 (sur le `GET`) | Le topic nouvellement suivi apparaît dans `subscriptions` avec `subscribed: true` | | |
 | 4 | Aucun JWT fourni | `GET /api/users/me` sans en-tête `Authorization` | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
 | 5 | JWT invalide/expiré | `GET /api/users/me` avec `Authorization: Bearer <token invalide ou expiré>` | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
 

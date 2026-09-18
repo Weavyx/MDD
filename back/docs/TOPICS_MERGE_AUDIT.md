@@ -1,5 +1,7 @@
 # Audit de la branche `feat/topics-subscriptions` avant merge dans `main`
 
+> **Note du 12 septembre** : l'endpoint audité ci-dessous (`/subscribe`) a été renommé en `/subscription` après cette date — voir [[Verbe dans l'URL pour l'endpoint subscribe pour MDD]] dans le vault. Cet audit reste inchangé par ailleurs : il documente fidèlement l'état du code au moment du merge du 4 septembre.
+
 Audit en lecture seule — aucun fichier de code n'a été modifié. Périmètre analysé :
 
 - `repository/SubscriptionRepository.java`

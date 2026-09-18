@@ -9,24 +9,24 @@
 | 3 | Aucun JWT fourni | `GET /api/topics` sans en-tête `Authorization` | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
 | 4 | JWT invalide/expiré | `GET /api/topics` avec `Authorization: Bearer <token invalide ou expiré>` | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
 
-## POST /api/topics/{id}/subscribe
+## POST /api/topics/{id}/subscription
 
 | # | Scénario | Requête (méthode + état préalable nécessaire) | Code attendu | Corps attendu (résumé) | Résultat observé | Statut |
 |---|----------|--------------------------------------------------|--------------|--------------------------|-------------------|--------|
-| 5 | Topic existant, pas encore abonné | `POST /api/topics/{id}/subscribe` avec JWT valide ; `id` existant en base ; aucun abonnement préalable pour ce couple utilisateur/topic | 200 | Corps vide | | |
-| 6 | Topic existant, déjà abonné | `POST /api/topics/{id}/subscribe` avec JWT valide ; abonnement déjà existant pour ce couple utilisateur/topic | 409 | Message d'erreur "Vous êtes déjà abonné à ce topic" | | |
-| 7 | Topic inexistant (id absent en base) | `POST /api/topics/{id}/subscribe` avec JWT valide ; `id` ne correspondant à aucun topic | 404 | Message d'erreur "Ce topic n'existe pas" | | |
-| 8 | Aucun JWT | `POST /api/topics/{id}/subscribe` sans en-tête `Authorization` | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
-| 9 | id non numérique dans l'URL (ex: `/api/topics/abc/subscribe`) | `POST /api/topics/abc/subscribe` avec JWT valide | à vérifier - non garanti par le code actuel | à déterminer lors du test | | |
+| 5 | Topic existant, pas encore abonné | `POST /api/topics/{id}/subscription` avec JWT valide ; `id` existant en base ; aucun abonnement préalable pour ce couple utilisateur/topic | 200 | Corps vide | | |
+| 6 | Topic existant, déjà abonné | `POST /api/topics/{id}/subscription` avec JWT valide ; abonnement déjà existant pour ce couple utilisateur/topic | 409 | Message d'erreur "Vous êtes déjà abonné à ce topic" | | |
+| 7 | Topic inexistant (id absent en base) | `POST /api/topics/{id}/subscription` avec JWT valide ; `id` ne correspondant à aucun topic | 404 | Message d'erreur "Ce topic n'existe pas" | | |
+| 8 | Aucun JWT | `POST /api/topics/{id}/subscription` sans en-tête `Authorization` | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
+| 9 | id non numérique dans l'URL (ex: `/api/topics/abc/subscription`) | `POST /api/topics/abc/subscription` avec JWT valide | à vérifier - non garanti par le code actuel | à déterminer lors du test | | |
 
-## DELETE /api/topics/{id}/subscribe
+## DELETE /api/topics/{id}/subscription
 
 | # | Scénario | Requête (méthode + état préalable nécessaire) | Code attendu | Corps attendu (résumé) | Résultat observé | Statut |
 |---|----------|--------------------------------------------------|--------------|--------------------------|-------------------|--------|
-| 10 | Abonnement existant | `DELETE /api/topics/{id}/subscribe` avec JWT valide ; abonnement existant pour ce couple utilisateur/topic | 204 | Corps vide | | |
-| 11 | Aucun abonnement existant, topic existant (idempotence) | `DELETE /api/topics/{id}/subscribe` avec JWT valide ; `id` existant en base mais aucun abonnement pour ce couple utilisateur/topic | 204 | Corps vide | | |
-| 12 | Topic inexistant | `DELETE /api/topics/{id}/subscribe` avec JWT valide ; `id` ne correspondant à aucun topic | 404 | Message d'erreur "Ce topic n'existe pas" | | |
-| 13 | Aucun JWT | `DELETE /api/topics/{id}/subscribe` sans en-tête `Authorization` | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
+| 10 | Abonnement existant | `DELETE /api/topics/{id}/subscription` avec JWT valide ; abonnement existant pour ce couple utilisateur/topic | 204 | Corps vide | | |
+| 11 | Aucun abonnement existant, topic existant (idempotence) | `DELETE /api/topics/{id}/subscription` avec JWT valide ; `id` existant en base mais aucun abonnement pour ce couple utilisateur/topic | 204 | Corps vide | | |
+| 12 | Topic inexistant | `DELETE /api/topics/{id}/subscription` avec JWT valide ; `id` ne correspondant à aucun topic | 404 | Message d'erreur "Ce topic n'existe pas" | | |
+| 13 | Aucun JWT | `DELETE /api/topics/{id}/subscription` sans en-tête `Authorization` | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
 
 ## Notes de justification
 
