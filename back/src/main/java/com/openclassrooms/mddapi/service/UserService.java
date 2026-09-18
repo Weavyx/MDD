@@ -4,12 +4,16 @@ import com.openclassrooms.mddapi.dto.TopicResponse;
 import com.openclassrooms.mddapi.dto.UpdateProfileRequest;
 import com.openclassrooms.mddapi.dto.UserProfileResponse;
 import com.openclassrooms.mddapi.dto.UserResponse;
+import com.openclassrooms.mddapi.exception.AlreadySubscribedException;
 import com.openclassrooms.mddapi.exception.EmailAlreadyUsedException;
+import com.openclassrooms.mddapi.exception.TopicNotFoundException;
 import com.openclassrooms.mddapi.exception.UserNotFoundException;
 import com.openclassrooms.mddapi.exception.UsernameAlreadyUsedException;
+import com.openclassrooms.mddapi.model.Subscription;
 import com.openclassrooms.mddapi.model.Topic;
 import com.openclassrooms.mddapi.model.User;
 import com.openclassrooms.mddapi.repository.SubscriptionRepository;
+import com.openclassrooms.mddapi.repository.TopicRepository;
 import com.openclassrooms.mddapi.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,11 +25,13 @@ import java.util.List;
 public class UserService {
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final TopicRepository topicRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, SubscriptionRepository subscriptionRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, SubscriptionRepository subscriptionRepository, TopicRepository topicRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.subscriptionRepository = subscriptionRepository;
+        this.topicRepository = topicRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -65,6 +71,28 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
         return new UserResponse(savedUser.getId(), savedUser.getEmail(), savedUser.getUsername());
+    }
+
+    @Transactional
+    public void subscribe(Long userId, Long topicId) {
+        Topic topic = topicRepository.findById(topicId)
+                .orElseThrow(() -> new TopicNotFoundException("Ce topic n'existe pas"));
+
+        if (subscriptionRepository.existsByUserIdAndTopicId(userId, topicId)) {
+            throw new AlreadySubscribedException("Vous êtes déjà abonné à ce topic");
+        }
+
+        User user = userRepository.getReferenceById(userId);
+        Subscription subscription = new Subscription(user, topic);
+        subscriptionRepository.save(subscription);
+    }
+
+    @Transactional
+    public void unsubscribe(Long userId, Long topicId) {
+        topicRepository.findById(topicId)
+                .orElseThrow(() -> new TopicNotFoundException("Ce topic n'existe pas"));
+
+        subscriptionRepository.deleteByUserIdAndTopicId(userId, topicId);
     }
 
     private User findUser(Long userId) {

@@ -24,18 +24,4 @@ public class TopicController {
         Long userId = Long.valueOf(jwt.getSubject());
         return ResponseEntity.ok(topicService.findAllWithSubscriptionStatus(userId));
     }
-
-    @PostMapping("/{id}/subscription")
-    public ResponseEntity<Void> subscribe(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
-        Long userId = Long.valueOf(jwt.getSubject());
-        topicService.subscribe(userId, id);
-        return ResponseEntity.ok().build();
-    }
-
-    @DeleteMapping("/{id}/subscription")
-    public ResponseEntity<Void> unsubscribe(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
-        Long userId = Long.valueOf(jwt.getSubject());
-        topicService.unsubscribe(userId, id);
-        return ResponseEntity.noContent().build();
-    }
 }

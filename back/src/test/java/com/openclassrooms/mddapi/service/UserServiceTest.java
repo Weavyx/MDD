@@ -4,13 +4,16 @@ import com.openclassrooms.mddapi.dto.TopicResponse;
 import com.openclassrooms.mddapi.dto.UpdateProfileRequest;
 import com.openclassrooms.mddapi.dto.UserProfileResponse;
 import com.openclassrooms.mddapi.dto.UserResponse;
+import com.openclassrooms.mddapi.exception.AlreadySubscribedException;
 import com.openclassrooms.mddapi.exception.EmailAlreadyUsedException;
+import com.openclassrooms.mddapi.exception.TopicNotFoundException;
 import com.openclassrooms.mddapi.exception.UserNotFoundException;
 import com.openclassrooms.mddapi.exception.UsernameAlreadyUsedException;
 import com.openclassrooms.mddapi.model.Subscription;
 import com.openclassrooms.mddapi.model.Topic;
 import com.openclassrooms.mddapi.model.User;
 import com.openclassrooms.mddapi.repository.SubscriptionRepository;
+import com.openclassrooms.mddapi.repository.TopicRepository;
 import com.openclassrooms.mddapi.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +43,9 @@ class UserServiceTest {
 
     @Mock
     private SubscriptionRepository subscriptionRepository;
+
+    @Mock
+    private TopicRepository topicRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -208,6 +214,74 @@ class UserServiceTest {
         assertThrows(UserNotFoundException.class, () -> userService.updateProfile(99L, request));
 
         verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void subscribe_topicExistantSansAbonnementPrealable_saveAppeleUneFois() {
+        Topic topic = new Topic("Java", "Description Java");
+        setId(topic, 1L);
+        User user = new User();
+        user.setId(10L);
+        when(topicRepository.findById(1L)).thenReturn(Optional.of(topic));
+        when(subscriptionRepository.existsByUserIdAndTopicId(10L, 1L)).thenReturn(false);
+        when(userRepository.getReferenceById(10L)).thenReturn(user);
+
+        userService.subscribe(10L, 1L);
+
+        verify(subscriptionRepository, times(1)).save(any());
+    }
+
+    @Test
+    void subscribe_topicInexistant_topicNotFoundExceptionEtSaveJamaisAppele() {
+        when(topicRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(TopicNotFoundException.class, () -> userService.subscribe(10L, 99L));
+
+        verify(subscriptionRepository, never()).save(any());
+    }
+
+    @Test
+    void subscribe_abonnementDejaExistant_alreadySubscribedExceptionEtSaveJamaisAppele() {
+        Topic topic = new Topic("Java", "Description Java");
+        setId(topic, 1L);
+        when(topicRepository.findById(1L)).thenReturn(Optional.of(topic));
+        when(subscriptionRepository.existsByUserIdAndTopicId(10L, 1L)).thenReturn(true);
+
+        assertThrows(AlreadySubscribedException.class, () -> userService.subscribe(10L, 1L));
+
+        verify(subscriptionRepository, never()).save(any());
+    }
+
+    @Test
+    void unsubscribe_topicExistantAvecAbonnement_deleteAppeleUneFoisSansException() {
+        Topic topic = new Topic("Java", "Description Java");
+        setId(topic, 1L);
+        when(topicRepository.findById(1L)).thenReturn(Optional.of(topic));
+
+        userService.unsubscribe(10L, 1L);
+
+        verify(subscriptionRepository, times(1)).deleteByUserIdAndTopicId(10L, 1L);
+    }
+
+    @Test
+    void unsubscribe_topicExistantSansAbonnement_deleteAppeleQuandMemeIdempotence() {
+        Topic topic = new Topic("Java", "Description Java");
+        setId(topic, 1L);
+        when(topicRepository.findById(1L)).thenReturn(Optional.of(topic));
+        when(subscriptionRepository.deleteByUserIdAndTopicId(10L, 1L)).thenReturn(0);
+
+        userService.unsubscribe(10L, 1L);
+
+        verify(subscriptionRepository, times(1)).deleteByUserIdAndTopicId(10L, 1L);
+    }
+
+    @Test
+    void unsubscribe_topicInexistant_topicNotFoundExceptionEtDeleteJamaisAppele() {
+        when(topicRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(TopicNotFoundException.class, () -> userService.unsubscribe(10L, 99L));
+
+        verify(subscriptionRepository, never()).deleteByUserIdAndTopicId(anyLong(), anyLong());
     }
 
     private User buildUser(Long id, String email, String username, String passwordHash) {

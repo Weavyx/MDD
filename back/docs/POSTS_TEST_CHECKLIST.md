@@ -1,18 +1,18 @@
 # Checklist de tests manuels — Articles / Commentaires
 
-## GET /api/posts
+## GET /api/users/me/feed
 
 | # | Scénario | Requête (méthode + état préalable nécessaire) | Code attendu | Corps attendu (résumé) | Résultat observé | Statut |
 |---|----------|--------------------------------------------------|--------------|--------------------------|-------------------|--------|
-| 1 | Utilisateur authentifié, tri par défaut (aucun paramètre `sort`) | `GET /api/posts` avec JWT valide ; utilisateur abonné à au moins un topic portant des articles | 200 | Tableau de `PostSummaryResponse` (id, title, excerpt, createdAt, topicName, author), trié du plus récent au plus ancien (`desc`) | | |
-| 2 | Tri ascendant explicite | `GET /api/posts?sort=asc` avec JWT valide | 200 | Tableau trié du plus ancien au plus récent | | |
-| 3 | Tri descendant explicite | `GET /api/posts?sort=desc` avec JWT valide | 200 | Tableau trié du plus récent au plus ancien | | |
-| 4 | Valeur de `sort` invalide | `GET /api/posts?sort=recent` (ou toute valeur hors `asc`/`desc`) avec JWT valide | 400 | Corps d'erreur (`ErrorResponse`) | | |
-| 5 | Extrait tronqué sur un contenu long | `GET /api/posts` ; au moins un article existant avec `content` > 200 caractères | 200 | `excerpt` = 200 premiers caractères du `content` + `…`, `content` complet absent du corps | | |
-| 6 | Extrait non tronqué sur un contenu court | `GET /api/posts` ; au moins un article existant avec `content` ≤ 200 caractères | 200 | `excerpt` = `content` intégral, sans `…` ajouté | | |
-| 7 | Aucun article dans les topics abonnés | `GET /api/posts` avec JWT valide ; utilisateur sans abonnement ou abonné à des topics sans article | 200 | Tableau vide `[]` | | |
-| 8 | Aucun JWT fourni | `GET /api/posts` sans en-tête `Authorization` | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
-| 9 | JWT invalide/expiré | `GET /api/posts` avec `Authorization: Bearer <token invalide ou expiré>` | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
+| 1 | Utilisateur authentifié, tri par défaut (aucun paramètre `sort`) | `GET /api/users/me/feed` avec JWT valide ; utilisateur abonné à au moins un topic portant des articles | 200 | Tableau de `PostSummaryResponse` (id, title, excerpt, createdAt, topicName, author), trié du plus récent au plus ancien (`desc`) | | |
+| 2 | Tri ascendant explicite | `GET /api/users/me/feed?sort=asc` avec JWT valide | 200 | Tableau trié du plus ancien au plus récent | | |
+| 3 | Tri descendant explicite | `GET /api/users/me/feed?sort=desc` avec JWT valide | 200 | Tableau trié du plus récent au plus ancien | | |
+| 4 | Valeur de `sort` invalide | `GET /api/users/me/feed?sort=recent` (ou toute valeur hors `asc`/`desc`) avec JWT valide | 400 | Corps d'erreur (`ErrorResponse`) | | |
+| 5 | Extrait tronqué sur un contenu long | `GET /api/users/me/feed` ; au moins un article existant avec `content` > 200 caractères | 200 | `excerpt` = 200 premiers caractères du `content` + `…`, `content` complet absent du corps | | |
+| 6 | Extrait non tronqué sur un contenu court | `GET /api/users/me/feed` ; au moins un article existant avec `content` ≤ 200 caractères | 200 | `excerpt` = `content` intégral, sans `…` ajouté | | |
+| 7 | Aucun article dans les topics abonnés | `GET /api/users/me/feed` avec JWT valide ; utilisateur sans abonnement ou abonné à des topics sans article | 200 | Tableau vide `[]` | | |
+| 8 | Aucun JWT fourni | `GET /api/users/me/feed` sans en-tête `Authorization` | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
+| 9 | JWT invalide/expiré | `GET /api/users/me/feed` avec `Authorization: Bearer <token invalide ou expiré>` | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
 
 ## POST /api/posts
 

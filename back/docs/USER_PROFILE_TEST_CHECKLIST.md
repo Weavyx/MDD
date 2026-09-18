@@ -8,7 +8,7 @@ Préalable commun : deux comptes existants en base, désignés ci-dessous **A** 
 |---|----------|--------------------------------------------------|--------------|--------------------------|-------------------|--------|
 | 1 | Profil nominal, avec abonnements | `GET /api/users/me` avec JWT de A ; A abonné à au moins deux topics | 200 | `UserProfileResponse` : `id` = id de A, `email`, `username`, `subscriptions` = tableau de `TopicResponse` (`id`, `name`, `description`, `subscribed: true`) contenant exactement les topics suivis par A ; aucun champ `passwordHash`/`password` | | |
 | 2 | Profil nominal, sans abonnement | `GET /api/users/me` avec JWT de A ; A n'a aucun abonnement (ou après désabonnement de tous ses topics) | 200 | Même structure, `subscriptions: []` | | |
-| 3 | Abonnements reflétés après modification | `POST /api/topics/{id}/subscription` puis `GET /api/users/me` | 200 (sur le `GET`) | Le topic nouvellement suivi apparaît dans `subscriptions` avec `subscribed: true` | | |
+| 3 | Abonnements reflétés après modification | `POST /api/users/me/subscriptions/{topicId}` puis `GET /api/users/me` | 200 (sur le `GET`) | Le topic nouvellement suivi apparaît dans `subscriptions` avec `subscribed: true` | | |
 | 4 | Aucun JWT fourni | `GET /api/users/me` sans en-tête `Authorization` | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
 | 5 | JWT invalide/expiré | `GET /api/users/me` avec `Authorization: Bearer <token invalide ou expiré>` | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
 
@@ -58,6 +58,29 @@ Préalable commun : deux comptes existants en base, désignés ci-dessous **A** 
 | 30 | Aucun JWT fourni | `PUT /api/users/me` sans en-tête `Authorization`, corps valide | 401 | Corps d'erreur d'authentification (selon config Spring Security) ; aucune modification en base | | |
 | 31 | JWT invalide/expiré | `PUT /api/users/me` avec `Authorization: Bearer <token invalide ou expiré>`, corps valide | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
 | 32 | Impossible de cibler un autre utilisateur | `PUT /api/users/me` avec JWT de A, corps contenant un champ supplémentaire `"id": <id de B>` avec des valeurs valides | 200 | Le champ `id` est ignoré ; `UserResponse.id` = id de **A** ; le profil de B est inchangé (`GET /api/users/me` avec le JWT de B) | | |
+
+## POST /api/users/me/subscriptions/{topicId}
+
+| # | Scénario | Requête (méthode + état préalable nécessaire) | Code attendu | Corps attendu (résumé) | Résultat observé | Statut |
+|---|----------|--------------------------------------------------|--------------|--------------------------|-------------------|--------|
+| 36 | Topic existant, pas encore abonné | `POST /api/users/me/subscriptions/{topicId}` avec JWT valide ; `topicId` existant en base ; aucun abonnement préalable pour ce couple utilisateur/topic | 200 | Corps vide | | |
+| 37 | Topic existant, déjà abonné | `POST /api/users/me/subscriptions/{topicId}` avec JWT valide ; abonnement déjà existant pour ce couple utilisateur/topic | 409 | Message d'erreur "Vous êtes déjà abonné à ce topic" | | |
+| 38 | Topic inexistant (topicId absent en base) | `POST /api/users/me/subscriptions/{topicId}` avec JWT valide ; `topicId` ne correspondant à aucun topic | 404 | Message d'erreur "Ce topic n'existe pas" | | |
+| 39 | Aucun JWT | `POST /api/users/me/subscriptions/{topicId}` sans en-tête `Authorization` | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
+| 40 | topicId non numérique dans l'URL (ex: `/api/users/me/subscriptions/abc`) | `POST /api/users/me/subscriptions/abc` avec JWT valide | à vérifier - non garanti par le code actuel | à déterminer lors du test | | |
+
+## DELETE /api/users/me/subscriptions/{topicId}
+
+| # | Scénario | Requête (méthode + état préalable nécessaire) | Code attendu | Corps attendu (résumé) | Résultat observé | Statut |
+|---|----------|--------------------------------------------------|--------------|--------------------------|-------------------|--------|
+| 41 | Abonnement existant | `DELETE /api/users/me/subscriptions/{topicId}` avec JWT valide ; abonnement existant pour ce couple utilisateur/topic | 204 | Corps vide | | |
+| 42 | Aucun abonnement existant, topic existant (idempotence) | `DELETE /api/users/me/subscriptions/{topicId}` avec JWT valide ; `topicId` existant en base mais aucun abonnement pour ce couple utilisateur/topic | 204 | Corps vide | | |
+| 43 | Topic inexistant | `DELETE /api/users/me/subscriptions/{topicId}` avec JWT valide ; `topicId` ne correspondant à aucun topic | 404 | Message d'erreur "Ce topic n'existe pas" | | |
+| 44 | Aucun JWT | `DELETE /api/users/me/subscriptions/{topicId}` sans en-tête `Authorization` | 401 | Corps d'erreur d'authentification (selon config Spring Security) | | |
+
+### Notes de justification
+
+La distinction entre le scénario 42 et le scénario 43 repose sur la nature de ce qui est évalué : au scénario 42, la ressource ciblée par l'URL (le topic) existe bel et bien, et l'action demandée — « ne plus être abonné à ce topic » — est déjà satisfaite avant comme après la requête, d'où un 204 conforme à la RFC 9110, qui définit l'idempotence comme le fait que l'état du serveur résultant de N requêtes identiques soit le même qu'après une seule, indépendamment du code retour renvoyé à chaque exécution. Au scénario 43, c'est la ressource elle-même référencée dans l'URL qui est absente : il ne s'agit plus de l'état d'un abonnement mais de l'existence du topic, ce qui justifie un 404 distinct. Autrement dit, l'idempotence de DELETE garantit la stabilité de l'état serveur en cas de répétition, mais ne dispense pas de vérifier au préalable que la ressource référencée existe.
 
 ## Effet de bord sur l'inscription (AuthService)
 
