@@ -39,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(PostController.class)
 @Import({SecurityConfig.class, GlobalExceptionHandler.class})
-class PostControllerTest {
+class PostControllerIT {
 
     @Autowired
     private MockMvc mockMvc;
