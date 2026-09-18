@@ -54,7 +54,8 @@ tests du projet.
 
 ## Résultat
 
-**119 tests verts** (45 Surefire + 74 Failsafe), 0 échec.
+**119 tests verts** (45 Surefire + 74 Failsafe), 0 échec — à l'issue de cette première
+phase. Une seconde phase d'audit qualité a suivi, décrite plus bas : total final **126**.
 
 | Métrique | Avant | Après |
 |---|---|---|
@@ -166,6 +167,151 @@ nouveaux = 74 ; total 119.
 Ce chiffre étant destiné à alimenter le rapport de tests final, il est à corriger dans
 les notes de suivi du projet.
 
+## Seconde phase — audit de la qualité des tests
+
+La première phase a porté la couverture de 87 % à 99,5 %. Elle ne dit rien de la
+**qualité** des tests : la couverture mesure les lignes *exécutées*, jamais les
+comportements *vérifiés*. Un test qui appelle une méthode sans rien asserter de sérieux
+la couvre à 100 % tout en ne protégeant de rien.
+
+Une seconde phase a donc audité les 119 tests existants, un par un, avec une question
+unique : **si on cassait la logique de production que ce test prétend vérifier,
+échouerait-il ?**
+
+### Méthode : la preuve par mutation
+
+Chaque correction a suivi le même protocole en cinq temps :
+
+1. Modifier temporairement le code de production pour introduire un bug plausible
+2. Relancer le test — s'il reste **vert**, la faiblesse est prouvée ; s'il échoue,
+   l'audit s'était trompé et rien n'est corrigé
+3. Restaurer le code de production
+4. Corriger le test
+5. Ré-appliquer la mutation et vérifier que le test **échoue** désormais, puis restaurer
+
+`git diff src/main/java` a été vérifié vide après chaque mutation et à la fin de chaque
+lot : aucune ligne de production n'a été modifiée de façon permanente.
+
+Ce protocole a un coût, mais il produit une garantie qu'aucune métrique ne donne : on
+sait, test par test, qu'il détecte effectivement l'erreur qu'il est censé détecter.
+
+### Ce que l'audit a révélé
+
+**15 situations où le code de production cassé laissait la suite entièrement verte.**
+
+| Mutation appliquée | Résultat avant correction |
+|---|---|
+| `deleteByUserIdAndTopicId` : clause `WHERE` privée de sa condition sur `user_id` | 6/6 verts |
+| `findPostsByUserId` : filtre sur l'auteur ajouté au filtre d'abonnement | 2/2 verts |
+| `findWithUserAndTopicById` : `@EntityGraph` retirée | 2/2 verts |
+| `findByUserId` (abonnements) : `@EntityGraph` retirée | 7/7 verts |
+| `findByPostIdOrderByCreatedAtAsc` : `@EntityGraph` retirée | 1/1 vert |
+| `UserController.subscribe` : arguments `(userId, topicId)` inversés | test visé vert |
+| `UserController.unsubscribe` : arguments inversés | test visé vert |
+| `UserService.subscribe` : `Subscription` construite avec un `user` nul | 17/17 verts |
+| `AuthService.login` : `identifier` et `password` inversés dans le token d'authentification | 5/5 verts |
+| `AuthService.register` : mot de passe stocké en clair (encoder appelé, résultat ignoré) | 5/5 verts |
+| `GlobalExceptionHandler` : clé de `fieldErrors` = nom de l'objet au lieu du nom du champ | 10/10, 13/13 et 28/28 verts |
+| `TopicService` : `name` et `description` intervertis dans le mapping | verts |
+| `PostService` : `content` remplacé par `title`, `createdAt` du commentaire par celui du post | verts |
+
+### Les deux cas les plus graves
+
+**Suppression d'abonnement sans filtre utilisateur.** `deleteByUserIdAndTopicId` est un
+`@Modifying @Query` écrit à la main. Aucun test ne comportait deux utilisateurs abonnés
+au même thème : la clause `WHERE` pouvait perdre sa condition sur `user_id` — et donc
+supprimer les abonnements de *tous* les utilisateurs au thème visé — sans qu'un seul
+test ne bronche. Perte de données silencieuse sur du SQL manuscrit. Corrigé par
+`deleteByUserIdAndTopicId_deuxUtilisateursAbonnesAuMemeTopic_neSupprimeQueCeluiVise`.
+
+**Mot de passe potentiellement stocké en clair.** `register_emailEtUsernameLibres_…` se
+contentait de `verify(userRepository).save(any(User.class))` : l'objet sauvegardé n'était
+jamais inspecté. Un `User` portant le mot de passe en clair passait le test. C'est la
+seule garantie de sécurité de toute la suite, et elle n'existait pas. Corrigée par un
+`ArgumentCaptor<User>` assertant que le `passwordHash` vaut le hash produit par l'encoder
+et **diffère** du mot de passe brut.
+
+### Le piège des tests d'`@EntityGraph`
+
+Trois tests portaient dans leur nom la promesse de vérifier un chargement anticipé
+(« …ChargesSansLazyInitializationException », « …AvecTopicCharge »). Aucun ne le
+vérifiait : `@DataJpaTest` est transactionnel, la session Hibernate reste ouverte
+pendant toute la durée du test, et un accès paresseux réussit donc même sans
+`@EntityGraph`. Les trois tests passaient l'annotation retirée.
+
+`entityManager.detach(...)` a d'abord été essayé puis écarté : détacher l'entité racine
+ne détache pas les proxies de ses relations, qui restent rattachés à la session ouverte.
+La technique retenue est `Hibernate.isInitialized(relation)`, assertée **avant** tout
+accès : une relation déjà initialisée au retour de la requête ne peut l'être que par le
+fetch anticipé. C'est désormais le patron du projet pour prouver un chargement anticipé.
+
+L'alternative — compter les requêtes SQL via `SessionFactory.getStatistics()` — aurait
+aussi fonctionné, mais au prix d'une configuration supplémentaire et d'un message
+d'échec moins lisible.
+
+### Le contrat d'erreur de l'API, établi et figé
+
+L'audit a établi factuellement la forme des réponses d'erreur. L'API en produit **trois
+différentes**, ce qui n'était documenté nulle part :
+
+| Situation | Forme de la réponse | Ce que le front devra faire |
+|---|---|---|
+| Validation de corps (`@Valid`) | `ErrorResponse` avec `fieldErrors` peuplé | afficher le message sous chaque champ |
+| Erreur métier (404, 409) | `ErrorResponse`, `fieldErrors` à `null` | afficher `message` |
+| Identifiants invalides à la connexion | **corps vide**, en-tête `WWW-Authenticate: Bearer …` | fabriquer son propre message |
+| Corps JSON malformé | **corps vide** sous MockMvc | cas de repli générique |
+
+`fieldErrors` est une `Map` indexée par **nom de champ du DTO** (`email`, `username`,
+`title`…), dont les valeurs sont les `message` déclarés dans les annotations de
+validation. Aucun des 16 tests de validation ne l'assertait ; trois d'entre eux le font
+désormais, un par contrôleur concerné.
+
+Les deux formes divergentes sont désormais **figées par un test**, ce qui ne les corrige
+pas mais rend toute régression visible et le comportement explicite pour le front.
+
+Réserve sur le JSON malformé : sous MockMvc, `sendError(400)` ne déclenche pas le rendu
+de `/error`, d'où le corps vide observé. Sur un conteneur réel, Spring Boot renverrait le
+JSON de `BasicErrorController`. Le test fige donc le statut et le non-appel du service,
+pas la forme que verra réellement le front.
+
+### Résultat de la seconde phase
+
+**126 tests verts** (45 Surefire + 81 Failsafe). 7 tests ajoutés, 23 renforcés.
+
+| Métrique | Avant la seconde phase | Après |
+|---|---|---|
+| Instructions | 99,5 % | **99,5 %** |
+| Lignes | 99,2 % | **99,2 %** |
+| Branches | 100 % | **100 %** |
+
+**La couverture n'a pas bougé d'un point.** C'est le principal enseignement du chantier :
+quatre lots de travail, quinze faiblesses réelles corrigées dont une perte de données
+potentielle et une fuite de mot de passe, pour exactement zéro variation de la métrique.
+La couverture est un détecteur de zones non testées, pas une mesure de la qualité des
+tests. Elle avait correctement signalé les trous de la première phase ; elle était
+aveugle à tout ce qu'a trouvé la seconde.
+
+### Axes d'amélioration identifiés, non traités
+
+Relevés pendant l'audit, hors du périmètre de ce chantier :
+
+- **Unifier les erreurs sur `ErrorResponse`** : un `@ExceptionHandler(HttpMessageNotReadableException.class)`
+  et un `AuthenticationEntryPoint` personnalisé donneraient au front une forme d'erreur
+  unique. À arbitrer contre le risque de diverger du comportement natif de Spring Security.
+- **Aucun test ne vérifie le câblage complet** contrôleur → service → repository → base.
+  Les trois strates s'isolent mutuellement par construction : une inversion d'arguments
+  entre deux couches resterait invisible. Quelques `@SpringBootTest` sur Testcontainers
+  (l'infrastructure `AbstractContainerIT` existe déjà) couvriraient ce trou — c'est une
+  limite assumée de l'architecture en strates, pas un oubli.
+- **Aucun test de JWT présent mais invalide ou expiré.** Les onze tests de sécurité
+  vérifient tous l'*absence* de token ; le `JwtDecoder` mocké dans les contrôleurs n'est
+  jamais configuré pour lever une `JwtException`. Le scénario le plus fréquent en
+  production — un utilisateur revenant après expiration — n'est pas couvert.
+- **Mutation testing outillé** : PIT automatiserait ce que ce chantier a fait à la main.
+  Écarté ici (dépendance supplémentaire, compatibilité Spring Boot 4 / Java 21 non
+  vérifiée, temps d'exécution), mais c'est l'outil qui répond directement à la question
+  « mes tests sont-ils bons ».
+
 ## Outillage
 
 - **JUnit 5** + **Mockito** + **AssertJ** — tests unitaires de service et de classes
@@ -180,3 +326,8 @@ les notes de suivi du projet.
 
 Aucun seuil de couverture bloquant n'est configuré dans le `pom.xml` : la mesure reste
 informative.
+
+**Mutation manuelle** — la qualité des tests a été vérifiée en cassant temporairement le
+code de production et en contrôlant que le test concerné échoue bien. Aucun outil de
+mutation testing n'a été ajouté au projet ; le code de production est resté intact à
+chaque étape (`git diff src/main/java` vide).
