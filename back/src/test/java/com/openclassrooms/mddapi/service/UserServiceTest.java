@@ -17,6 +17,7 @@ import com.openclassrooms.mddapi.repository.TopicRepository;
 import com.openclassrooms.mddapi.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -228,7 +229,10 @@ class UserServiceTest {
 
         userService.subscribe(10L, 1L);
 
-        verify(subscriptionRepository, times(1)).save(any());
+        ArgumentCaptor<Subscription> captor = ArgumentCaptor.forClass(Subscription.class);
+        verify(subscriptionRepository, times(1)).save(captor.capture());
+        assertThat(captor.getValue().getUser()).isSameAs(user);
+        assertThat(captor.getValue().getTopic()).isSameAs(topic);
     }
 
     @Test

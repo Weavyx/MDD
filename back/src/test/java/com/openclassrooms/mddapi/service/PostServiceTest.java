@@ -173,12 +173,14 @@ class PostServiceTest {
 
         assertThat(result.getId()).isEqualTo(5L);
         assertThat(result.getTitle()).isEqualTo("Titre");
+        assertThat(result.getContent()).isEqualTo("Contenu");
+        assertThat(result.getCreatedAt()).isEqualTo(LocalDateTime.of(2026, 9, 1, 10, 0));
         assertThat(result.getTopicName()).isEqualTo("Java");
         assertThat(result.getAuthor()).isEqualTo("alice");
-        assertThat(result.getComments()).extracting("id", "content", "author")
+        assertThat(result.getComments()).extracting("id", "content", "createdAt", "author")
                 .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple(1L, "Premier", "bob"),
-                        org.assertj.core.groups.Tuple.tuple(2L, "Second", "bob")
+                        org.assertj.core.groups.Tuple.tuple(1L, "Premier", LocalDateTime.of(2026, 9, 1, 11, 0), "bob"),
+                        org.assertj.core.groups.Tuple.tuple(2L, "Second", LocalDateTime.of(2026, 9, 1, 12, 0), "bob")
                 );
     }
 

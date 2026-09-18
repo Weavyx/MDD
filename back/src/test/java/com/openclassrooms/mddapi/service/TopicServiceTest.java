@@ -53,11 +53,11 @@ class TopicServiceTest {
 
         List<TopicResponse> result = topicService.findAllWithSubscriptionStatus(42L);
 
-        assertThat(result).extracting(TopicResponse::getId, TopicResponse::isSubscribed)
+        assertThat(result).extracting(TopicResponse::getId, TopicResponse::getName, TopicResponse::getDescription, TopicResponse::isSubscribed)
                 .containsExactlyInAnyOrder(
-                        org.assertj.core.groups.Tuple.tuple(1L, false),
-                        org.assertj.core.groups.Tuple.tuple(2L, true),
-                        org.assertj.core.groups.Tuple.tuple(3L, true)
+                        org.assertj.core.groups.Tuple.tuple(1L, "Java", "Description Java", false),
+                        org.assertj.core.groups.Tuple.tuple(2L, "Angular", "Description Angular", true),
+                        org.assertj.core.groups.Tuple.tuple(3L, "Spring", "Description Spring", true)
                 );
     }
 
