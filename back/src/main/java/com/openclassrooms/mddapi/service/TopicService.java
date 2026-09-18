@@ -20,6 +20,16 @@ public class TopicService {
         this.subscriptionRepository = subscriptionRepository;
     }
 
+    /**
+     * Tous les topics, chacun décoré du statut d'abonnement de l'utilisateur.
+     * <p>
+     * Deux requêtes fixes quel que soit le nombre de topics : la liste complète, puis les
+     * seuls ids de topics suivis ; la jointure se fait en mémoire. Ce choix tient à
+     * l'absence d'association {@code Topic → Subscription} dans le modèle. Un utilisateur
+     * inexistant obtient la liste avec tous les statuts à {@code false}, pas une erreur.
+     * Les topics n'ont pas d'endpoint de création : ils sont insérés directement en base.
+     * Seule lecture composite du projet non annotée {@code @Transactional(readOnly = true)}.
+     */
     public List<TopicResponse> findAllWithSubscriptionStatus(Long userId) {
         List<Topic> topics = topicRepository.findAll();
         Set<Long> subscribedTopicIds = new HashSet<>(subscriptionRepository.findSubscribedTopicIdsByUserId(userId));

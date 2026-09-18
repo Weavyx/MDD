@@ -15,6 +15,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+/**
+ * Inscription et connexion ; seul point d'émission des JWT.
+ * <p>
+ * Le jeton émis porte l'id numérique de l'utilisateur dans {@code sub}, jamais son email
+ * ni son nom d'utilisateur : ces deux valeurs sont modifiables via le profil sans que le
+ * jeton soit invalidé. Aucune de ces méthodes n'est transactionnelle.
+ */
 @Service
 public class AuthService {
     private final UserRepository userRepository;
@@ -29,6 +36,20 @@ public class AuthService {
         this.jwtService = jwtService;
     }
 
+    /**
+     * Crée le compte et renvoie directement un jeton : l'inscription vaut connexion.
+     * <p>
+     * L'email est vérifié avant le nom d'utilisateur ; si les deux sont pris, seule
+     * l'erreur d'email est signalée. Le mot de passe est haché avec BCrypt avant
+     * l'enregistrement, jamais stocké en clair. Les deux vérifications d'unicité et
+     * l'enregistrement ne sont pas atomiques : deux inscriptions concurrentes avec le
+     * même email sont départagées par la contrainte {@code UNIQUE} en base (409 générique).
+     * Un mot de passe {@code null} n'est pas rejeté par ce service et provoque une
+     * {@code IllegalArgumentException} dans l'encodeur (voir la revue technique, axe p).
+     *
+     * @throws EmailAlreadyUsedException    si l'email est déjà enregistré (409)
+     * @throws UsernameAlreadyUsedException si le nom d'utilisateur est déjà enregistré (409)
+     */
     public AuthResponse register(RegisterRequest request) {
         String requestEmail = request.getEmail();
         String requestUsername = request.getUsername();
@@ -51,6 +72,16 @@ public class AuthService {
         return new AuthResponse(jwtService.generateToken(id));
     }
 
+    /**
+     * Authentifie par email <em>ou</em> nom d'utilisateur (un seul champ {@code identifier})
+     * et renvoie un jeton portant l'id du compte.
+     * <p>
+     * L'échec n'est pas traité ici : {@code AuthenticationManager} lève une
+     * {@code BadCredentialsException} (identifiant inconnu ou mot de passe faux, sans
+     * distinction) qui remonte jusqu'à Spring Security et devient un 401 à corps vide,
+     * hors du format {@code ErrorResponse} — comportement volontairement non redéfini,
+     * figé par {@code AuthControllerIT.login_identifiantsInvalides_retourne401}.
+     */
     public AuthResponse login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getIdentifier(), request.getPassword())
