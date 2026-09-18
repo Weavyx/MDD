@@ -3,7 +3,6 @@ package com.openclassrooms.mddapi.repository;
 import com.openclassrooms.mddapi.model.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 
 import java.util.Optional;
 
@@ -12,13 +11,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UserRepositoryIT extends AbstractRepositoryIT {
 
     @Autowired
-    private TestEntityManager entityManager;
-
-    @Autowired
     private UserRepository userRepository;
 
     @Test
-    void findByEmailOrUsername_recherchePendantEmail_trouveLUtilisateur() {
+    void findByEmailOrUsername_rechercheParEmail_trouveLUtilisateur() {
         User user = persistUser("alice@mail.com", "alice");
 
         Optional<User> found = userRepository.findByEmailOrUsername("alice@mail.com");
@@ -28,7 +24,7 @@ class UserRepositoryIT extends AbstractRepositoryIT {
     }
 
     @Test
-    void findByEmailOrUsername_recherchePendantUsername_trouveLUtilisateur() {
+    void findByEmailOrUsername_rechercheParUsername_trouveLUtilisateur() {
         User user = persistUser("alice@mail.com", "alice");
 
         Optional<User> found = userRepository.findByEmailOrUsername("alice");
@@ -106,14 +102,5 @@ class UserRepositoryIT extends AbstractRepositoryIT {
         boolean exists = userRepository.existsByUsernameAndIdNot(alice.getUsername(), bob.getId());
 
         assertThat(exists).isTrue();
-    }
-
-    private User persistUser(String email, String username) {
-        User user = new User();
-        user.setEmail(email);
-        user.setUsername(username);
-        user.setPasswordHash("hashed-password");
-        entityManager.persistAndFlush(user);
-        return user;
     }
 }

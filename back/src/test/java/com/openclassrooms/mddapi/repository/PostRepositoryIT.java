@@ -4,9 +4,9 @@ import com.openclassrooms.mddapi.model.Post;
 import com.openclassrooms.mddapi.model.Subscription;
 import com.openclassrooms.mddapi.model.Topic;
 import com.openclassrooms.mddapi.model.User;
+import org.hibernate.Hibernate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.data.domain.Sort;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -17,9 +17,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PostRepositoryIT extends AbstractRepositoryIT {
-
-    @Autowired
-    private TestEntityManager entityManager;
 
     @Autowired
     private PostRepository postRepository;
@@ -53,6 +50,23 @@ class PostRepositoryIT extends AbstractRepositoryIT {
     }
 
     @Test
+    void findPostsByUserId_postEcritParUnAutreAuteurDansUnTopicSouscrit_estInclusDansLeFil() {
+        User alice = persistUser("alice@mail.com", "alice");
+        User bob = persistUser("bob@mail.com", "bob");
+        Topic java = persistTopic("Java", "Description Java");
+        entityManager.persistAndFlush(new Subscription(alice, java));
+
+        // Le fil filtre par topic souscrit, pas par auteur : bob n'est pas abonné et
+        // n'est pas alice, son post dans "Java" doit quand même apparaître chez alice.
+        Post postDeBob = persistPost("Article de bob", "Contenu de bob", bob, java);
+        entityManager.clear();
+
+        List<Post> feed = postRepository.findPostsByUserId(alice.getId(), Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        assertThat(feed).extracting(Post::getId).containsExactly(postDeBob.getId());
+    }
+
+    @Test
     void findWithUserAndTopicById_postExistant_retourneUserEtTopicChargesSansLazyInitializationException() {
         User user = persistUser("alice@mail.com", "alice");
         Topic topic = persistTopic("Java", "Description Java");
@@ -62,32 +76,17 @@ class PostRepositoryIT extends AbstractRepositoryIT {
         Optional<Post> found = postRepository.findWithUserAndTopicById(post.getId());
 
         assertThat(found).isPresent();
+        // La session de @DataJpaTest reste ouverte : un simple accès à getUser()
+        // réussirait même sans @EntityGraph (chargement lazy silencieux). On vérifie
+        // donc que les relations sont déjà initialisées AVANT tout accès, ce qui ne
+        // peut venir que du fetch anticipé de la requête.
+        assertThat(Hibernate.isInitialized(found.get().getUser())).isTrue();
+        assertThat(Hibernate.isInitialized(found.get().getTopic())).isTrue();
         assertThat(found.get().getUser().getUsername()).isEqualTo("alice");
         assertThat(found.get().getTopic().getName()).isEqualTo("Java");
     }
 
     private void setCreatedAt(Long postId, LocalDateTime createdAt) {
         jdbcTemplate.update("UPDATE posts SET created_at = ? WHERE id = ?", createdAt, postId);
-    }
-
-    private User persistUser(String email, String username) {
-        User user = new User();
-        user.setEmail(email);
-        user.setUsername(username);
-        user.setPasswordHash("hashed-password");
-        entityManager.persistAndFlush(user);
-        return user;
-    }
-
-    private Topic persistTopic(String name, String description) {
-        Topic topic = new Topic(name, description);
-        entityManager.persistAndFlush(topic);
-        return topic;
-    }
-
-    private Post persistPost(String title, String content, User user, Topic topic) {
-        Post post = new Post(title, content, user, topic);
-        entityManager.persistAndFlush(post);
-        return post;
     }
 }
