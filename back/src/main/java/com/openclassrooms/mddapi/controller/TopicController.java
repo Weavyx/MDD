@@ -19,6 +19,12 @@ public class TopicController {
         this.topicService = topicService;
     }
 
+    /**
+     * 200 avec tous les topics, chacun portant {@code subscribed} pour l'appelant. Reste sous
+     * {@code /api/topics} et non {@code /users/me} : la liste est la même pour tout le monde,
+     * seul l'attribut est personnalisé (ressource « décorée »). Aucun cas d'erreur métier ;
+     * pas de création ni de modification de topic par l'API.
+     */
     @GetMapping
     public ResponseEntity<List<TopicResponse>> findAll(@AuthenticationPrincipal Jwt jwt) {
         Long userId = Long.valueOf(jwt.getSubject());
