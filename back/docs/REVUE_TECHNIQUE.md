@@ -4,23 +4,7 @@ Projet MDD (« Monde de Dev »), OpenClassrooms P5 option B. Revue établie le 1
 
 ## 0. Périmètre et état du projet
 
-**Le back-end est complet pour le MVP** : 11 endpoints, 5 entités JPA (`User`, `Topic`, `Subscription`, `Post`, `Comment`), 127 tests verts (126 au commit `d2cdd31`, un ajouté par la correction de l'axe p), 99,5 % d'instructions couvertes (détail dans `RAPPORT_DE_TESTS.md`). Chaque fonctionnalité des spécifications a son endpoint ; aucune documentation d'API (OpenAPI, README) n'existe en dehors du tableau ci-dessous et des tests (axe n).
-
-| Méthode et chemin | Contrôleur | Réponses | Accès |
-|---|---|---|---|
-| `POST /api/auth/register` | `AuthController.register` | 201 `{token}` ; 400 ; 409 email ou username pris | public |
-| `POST /api/auth/login` | `AuthController.login` | 200 `{token}` ; 400 ; 401 corps vide | public |
-| `GET /api/topics` | `TopicController.findAll` | 200 liste avec `subscribed` | JWT |
-| `GET /api/users/me` | `UserController.getProfile` | 200 profil + abonnements ; 404 | JWT |
-| `PUT /api/users/me` | `UserController.updateProfile` | 200 ; 400 ; 404 ; 409 | JWT |
-| `POST /api/users/me/subscriptions/{topicId}` | `UserController.subscribe` | 200 ; 404 topic ; 409 déjà abonné | JWT |
-| `DELETE /api/users/me/subscriptions/{topicId}` | `UserController.unsubscribe` | 204 (idempotent) ; 404 topic | JWT |
-| `GET /api/users/me/feed?sort=asc\|desc` | `UserController.findFeed` | 200 résumés ; 400 `sort` invalide | JWT |
-| `POST /api/posts` | `PostController.create` | 201 + `Location` ; 400 ; 404 topic | JWT |
-| `GET /api/posts/{id}` | `PostController.findById` | 200 détail + commentaires ; 404 | JWT |
-| `POST /api/posts/{id}/comments` | `PostController.addComment` | 201 ; 400 ; 404 article | JWT |
-
-Formats d'échange : JSON ; DTO d'entrée `RegisterRequest`, `LoginRequest`, `UpdateProfileRequest`, `CreatePostRequest`, `CreateCommentRequest` ; DTO de sortie `AuthResponse`, `UserResponse`, `UserProfileResponse`, `TopicResponse`, `PostSummaryResponse`, `PostDetailResponse`, `CommentResponse` ; erreurs `ErrorResponse{timestamp, status, error, message, fieldErrors}` [code `dto/`]. Accès : `SecurityConfig.java:35-36` (`permitAll` sur les deux routes d'authentification, `authenticated()` partout ailleurs).
+**Le back-end est complet pour le MVP** : 11 endpoints (2 publics, 9 sous JWT), 5 entités JPA (`User`, `Topic`, `Subscription`, `Post`, `Comment`), 127 tests verts (126 au commit `d2cdd31`, un ajouté par la correction de l'axe p), 99,5 % d'instructions couvertes (détail dans `RAPPORT_DE_TESTS.md`). Chaque fonctionnalité des spécifications a son endpoint. L'inventaire des endpoints, les formats d'échange et d'erreur, le schéma de données et la configuration sont documentés dans `DOCUMENTATION_TECHNIQUE.md` ; cette revue ne les répète pas.
 
 **Le front-end n'existe pas.** `front/src/app/app.routes.ts` est un tableau vide ; aucun composant, service, garde ou intercepteur n'a été écrit ; Angular Material n'est importé que pour son thème dans `front/src/styles.scss:6`, aucun composant Material n'est utilisé. En conséquence, les six indicateurs de la grille relatifs au front (« architecture front-end claire, modulaire et structurée », « conventions Angular 19 », « composants conformes aux maquettes Figma », « liaisons front/back (services, endpoints, observables/signals) », « interface responsive », « documentation des composants avec captures d'écran ») ne sont **pas réalisés**, ainsi que la FAQ utilisateur, les mentions légales et la politique de confidentialité, qui sont des pages front. Ce rapport ne les évalue pas ; il les liste en axe j.
 
@@ -80,7 +64,7 @@ Chaque axe a été vérifié dans le code de `main` ; l'étiquette indique s'il 
 
 - **m. Écart de versions avec la grille** [observé]. La grille cite « Angular 19 » et « Spring Boot 3 » ; le projet utilise Angular 21.2 et Spring Boot 4.1.0 [code `pom.xml:8-9`, `front/package.json`]. Le choix est justifié (Boot 3.5 en fin de support en juin 2026 [vault]) mais entraîne des écarts de forme à connaître : `@MockitoBean` au lieu de `@MockBean`, starters de test éclatés (`webmvc-test`, `data-jpa-test`, `security-test`), packages `org.springframework.boot.*.test.autoconfigure`.
 
-- **n. Aucune documentation d'API** [observé]. Pas de `springdoc-openapi` dans `pom.xml`, `README.md` racine encore celui du squelette Angular 14 fourni, aucune description des endpoints dans `back/` en dehors du tableau du §0 et des tests [mesuré]. L'indicateur « documenté les endpoints, schémas de données et formats d'échange » n'est couvert que par ce rapport.
+- **n. Documentation d'API absente du code et du dépôt de départ** [observé]. Pas de `springdoc-openapi` dans `pom.xml`, `README.md` racine encore celui du squelette Angular 14 fourni, aucune description des endpoints dans `back/` au commit `d2cdd31` en dehors des tests [mesuré]. `DOCUMENTATION_TECHNIQUE.md`, ajouté sur la branche de livraison, couvre désormais endpoints, formats et schéma ; il reste écrit à la main, donc à maintenir à chaque changement de contrat.
 
 - **o. Aucun analyseur statique ni formateur ; formatage inégal** [observé]. `pom.xml` ne contient ni Checkstyle, SpotBugs, PMD, Sonar ni Spotless [mesuré]. Écarts visibles : `if(` sans espace [code `AuthService.java:36,39`], bloc de setters sur-indenté [code `AuthService.java:44-46`], `private  SecretKeySpec buildSecretKey(){` [code `JwtConfig.java:36`], `class User{` [code `model/User.java:13`], indentation à 5 espaces [code `model/Topic.java:23`]. Sans effet fonctionnel, mais visibles en relecture.
 
@@ -105,7 +89,7 @@ Chaque axe a été vérifié dans le code de `main` ; l'étiquette indique s'il 
 | k | Javadoc des contrats non déductibles de la signature (services, sécurité, handler, exceptions, requêtes `@Query`), sans paraphrase des noms. | 2 heures | Réalisée sur la branche de livraison, dans les commits `docs(<package>)` qui suivent ce rapport. |
 | l | Compléter la note de tête de `TOPICS_MERGE_AUDIT.md` (PR #12) et en ajouter une aux deux autres audits, ou déplacer les trois dans `back/docs/archive/`. Exécuter ou supprimer les checklists à la livraison du front. | 30 min | Journaux conservés tels quels pour garder la trace des décisions de revue. |
 | m | Rien à changer ; mentionner l'écart en soutenance avec la date de fin de support de Boot 3.5. | 0 | — |
-| n | `springdoc-openapi-starter-webmvc-ui` (une dépendance, `/swagger-ui.html` généré depuis les contrôleurs et les DTO) ; remplacer le `README.md` du squelette par une page d'installation (prérequis, `.env`, Docker, commandes). | 30 min ; 1 heure pour le README | Non prévu tant que l'API évoluait (trois changements d'endpoints entre les PR #9 et #13, en deux semaines). |
+| n | `springdoc-openapi-starter-webmvc-ui` (une dépendance, `/swagger-ui.html` généré depuis les contrôleurs et les DTO, qui ne peut pas dériver du code contrairement à `DOCUMENTATION_TECHNIQUE.md`) ; remplacer le `README.md` du squelette par une page d'installation renvoyant à `DOCUMENTATION_TECHNIQUE.md` §5. | 30 min ; 30 min pour le README | Non prévu tant que l'API évoluait (trois changements d'endpoints entre les PR #9 et #13, en deux semaines). |
 | o | Spotless avec `googleJavaFormat` ou le formateur IntelliJ partagé, appliqué une fois puis vérifié en `verify` ; Checkstyle ou SpotBugs si l'équipe grandit. | 30 min | Développeur unique, IDE unique ; l'outil n'aurait rien détecté que la relecture n'ait vu. |
 | p | **Réalisée** (branche `fix/validation-mot-de-passe-obligatoire`, commits `475312d` et `c970a7c`) : `@NotBlank` sur `RegisterRequest.password`, test écrit avant la correction, Javadoc de nullité volontaire sur `UpdateProfileRequest.password`. | 5 min (constaté) | Non identifié avant cette revue : les checklists manuelles ne prévoyaient pas ce cas et la mutation n'a porté que sur les tests existants. |
 
