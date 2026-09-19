@@ -27,8 +27,9 @@ public class AuthController {
     /**
      * 201 avec le jeton (l'inscription connecte) ; 400 {@code fieldErrors} si le corps est
      * invalide ; 409 si l'email, ou sinon le nom d'utilisateur, est déjà pris.
-     * Un corps sans champ {@code password} passe la validation (pas de {@code @NotBlank})
-     * et aboutit à un 500 — anomalie consignée dans la revue technique, axe p.
+     * Un corps sans champ {@code password} est un 400 depuis l'ajout de {@code @NotBlank}
+     * (branche {@code fix/validation-mot-de-passe-obligatoire}) ; auparavant il passait la
+     * validation et finissait en 409 trompeur — revue technique, axe p.
      */
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {

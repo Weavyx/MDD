@@ -44,8 +44,10 @@ public class AuthService {
      * l'enregistrement, jamais stocké en clair. Les deux vérifications d'unicité et
      * l'enregistrement ne sont pas atomiques : deux inscriptions concurrentes avec le
      * même email sont départagées par la contrainte {@code UNIQUE} en base (409 générique).
-     * Un mot de passe {@code null} n'est pas rejeté par ce service et provoque une
-     * {@code IllegalArgumentException} dans l'encodeur (voir la revue technique, axe p).
+     * Un mot de passe {@code null} n'est pas rejeté par ce service : la garantie repose
+     * sur le {@code @NotBlank} de {@code RegisterRequest.password}. Sans lui,
+     * {@code BCryptPasswordEncoder.encode(null)} renvoie {@code null} et l'insertion
+     * échoue sur {@code password_hash NOT NULL} en 409 trompeur (revue technique, axe p).
      *
      * @throws EmailAlreadyUsedException    si l'email est déjà enregistré (409)
      * @throws UsernameAlreadyUsedException si le nom d'utilisateur est déjà enregistré (409)
