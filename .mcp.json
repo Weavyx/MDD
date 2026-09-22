@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "angular-cli": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "front/node_modules/@angular/cli/bin/ng.js",
+        "mcp"
+      ]
+    }
+  }
+}
