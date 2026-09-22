@@ -21,6 +21,12 @@ public class UpdateProfileRequest {
      * Optionnel : {@code null} signifie "ne pas changer le mot de passe".
      * S'il est fourni, il doit respecter les mêmes règles que lors de
      * l'inscription (voir {@link RegisterRequest#getPassword()}).
+     * <p>
+     * L'absence de {@code @NotBlank} est volontaire, contrairement à
+     * {@code RegisterRequest.password} : {@code UserService.updateProfile} conserve
+     * le hash existant quand ce champ est {@code null} ou blanc. Ajouter
+     * {@code @NotBlank} ici obligerait à ressaisir le mot de passe à chaque
+     * modification du profil.
      */
     @Size(min = 8, max = 72, message = "Le mot de passe doit contenir entre 8 et 72 caractères")
     @Pattern(
