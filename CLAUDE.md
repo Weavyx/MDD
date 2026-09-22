@@ -1,49 +1,67 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Project state
-
-This is **P6-Full-Stack-reseau-dev** (a MDD — "Monde de Dev" — social network project from the OpenClassrooms Java/Angular full-stack path).
-
-- `back/` — Spring Boot skeleton (`MddApiApplication` only). The package layout under `com.openclassrooms.mddapi` (`controller/`, `service/`, `repository/`, `model/`, `dto/`, `config/`, `security/`, `exception/`) is scaffolded (each dir held by a `.gitkeep`) but empty — no entities, controllers, or services written yet.
-- `front/` — Angular 21 app (standalone-component style: `app.config.ts` / `app.routes.ts`, no `NgModule`). `@angular/material` and `@angular/cdk` are already added as dependencies, but no routes or feature components exist yet (`app.routes.ts` is an empty array).
-- `front-legacy/` — the previous Angular 14 scaffold (NgModule-based, `@angular/material` wired in with a sample home page), kept for reference during the front-end migration. Do not build new features here; check it for patterns (Material setup, routing, sample page) worth porting into `front/` before writing from scratch.
+MDD ("Monde de Dév"), OpenClassrooms P5 option B. Mono-repo: `back/` Spring Boot API, `front/` Angular app. `front-legacy/` is a gitignored Angular 14 reference: never build or edit there.
 
 ## Commands
 
-### Backend (`back/`, Java 21, Spring Boot 4.1.0, Maven)
+### Backend (`back/`)
 
 ```bash
-./mvnw spring-boot:run       # run the API
-./mvnw test                  # run all tests
-./mvnw test -Dtest=ClassName # run a single test class
-./mvnw package                # build jar
+./mvnw test            # Surefire only: *Test classes (pure Mockito), no Docker needed
+./mvnw verify          # + Failsafe: *IT classes — Docker REQUIRED (Testcontainers mysql:8.4)
+./mvnw test -Dtest=ClassName
+./mvnw spring-boot:run # needs MYSQL_* and JWT_SECRET in the environment (see below)
 ```
 
-### Frontend (`front/`, Angular 21, standalone components, Vitest)
+- JaCoCo report is produced by `verify` in `target/site/jacoco/` (one agent for both Surefire and Failsafe; no threshold, no excludes on purpose).
+- Maven does **not** read the root `.env`, so its variables must be exported into the shell before `verify` or `spring-boot:run`. `application-local.properties` (gitignored) holds only `spring.datasource.password=${MYSQL_PASSWORD}` and `mdd.jwt.secret=${JWT_SECRET}`; `MddApiApplicationIT` fails with `Could not resolve placeholder 'JWT_SECRET'` if the variable is missing. `./mvnw test` alone needs nothing.
+- `docker compose up -d` at the root starts `mdd-mysql` from the same `.env`.
 
-```bash
-npm install
-npm start        # ng serve, http://localhost:4200/
-npm run build    # ng build -> dist/
-npm test         # ng test (runs via Vitest)
-```
+### Frontend (`front/`)
 
-No e2e test runner is configured for `front/`.
+`npm install`, `npm start` (4200), `npm run build`, `npm test` (Vitest; headless: `npx ng test --watch=false`), `npm run format`. No e2e runner yet.
 
-### Database (Docker)
+## Backend conventions that differ from defaults
 
-```bash
-docker compose up -d    # starts a MySQL 8.4 container (mdd-mysql) on port ${MYSQL_PORT}
-```
+- **Test naming decides the runner**: `*Test` → Surefire (unit, `@ExtendWith(MockitoExtension)`); `*IT` → Failsafe (`@WebMvcTest`, `@DataJpaTest`, `@SpringBootTest`). Spring Boot 4 / Framework 7: use `@MockitoBean`, not `@MockBean`.
+- DB-backed ITs extend `AbstractContainerIT`, which starts one shared MySQL container in a `static {}` block. Do **not** add `@Testcontainers`/`@Container`: the JUnit extension would stop the inherited static container after the first test class.
+- Repository ITs assert eager loading with `Hibernate.isInitialized(...)` before any access (project pattern); `entityManager.detach` does not work for this.
+- Controller ITs authenticate with `jwt().jwt(j -> j.subject("<userId>"))`; the `JwtDecoder` is a `@MockitoBean` that is never stubbed, so no test exercises an invalid/expired token — do not claim otherwise.
+- Test quality was checked by **manual mutation** (break `src/main`, expect red, restore); `git diff src/main/java` must be empty after any such check. No PIT.
 
-`docker-compose.yml` reads `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `MYSQL_PORT` from a root-level `.env` (gitignored; see `.env.example` for the expected keys).
+## Backend architecture decisions
 
-## Architecture notes
+- Identity comes only from the JWT `sub` (= numeric user id) via `@AuthenticationPrincipal Jwt`. No user id ever appears in a URL or body; user-relative resources live under `/api/users/me/...` (profile, subscriptions, feed). `GET /api/auth/me` was removed deliberately (#13).
+- JWT: Spring Security's native `JwtEncoder`/`JwtDecoder` (Nimbus), HS256 set explicitly, claims `iss`/`iat`/`exp`/`sub` only, 24 h, no refresh, no logout endpoint, no roles. The decoder validates signature and `exp` only (no issuer validator).
+- Errors: one `@RestControllerAdvice` (`GlobalExceptionHandler`) → `ErrorResponse`; validation errors carry `fieldErrors`. Two cases are **intentionally** outside that format and pinned by tests: 401 (empty body + `WWW-Authenticate`, from `BearerTokenAuthenticationEntryPoint`) and malformed JSON (Spring default). Don't add a catch-all `Exception` handler (it would turn 401s into 500s).
+- Layered monolith, packages by layer, concrete services without interfaces, one DTO per action (`*Request`/`*Response`, Lombok `@Data`), manual inline mapping, no MapStruct. Entities are immutable except `User`; associations are unidirectional `@ManyToOne LAZY` with `@EntityGraph` where needed; no `cascade`, no `@OneToMany`.
+- `Topic` has no creation endpoint; there is no seed in the repo yet.
+- `spring.profiles.active=local` is hard-coded in `application.properties`; there is no prod profile, `ddl-auto=update` and `show-sql=true` are known debts (see `REVUE_TECHNIQUE.md`), not things to "fix" in passing.
+- The rationale for each decision lives in the Obsidian vault (`Projets/MDD/`); this file records only the constraints.
 
-- Backend follows the standard Maven layout under `com.openclassrooms.mddapi`. Dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `mysql-connector-j` (runtime), `spring-boot-starter-security`, `spring-boot-starter-oauth2-resource-server` (JWT auth via Spring's native `JwtEncoder`/`JwtDecoder`, no external JJWT-style library), `spring-boot-starter-validation`. Persistence is MySQL/JPA-based once entities are added.
-- Backend config is split across two profile-scoped files:
-  - `application.properties` — checked into git, holds non-secret config (`spring.datasource.url`/`username` with `MYSQL_*` env var placeholders, JPA/Hibernate settings, `mdd.jwt.*` settings). Activates the `local` profile by default.
-  - `application-local.properties` — gitignored, holds only `spring.datasource.password` so no secret (even a dev one) is committed. **This file is currently still tracked by git from an earlier commit** — if you touch it, remember to `git rm --cached` it so `.gitignore` can actually take effect, otherwise the password will get committed on the next `git add` of that path.
-- Frontend uses Angular's newer standalone bootstrapping (`bootstrapApplication` in `main.ts` via `app.config.ts`), not the `NgModule` pattern used in `front-legacy/`. Add new routes to `app.routes.ts`, not an `AppRoutingModule`.
+## Frontend
+
+- Angular 21.2, standalone, **zoneless** (no zone.js: never add it or rely on `NgZone`), Vitest + jsdom (never Karma/Jasmine APIs).
+- Before writing Angular code, use the `angular-cli` MCP server: `get_best_practices` and `find_examples` with `workspacePath` = the absolute path to `front/angular.json`, `includeExperimental` left false; `search_documentation` with `version: 21`, then check `searchedVersion` in the result (it may fall back to 20).
+- No API marked `@experimental` in the installed 21.2 typings (e.g. Signal Forms `form()`, `resource()`, `httpResource`) unless recorded as a project decision below.
+- UI: Angular Material components on the existing SCSS theme (`src/styles.scss`). No Tailwind, no `@angular/aria`.
+- Screens follow `docs/maquettes/` and must work on mobile and desktop. User-facing text is French and copies the spec wording exactly (e.g. "Déjà abonné").
+
+<!-- Front architecture decisions: to be added after the framing session. -->
+
+## Evidence and reports
+
+- Every claim in a report cites its source: `file:line`, or the command run and the relevant output line, marked [lu] / [grep] / [exec] / [déduit]. Write "not verified" rather than guess.
+- Anomalies noticed in passing: `⚠ file:line — what`; do not fix without being asked.
+
+## Deliverable docs
+
+- `back/docs/`: `RAPPORT_DE_TESTS.md` and `REVUE_TECHNIQUE.md` are deliverables; `TESTS_REVIEW.md` is the dated journal of the test review; `*_MERGE_AUDIT.md` are historical PR audits partly superseded (#12, #13); `*_TEST_CHECKLIST.md` were never executed.
+- A wrong figure in a repo doc is corrected in place (measure, fix, dated line at the end saying how it was measured), in a dedicated commit. Divergences in the Obsidian vault are reported, never edited.
+- A requirement present in the vault but absent from the PDFs comes from the OpenClassrooms mission text: a missing source, not a false one. Never write "not found" or invent a requirement.
+- Temporary progress/tracking files are never committed: keep them untracked and delete them at the end.
+
+## Git etiquette
+
+- One branch per piece of work (`feat/`, `fix/`, `refactor/`, `test/`, `docs/`, `chore/`), Conventional Commits, PR squash-merged into `main`. Never commit on `main` directly; never push unless asked.
+- Never commit `.env` or `application-local.properties` (both gitignored).
