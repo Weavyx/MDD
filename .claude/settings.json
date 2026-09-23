@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "ask": [
+      "Bash(git commit *)",
+      "Bash(git push *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/format.mjs"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "autoMemoryEnabled": false,
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true
+  }
+}
