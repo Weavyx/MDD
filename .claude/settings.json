@@ -1,5 +1,4 @@
 {
-  "autoMemoryEnabled": false,
   "permissions": {
     "ask": [
       "Bash(git commit *)",
@@ -21,5 +20,9 @@
         ]
       }
     ]
+  },
+  "autoMemoryEnabled": false,
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true
   }
 }
