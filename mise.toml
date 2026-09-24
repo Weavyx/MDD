@@ -1,0 +1,8 @@
+# Outils et variables d'environnement du projet (https://mise.jdx.dev)
+# Charge .env dans le shell : mvnw verify et spring-boot:run trouvent MYSQL_* et JWT_SECRET.
+
+[env]
+_.file = ".env"
+
+[tools]
+node = "24"
