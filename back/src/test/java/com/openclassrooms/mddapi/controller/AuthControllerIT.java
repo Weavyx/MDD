@@ -133,6 +133,20 @@ class AuthControllerIT {
     }
 
     @Test
+    void register_motDePasseAbsent_retourne400EtServiceJamaisAppele() throws Exception {
+        // @Size et @Pattern acceptent null par conception (Bean Validation) : sans @NotBlank,
+        // un corps sans clé "password" franchissait la validation et atteignait
+        // passwordEncoder.encode(null) dans le service (500 hors ErrorResponse).
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"alice@mail.com\",\"username\":\"alice\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.password").value("Le mot de passe est obligatoire"));
+
+        verify(authService, never()).register(any());
+    }
+
+    @Test
     void login_identifiantsValides_retourne200EtLeToken() throws Exception {
         when(authService.login(any())).thenReturn(new AuthResponse("jwt-token"));
 
