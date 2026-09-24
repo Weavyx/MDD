@@ -36,7 +36,7 @@ Aucun template de revue technique n'est fourni par la mission. Étiquettes de pr
 
 ## 2. Axes d'amélioration
 
-Chaque axe a été vérifié dans le code de `main` ; l'étiquette indique s'il était déjà consigné dans un document du dépôt. Deux axes sont corrigés à la suite de cette revue : la Javadoc (axe k, commits `docs(<package>)` de la branche de livraison) et l'anomalie de validation (axe p, branche `fix/validation-mot-de-passe-obligatoire`). Les autres restent ouverts, avec une recommandation chiffrée au §3.
+Chaque axe a été vérifié dans le code de `main` ; l'étiquette indique s'il était déjà consigné dans un document du dépôt. Deux axes sont corrigés à la suite de cette revue : la Javadoc (axe k, commits `docs(<package>)` de la branche de livraison) et l'anomalie de validation (axe p, commit `9581c70`). Les autres restent ouverts, avec une recommandation chiffrée au §3.
 
 - **a. Aucun test de JWT présent mais invalide ou expiré** [déjà consigné : `TESTS_REVIEW.md`]. Le `JwtDecoder` des tests de contrôleur est un `@MockitoBean` jamais stubbé et l'authentification de test contourne le filtre Bearer ; la chaîne « en-tête → décodage → 401 » n'est exercée par aucun test [mesuré : aucun `when(jwtDecoder`, aucune `JwtException` dans `src/test`]. Le cas le plus fréquent en production (retour après 24 h) est sans filet.
 
@@ -91,7 +91,7 @@ Chaque axe a été vérifié dans le code de `main` ; l'étiquette indique s'il 
 | m | Rien à changer ; mentionner l'écart en soutenance avec la date de fin de support de Boot 3.5. | 0 | — |
 | n | `springdoc-openapi-starter-webmvc-ui` (une dépendance, `/swagger-ui.html` généré depuis les contrôleurs et les DTO, qui ne peut pas dériver du code contrairement à `DOCUMENTATION_TECHNIQUE.md`) ; remplacer le `README.md` du squelette par une page d'installation renvoyant à `DOCUMENTATION_TECHNIQUE.md` §5. | 30 min ; 30 min pour le README | Non prévu tant que l'API évoluait (trois changements d'endpoints entre les PR #9 et #13, en deux semaines). |
 | o | Spotless avec `googleJavaFormat` ou le formateur IntelliJ partagé, appliqué une fois puis vérifié en `verify` ; Checkstyle ou SpotBugs si l'équipe grandit. | 30 min | Développeur unique, IDE unique ; l'outil n'aurait rien détecté que la relecture n'ait vu. |
-| p | **Réalisée** (branche `fix/validation-mot-de-passe-obligatoire`, commits `475312d` et `c970a7c`) : `@NotBlank` sur `RegisterRequest.password`, test écrit avant la correction, Javadoc de nullité volontaire sur `UpdateProfileRequest.password`. | 5 min (constaté) | Non identifié avant cette revue : les checklists manuelles ne prévoyaient pas ce cas et la mutation n'a porté que sur les tests existants. |
+| p | **Réalisée** (commit `9581c70` sur `main`, issu de la branche `fix/validation-mot-de-passe-obligatoire`) : `@NotBlank` sur `RegisterRequest.password`, test écrit avant la correction, Javadoc de nullité volontaire sur `UpdateProfileRequest.password`. | 5 min (constaté) | Non identifié avant cette revue : les checklists manuelles ne prévoyaient pas ce cas et la mutation n'a porté que sur les tests existants. |
 
 ## 4. Choix structurants : avantages et inconvénients
 

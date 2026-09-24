@@ -1,6 +1,6 @@
 # Documentation technique — MDD (backend)
 
-Projet MDD (« Monde de Dev »), OpenClassrooms P5 option B. Document établi le 19 septembre 2026 sur le code de `back/` (Spring Boot 4.1.0, Java 21, MySQL 8.4), branche de livraison `docs/livrables-rapports` ; la seule différence de contrat avec `main` est signalée là où elle s'applique (`@NotBlank` sur le mot de passe d'inscription, branche `fix/validation-mot-de-passe-obligatoire`).
+Projet MDD (« Monde de Dev »), OpenClassrooms P5 option B. Document établi le 19 septembre 2026 sur le code de `back/` (Spring Boot 4.1.0, Java 21, MySQL 8.4), mis à jour le 24 septembre 2026 sur `main`, commit `9581c70` compris (`@NotBlank` sur le mot de passe d'inscription) : le contrat décrit est celui de `main`.
 
 **Périmètre.** Le back-end est complet pour le MVP. Le front-end Angular (`front/`) n'est pas commencé (`app.routes.ts` vide, aucun composant) : ce document est donc une documentation d'API et d'environnement, destinée au développeur qui écrira le front. Aucun template n'a été fourni par la mission pour ce livrable ; la structure suit les indicateurs de la grille (« endpoints, schémas de données, dépendances techniques », « configuration de l'environnement »).
 
@@ -24,7 +24,7 @@ Tout ce qui suit a été vérifié dans le code de `back/src/main/java/com/openc
 | | |
 |---|---|
 | **`POST /api/auth/register`** | Public |
-| Corps | `RegisterRequest` : `username` (obligatoire, 3 à 50 caractères), `email` (obligatoire, format e-mail, ≤ 255), `password` (obligatoire — `@NotBlank` ajouté par la branche `fix/validation-mot-de-passe-obligatoire`, absent au commit `d2cdd31` —, 8 à 72 caractères, au moins une minuscule, une majuscule, un chiffre et un caractère de `\p{Punct}`) |
+| Corps | `RegisterRequest` : `username` (obligatoire, 3 à 50 caractères), `email` (obligatoire, format e-mail, ≤ 255), `password` (obligatoire — `@NotBlank` ajouté par le commit `9581c70`, absent au commit `d2cdd31` —, 8 à 72 caractères, au moins une minuscule, une majuscule, un chiffre et un caractère de `\p{Punct}`) |
 | Succès | **201** `AuthResponse` `{ "token": "<jwt>" }` — l'inscription connecte directement |
 | Erreurs | **400** `ErrorResponse` + `fieldErrors` (validation) · **409** `ErrorResponse` « Cet email est déjà utilisé » ou « Ce nom d'utilisateur est déjà utilisé » (l'email est vérifié en premier ; si les deux sont pris, seule l'erreur d'email est renvoyée) |
 
@@ -192,7 +192,7 @@ mdd.jwt.secret=${JWT_SECRET}
 
 Le profil `local` est activé en dur par `application.properties` (`spring.profiles.active=local`). Il n'existe pas de profil de production ; `spring.jpa.hibernate.ddl-auto=update` et `spring.jpa.show-sql=true` s'appliquent partout (dette consignée dans `REVUE_TECHNIQUE.md`, axe c).
 
-**Maven ne lit pas `.env`** : les variables doivent être exportées dans le shell (ou par le plugin EnvFile d'IntelliJ) avant `spring-boot:run` et avant `verify`.
+**Maven ne lit pas `.env`** : les variables doivent être exportées dans le shell avant `spring-boot:run` et avant `verify`, à la main, par mise (le `mise.toml` à la racine charge `.env` dans le shell après un `mise trust`) ou par le plugin EnvFile d'IntelliJ.
 
 ### 5.3 Lancer l'application
 
@@ -208,7 +208,7 @@ Le schéma est créé ou mis à jour par Hibernate au démarrage. Les topics n'a
 
 ```bash
 ./mvnw test      # 45 tests unitaires (*Test), aucun prérequis
-./mvnw verify    # + 81 tests d'intégration (*IT ; 82 avec fix/validation-mot-de-passe-obligatoire) : Docker démarré (Testcontainers mysql:8.4) et JWT_SECRET exporté
+./mvnw verify    # + 82 tests d'intégration (*IT) : Docker démarré (Testcontainers mysql:8.4) et JWT_SECRET exporté
 ```
 
 `verify` produit le rapport JaCoCo dans `back/target/site/jacoco/index.html`. Sans `JWT_SECRET`, `MddApiApplicationIT` échoue au chargement du contexte (`Could not resolve placeholder 'JWT_SECRET'`) ; sans Docker, tous les `*IT` adossés à la base échouent au démarrage du conteneur. Détail de la stratégie et des chiffres dans `RAPPORT_DE_TESTS.md`.
