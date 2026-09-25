@@ -1,2 +1,48 @@
-<h1>Créer un nouvel article</h1>
-<p>À implémenter</p>
+<header class="create-header">
+  <a matIconButton routerLink="/feed" aria-label="Retour au fil d’actualité">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+  <h1 class="create-title">Créer un nouvel article</h1>
+</header>
+
+<form class="create-form" [formGroup]="form" (ngSubmit)="submit()">
+  <mat-form-field appearance="outline">
+    <mat-label>Sélectionner un thème</mat-label>
+    <mat-select formControlName="topicId">
+      @for (topic of topics(); track topic.id) {
+        <mat-option [value]="topic.id">{{ topic.name }}</mat-option>
+      }
+    </mat-select>
+    @if (form.controls.topicId.hasError('required')) {
+      <mat-error>Le thème est obligatoire</mat-error>
+    } @else if (form.controls.topicId.hasError('server')) {
+      <mat-error>{{ form.controls.topicId.getError('server') }}</mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Titre de l’article</mat-label>
+    <input matInput formControlName="title" />
+    @if (form.controls.title.hasError('required') || form.controls.title.hasError('pattern')) {
+      <mat-error>Le titre est obligatoire</mat-error>
+    } @else if (form.controls.title.hasError('maxlength')) {
+      <mat-error>Le titre ne doit pas dépasser {{ titleMaxLength }} caractères</mat-error>
+    } @else if (form.controls.title.hasError('server')) {
+      <mat-error>{{ form.controls.title.getError('server') }}</mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Contenu de l’article</mat-label>
+    <textarea matInput formControlName="content" rows="8"></textarea>
+    @if (form.controls.content.hasError('required') || form.controls.content.hasError('pattern')) {
+      <mat-error>Le contenu est obligatoire</mat-error>
+    } @else if (form.controls.content.hasError('server')) {
+      <mat-error>{{ form.controls.content.getError('server') }}</mat-error>
+    }
+  </mat-form-field>
+
+  <button matButton="filled" type="submit" class="create-submit" [disabled]="submitting()">
+    Créer
+  </button>
+</form>
