@@ -26,7 +26,13 @@ describe('routes', () => {
         provideRouter(routes),
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: AuthService, useValue: { isAuthenticated: signal(isAuthenticated) } },
+        {
+          provide: AuthService,
+          useValue: {
+            isAuthenticated: signal(isAuthenticated),
+            checkSession: () => isAuthenticated,
+          },
+        },
       ],
     });
     const harness = await RouterTestingHarness.create();

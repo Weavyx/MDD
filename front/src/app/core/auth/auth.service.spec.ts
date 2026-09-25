@@ -169,4 +169,46 @@ describe('AuthService', () => {
       expect(service.isAuthenticated()).toBe(true);
     });
   });
+
+  describe('checkSession', () => {
+    it('is false without a token', () => {
+      expect(createService().checkSession()).toBe(false);
+    });
+
+    it('is true and keeps a valid token', () => {
+      const token = jwtExpiringIn(3600);
+      localStorage.setItem(TOKEN_KEY, token);
+      const service = createService();
+
+      expect(service.checkSession()).toBe(true);
+      expect(localStorage.getItem(TOKEN_KEY)).toBe(token);
+      expect(service.token()).toBe(token);
+    });
+
+    it('forgets, without navigating, a token that expired after the service was created', () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-09-25T10:00:00Z'));
+      localStorage.setItem(TOKEN_KEY, jwtExpiringIn(60));
+      const service = createService();
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
+      expect(service.isAuthenticated()).toBe(true);
+
+      vi.setSystemTime(new Date('2026-09-25T10:01:00Z'));
+
+      expect(service.checkSession()).toBe(false);
+      expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+      expect(service.token()).toBeNull();
+      expect(service.isAuthenticated()).toBe(false);
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('forgets an unreadable token', () => {
+      localStorage.setItem(TOKEN_KEY, 'not-a-jwt');
+      const service = createService();
+
+      expect(service.checkSession()).toBe(false);
+      expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+      expect(service.token()).toBeNull();
+    });
+  });
 });
