@@ -1,2 +1,67 @@
-<h1>Article</h1>
-<p>À implémenter</p>
+@if (notFound()) {
+  <section class="post-not-found">
+    <h1>Article introuvable</h1>
+    <p>Cet article n’existe pas ou a été supprimé.</p>
+    <a matButton="filled" routerLink="/feed">Retour au fil d’actualité</a>
+  </section>
+} @else if (post(); as post) {
+  <article class="post">
+    <header class="post-header">
+      <a matIconButton routerLink="/feed" aria-label="Retour au fil d’actualité">
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+      <h1 class="post-title">{{ post.title }}</h1>
+    </header>
+
+    <div class="post-body">
+      <p class="post-meta">
+        <span>{{ post.createdAt | date: 'dd/MM/yyyy' }}</span>
+        <span>{{ post.author }}</span>
+        <span>{{ post.topicName }}</span>
+      </p>
+      <p class="post-content">{{ post.content }}</p>
+
+      <section class="post-comments" aria-labelledby="comments-title">
+        <h2 id="comments-title">Commentaires</h2>
+        @if (post.comments.length === 0) {
+          <p class="post-no-comment">Aucun commentaire pour le moment.</p>
+        } @else {
+          <ul class="comment-list">
+            @for (comment of post.comments; track comment.id) {
+              <li class="comment">
+                <span class="comment-author">{{ comment.author }}</span>
+                <p class="comment-content">{{ comment.content }}</p>
+              </li>
+            }
+          </ul>
+        }
+
+        <form class="comment-form" [formGroup]="commentForm" (ngSubmit)="sendComment()">
+          <mat-form-field appearance="outline" class="comment-field">
+            <mat-label>Écrivez ici votre commentaire</mat-label>
+            <textarea matInput formControlName="content" rows="3"></textarea>
+            @let content = commentForm.controls.content;
+            @if (content.hasError('required') || content.hasError('pattern')) {
+              <mat-error>Le commentaire est obligatoire</mat-error>
+            } @else if (content.hasError('maxlength')) {
+              <mat-error
+                >Le commentaire ne doit pas dépasser {{ commentMaxLength }} caractères</mat-error
+              >
+            } @else if (content.hasError('server')) {
+              <mat-error>{{ content.getError('server') }}</mat-error>
+            }
+          </mat-form-field>
+          <button
+            matIconButton
+            type="submit"
+            class="comment-send"
+            aria-label="Envoyer le commentaire"
+            [disabled]="sending()"
+          >
+            <mat-icon>send</mat-icon>
+          </button>
+        </form>
+      </section>
+    </div>
+  </article>
+}
