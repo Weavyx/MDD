@@ -1,0 +1,30 @@
+:host {
+  display: block;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+// The mockups have no page title; it stays for screen readers only.
+.topic-list-heading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.topic-list-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 599.98px) {
+  .topic-list-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

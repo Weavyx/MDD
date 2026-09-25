@@ -1,2 +1,78 @@
-<h1>Profil utilisateur</h1>
-<p>À implémenter</p>
+<section class="profile-section" aria-labelledby="profile-title">
+  <h1 id="profile-title" class="profile-heading">Profil utilisateur</h1>
+
+  <form class="profile-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    <mat-form-field appearance="outline">
+      <mat-label>Nom d'utilisateur</mat-label>
+      <input matInput formControlName="username" autocomplete="username" />
+      @let username = form.controls.username;
+      @if (username.hasError('required')) {
+        <mat-error>Le nom d'utilisateur est obligatoire</mat-error>
+      } @else if (username.hasError('minlength') || username.hasError('maxlength')) {
+        <mat-error
+          >Le nom d'utilisateur doit contenir entre {{ usernameMin }} et
+          {{ usernameMax }} caractères</mat-error
+        >
+      } @else if (username.hasError('server')) {
+        <mat-error>{{ username.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Adresse e-mail</mat-label>
+      <input matInput type="email" formControlName="email" autocomplete="email" />
+      @let email = form.controls.email;
+      <!-- Length first: Angular's email pattern also rejects more than 254 characters. -->
+      @if (email.hasError('required')) {
+        <mat-error>L'adresse e-mail est obligatoire</mat-error>
+      } @else if (email.hasError('maxlength')) {
+        <mat-error>L'adresse e-mail ne doit pas dépasser {{ emailMax }} caractères</mat-error>
+      } @else if (email.hasError('email')) {
+        <mat-error>L'adresse e-mail doit être valide</mat-error>
+      } @else if (email.hasError('server')) {
+        <mat-error>{{ email.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Mot de passe</mat-label>
+      <input matInput type="password" formControlName="password" autocomplete="new-password" />
+      <mat-hint>Laisser vide pour conserver le mot de passe actuel</mat-hint>
+      @let password = form.controls.password;
+      @if (password.hasError('password')) {
+        <mat-error
+          >8 à 72 caractères, dont une majuscule, une minuscule, un chiffre et un caractère
+          spécial</mat-error
+        >
+      } @else if (password.hasError('server')) {
+        <mat-error>{{ password.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <button matButton="filled" type="submit" class="profile-submit" [disabled]="saving()">
+      Sauvegarder
+    </button>
+  </form>
+</section>
+
+<mat-divider class="profile-divider" />
+
+<section class="profile-section" aria-labelledby="subscriptions-title">
+  <h2 id="subscriptions-title" class="profile-heading">Abonnements</h2>
+
+  @if (subscriptions().length === 0) {
+    <p class="profile-empty">Vous n'êtes abonné à aucun thème.</p>
+  } @else {
+    <ul class="profile-grid">
+      @for (topic of subscriptions(); track topic.id) {
+        <li>
+          <app-topic-card [topic]="topic">
+            <button matButton="filled" type="button" (click)="unsubscribe(topic)">
+              Se désabonner
+            </button>
+          </app-topic-card>
+        </li>
+      }
+    </ul>
+  }
+</section>

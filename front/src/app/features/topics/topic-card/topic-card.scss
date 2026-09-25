@@ -1,0 +1,22 @@
+:host {
+  display: block;
+}
+
+.topic-card {
+  height: 100%;
+}
+
+.topic-card-title {
+  margin: 0;
+  font: var(--mat-sys-title-medium);
+}
+
+.topic-card-description {
+  margin: 0;
+}
+
+// The mockups centre the button under the description.
+.topic-card-actions {
+  justify-content: center;
+  margin-top: auto;
+}
