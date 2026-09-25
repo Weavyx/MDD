@@ -133,6 +133,25 @@ describe('PostDetail', () => {
     expect(el().querySelector('mat-error')).toBeNull();
   });
 
+  it('disables the send button and sends one comment only during the request', async () => {
+    await open('/posts/7');
+    typeComment('Très clair');
+    await send();
+    const button = el().querySelector<HTMLButtonElement>('.comment-send')!;
+    expect(button.disabled).toBe(true);
+
+    await send();
+    // A submission that bypasses the disabled button (Enter key, script) is ignored as well.
+    el().querySelector('form')!.dispatchEvent(new Event('submit'));
+    await stable();
+
+    httpTesting
+      .expectOne({ method: 'POST', url: '/api/posts/7/comments' })
+      .flush(null, { status: 500, statusText: 'Server Error' });
+    await stable();
+    expect(button.disabled).toBe(false);
+  });
+
   it.each([
     ['empty', ''],
     ['made of spaces only', '   '],

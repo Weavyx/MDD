@@ -85,7 +85,21 @@ describe('TopicList', () => {
     expect(show).not.toHaveBeenCalled();
   });
 
-  it('keeps "S\'abonner" and notifies the API message when the subscription fails', async () => {
+  it('sends one request only when the button is clicked again during the request', async () => {
+    const fixture = await render();
+    const element = fixture.nativeElement as HTMLElement;
+
+    button(element, 'Angular').click();
+    await fixture.whenStable();
+    button(element, 'Angular').click();
+    await fixture.whenStable();
+
+    httpTesting.expectOne({ method: 'POST', url: '/api/users/me/subscriptions/1' }).flush(null);
+    await fixture.whenStable();
+    expect(button(element, 'Angular').textContent?.trim()).toBe('Déjà abonné');
+  });
+
+  it('treats a 409 as "already subscribed": "Déjà abonné" and no notification', async () => {
     const fixture = await render();
     const element = fixture.nativeElement as HTMLElement;
 
@@ -98,9 +112,27 @@ describe('TopicList', () => {
       );
     await fixture.whenStable();
 
+    expect(button(element, 'Angular').textContent?.trim()).toBe('Déjà abonné');
+    expect(button(element, 'Angular').disabled).toBe(true);
+    expect(show).not.toHaveBeenCalled();
+  });
+
+  it('keeps "S\'abonner" and notifies the API message when the subscription fails', async () => {
+    const fixture = await render();
+    const element = fixture.nativeElement as HTMLElement;
+
+    button(element, 'Angular').click();
+    httpTesting
+      .expectOne({ method: 'POST', url: '/api/users/me/subscriptions/1' })
+      .flush(
+        { status: 404, message: "Ce topic n'existe pas", fieldErrors: null },
+        { status: 404, statusText: 'Not Found' },
+      );
+    await fixture.whenStable();
+
     expect(button(element, 'Angular').textContent?.trim()).toBe("S'abonner");
     expect(button(element, 'Angular').disabled).toBe(false);
-    expect(show).toHaveBeenCalledExactlyOnceWith('Vous êtes déjà abonné à ce topic');
+    expect(show).toHaveBeenCalledExactlyOnceWith("Ce topic n'existe pas");
   });
 
   it('notifies a fallback message when the error has no body', async () => {

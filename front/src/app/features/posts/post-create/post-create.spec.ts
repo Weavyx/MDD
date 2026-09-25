@@ -116,6 +116,24 @@ describe('PostCreate', () => {
     expect(TestBed.inject(Router).url).toBe('/feed');
   });
 
+  it('disables "Créer" and sends one request only while the post is being created', async () => {
+    await fill();
+    await submit();
+    const button = el().querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    expect(button.disabled).toBe(true);
+
+    await submit();
+    // A submission that bypasses the disabled button (Enter key, script) is ignored as well.
+    el().querySelector('form')!.dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+
+    httpTesting
+      .expectOne({ method: 'POST', url: '/api/posts' })
+      .flush(null, { status: 500, statusText: 'Server Error' });
+    await fixture.whenStable();
+    expect(button.disabled).toBe(false);
+  });
+
   it('shows the API field errors under the matching fields', async () => {
     await fill();
     await submit();

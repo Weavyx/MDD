@@ -72,6 +72,8 @@ export class Profile {
 
   readonly subscriptions = signal<TopicResponse[]>([]);
   readonly saving = signal(false);
+  /** Topics whose unsubscription request is in flight: their button is disabled meanwhile. */
+  readonly pending = signal<ReadonlySet<number>>(new Set());
 
   constructor() {
     this.userService
@@ -113,13 +115,35 @@ export class Profile {
   }
 
   unsubscribe(topic: TopicResponse): void {
+    if (this.pending().has(topic.id)) {
+      return;
+    }
+    this.setPending(topic.id, true);
     this.topicService
       .unsubscribe(topic.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => this.subscriptions.update((topics) => topics.filter((t) => t.id !== topic.id)),
-        error: (error: HttpErrorResponse) => this.notifyError(error, 'Le désabonnement a échoué'),
+        next: () => {
+          this.setPending(topic.id, false);
+          this.subscriptions.update((topics) => topics.filter((t) => t.id !== topic.id));
+        },
+        error: (error: HttpErrorResponse) => {
+          this.setPending(topic.id, false);
+          this.notifyError(error, 'Le désabonnement a échoué');
+        },
       });
+  }
+
+  private setPending(topicId: number, pending: boolean): void {
+    this.pending.update((ids) => {
+      const next = new Set(ids);
+      if (pending) {
+        next.add(topicId);
+      } else {
+        next.delete(topicId);
+      }
+      return next;
+    });
   }
 
   /** `fieldErrors` go under their field; anything else (409 included) is a notification. */

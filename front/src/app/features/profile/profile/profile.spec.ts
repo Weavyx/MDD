@@ -187,6 +187,22 @@ describe('Profile', () => {
     expect(input(element, 'username').value).toBe('alice');
   });
 
+  it('disables "Sauvegarder" and sends one request only on a second click', async () => {
+    const fixture = await render();
+    const element = fixture.nativeElement as HTMLElement;
+    const save = element.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+
+    await submit(fixture);
+    expect(save.disabled).toBe(true);
+    await submit(fixture);
+
+    httpTesting
+      .expectOne({ method: 'PUT', url: '/api/users/me' })
+      .flush({ id: 1, email: 'alice@mdd.fr', username: 'alice' });
+    await fixture.whenStable();
+    expect(save.disabled).toBe(false);
+  });
+
   it('notifies the API message of a 409', async () => {
     const fixture = await render();
     await type(fixture, 'email', 'bob@mdd.fr');
@@ -274,6 +290,26 @@ describe('Profile', () => {
     expect(cardTitles(element)).toEqual(['Spring']);
   });
 
+  it('disables "Se désabonner" and sends one request only during the request', async () => {
+    const fixture = await render();
+    const element = fixture.nativeElement as HTMLElement;
+    const unsubscribe = element.querySelector<HTMLButtonElement>('app-topic-card button')!;
+
+    unsubscribe.click();
+    await fixture.whenStable();
+    expect(unsubscribe.disabled).toBe(true);
+    unsubscribe.click();
+    // A call that bypasses the disabled button (keyboard, script) is ignored as well.
+    fixture.componentInstance.unsubscribe(profile.subscriptions[0]);
+    await fixture.whenStable();
+
+    httpTesting
+      .expectOne({ method: 'DELETE', url: '/api/users/me/subscriptions/2' })
+      .flush(null, { status: 204, statusText: 'No Content' });
+    await fixture.whenStable();
+    expect(cardTitles(element)).toEqual(['Spring']);
+  });
+
   it('keeps the card and notifies when the unsubscription fails', async () => {
     const fixture = await render();
     const element = fixture.nativeElement as HTMLElement;
@@ -286,6 +322,7 @@ describe('Profile', () => {
 
     expect(cardTitles(element)).toEqual(['Angular', 'Spring']);
     expect(show).toHaveBeenCalledExactlyOnceWith('Le désabonnement a échoué');
+    expect(element.querySelector<HTMLButtonElement>('app-topic-card button')!.disabled).toBe(false);
   });
 
   it('shows a short message when there is no subscription', async () => {

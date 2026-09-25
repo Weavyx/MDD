@@ -72,6 +72,19 @@ describe('Login', () => {
     httpTesting.expectNone('/api/auth/login');
   });
 
+  it('disables the button and sends one request only on a second click', async () => {
+    await fillAndSubmit();
+    expect(submitButton().disabled).toBe(true);
+    submitButton().click();
+    await fixture.whenStable();
+
+    httpTesting
+      .expectOne('/api/auth/login')
+      .flush(null, { status: 401, statusText: 'Unauthorized' });
+    await fixture.whenStable();
+    expect(submitButton().disabled).toBe(false);
+  });
+
   it('applies no complexity rule to the password', async () => {
     await fillAndSubmit('alice', 'a');
 

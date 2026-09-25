@@ -151,6 +151,19 @@ describe('Register', () => {
     httpTesting.expectOne('/api/auth/register');
   });
 
+  it('disables the button and sends one request only on a second click', async () => {
+    await fill({});
+    await submit();
+    expect(submitButton().disabled).toBe(true);
+    await submit();
+
+    httpTesting
+      .expectOne('/api/auth/register')
+      .flush(null, { status: 500, statusText: 'Server Error' });
+    await fixture.whenStable();
+    expect(submitButton().disabled).toBe(false);
+  });
+
   it('registers, logs in with the returned token and opens the feed', async () => {
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
     await fill({});
