@@ -14,7 +14,7 @@ describe("Validation du formulaire d'inscription", () => {
 
     cy.contains(
       'mat-error',
-      'Le mot de passe doit contenir 8 à 72 caractères, dont une majuscule, une minuscule, ' +
+      'Le mot de passe doit contenir au moins 8 caractères, dont une majuscule, une minuscule, ' +
         'un chiffre et un caractère spécial',
     );
     cy.location('pathname').should('eq', '/register');

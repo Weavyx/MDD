@@ -46,7 +46,7 @@
       @let password = form.controls.password;
       @if (password.hasError('password')) {
         <mat-error
-          >8 à 72 caractères, dont une majuscule, une minuscule, un chiffre et un caractère
+          >au moins 8 caractères, dont une majuscule, une minuscule, un chiffre et un caractère
           spécial</mat-error
         >
       } @else if (password.hasError('maxUtf8Bytes')) {

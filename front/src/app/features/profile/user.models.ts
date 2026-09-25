@@ -12,7 +12,10 @@ export interface UserProfileResponse {
 export interface UpdateProfileRequest {
   username: string;
   email: string;
-  /** Absent, `null` or blank keeps the current password. */
+  /**
+   * Absent: the current password is kept. The API rejects a blank value (400); the profile
+   * form omits the key when the field is empty.
+   */
   password?: string | null;
 }
 

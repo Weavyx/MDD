@@ -16,7 +16,7 @@ describe('Register', () => {
   const show = vi.fn();
 
   const PASSWORD_RULE =
-    'Le mot de passe doit contenir 8 à 72 caractères, dont une majuscule, une minuscule, un ' +
+    'Le mot de passe doit contenir au moins 8 caractères, dont une majuscule, une minuscule, un ' +
     'chiffre et un caractère spécial';
   const PASSWORD_BYTES =
     'Le mot de passe ne doit pas dépasser 72 octets (un caractère accentué en compte 2)';
