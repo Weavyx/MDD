@@ -106,6 +106,17 @@ describe('AuthService', () => {
       expect(service.isAuthenticated()).toBe(false);
     });
 
+    it.each([
+      ['two', (token: string) => token.split('.').slice(0, 2).join('.')],
+      ['four', (token: string) => `${token}.extra`],
+    ])('is false for a readable, unexpired payload in %s segments', (_, reshape) => {
+      const service = createService();
+
+      service.login(reshape(jwtExpiringIn(3600)));
+
+      expect(service.isAuthenticated()).toBe(false);
+    });
+
     it('is false for a token without exp', () => {
       const service = createService();
 

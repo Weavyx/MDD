@@ -36,8 +36,12 @@ describe('passwordValidator', () => {
     expect(validate('Pass1!a')).toEqual({ password: true });
   });
 
-  it('rejects 73 characters', () => {
-    expect(validate('Aa1!'.padEnd(73, 'x'))).toEqual({ password: true });
+  it.each([
+    ['the first 72 are valid', 'Aa1!'.padEnd(73, 'x')],
+    ['the last 72 are valid', 'x' + 'Aa1!'.padEnd(72, 'x')],
+  ])('rejects 73 characters when %s', (_, value) => {
+    expect(value).toHaveLength(73);
+    expect(validate(value)).toEqual({ password: true });
   });
 
   it.each([
