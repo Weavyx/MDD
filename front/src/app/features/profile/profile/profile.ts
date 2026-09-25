@@ -93,9 +93,11 @@ export class Profile {
       return;
     }
     const { username, email, password } = this.form.getRawValue();
+    // The API keeps the password when the key is absent and refuses an empty one (400).
+    const request = password === '' ? { username, email } : { username, email, password };
     this.saving.set(true);
     this.userService
-      .updateProfile({ username, email, password: password === '' ? null : password })
+      .updateProfile(request)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (user) => {

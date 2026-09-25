@@ -104,14 +104,15 @@ describe('Profile', () => {
     expect(show).not.toHaveBeenCalled();
   });
 
-  it('sends a null password when the field is left empty', async () => {
+  it('omits the password key when the field is left empty', async () => {
     const fixture = await render();
     await type(fixture, 'username', 'alice2');
 
     await submit(fixture);
 
     const req = httpTesting.expectOne({ method: 'PUT', url: '/api/users/me' });
-    expect(req.request.body).toEqual({ username: 'alice2', email: 'alice@mdd.fr', password: null });
+    expect(req.request.body).toStrictEqual({ username: 'alice2', email: 'alice@mdd.fr' });
+    expect(Object.keys(req.request.body)).not.toContain('password');
     req.flush({ id: 1, email: 'alice@mdd.fr', username: 'alice2' });
   });
 
