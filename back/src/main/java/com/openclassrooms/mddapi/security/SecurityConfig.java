@@ -14,6 +14,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -33,7 +34,8 @@ import java.util.List;
  *       en-tête {@code WWW-Authenticate}, hors du format {@code ErrorResponse}. Aucun
  *       point d'entrée personnalisé n'est installé, par choix documenté ;</li>
  *   <li>CSRF désactivé parce qu'aucun cookie n'est utilisé ; CORS limité aux origines de
- *       {@code mdd.cors.allowed-origins} (séparées par des virgules), aux cinq méthodes de
+ *       {@code mdd.cors.allowed-origins} (séparées par des virgules, espaces autour
+ *       ignorés, entrées vides écartées), aux cinq méthodes de
  *       l'API et aux en-têtes {@code Authorization} et {@code Content-Type}.</li>
  * </ul>
  */
@@ -72,7 +74,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(allowedOrigins.split(",")));
+        configuration.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
