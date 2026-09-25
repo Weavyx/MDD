@@ -1,2 +1,22 @@
-<h1>Thèmes</h1>
-<p>À implémenter</p>
+<h1 class="topic-list-heading">Thèmes</h1>
+
+<ul class="topic-list-grid">
+  @for (topic of topics(); track topic.id) {
+    <li>
+      <app-topic-card [topic]="topic">
+        @if (topic.subscribed) {
+          <button matButton="filled" type="button" disabled>Déjà abonné</button>
+        } @else {
+          <button
+            matButton="filled"
+            type="button"
+            [disabled]="pending().has(topic.id)"
+            (click)="subscribe(topic)"
+          >
+            S'abonner
+          </button>
+        }
+      </app-topic-card>
+    </li>
+  }
+</ul>
