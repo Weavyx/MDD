@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 
 import { toApiError } from '../../../core/http/api-error';
 import { NotificationService } from '../../../core/notification/notification.service';
+import { maxUtf8Bytes } from '../../../shared/validators/max-utf8-bytes.validator';
 import { passwordValidator } from '../../../shared/validators/password.validator';
 import { TopicCard } from '../../topics/topic-card/topic-card';
 import { TopicResponse } from '../../topics/topic.models';
@@ -18,7 +19,9 @@ import { UserService } from '../user.service';
 /** Same bounds as the backend `UpdateProfileRequest`. */
 const USERNAME_MIN = 3;
 const USERNAME_MAX = 50;
+const USERNAME_PATTERN = /^[A-Za-z0-9._-]+$/;
 const EMAIL_MAX = 255;
+const PASSWORD_MAX_BYTES = 72;
 
 /** The user's profile form and the list of topics they follow. */
 @Component({
@@ -44,6 +47,7 @@ export class Profile {
   protected readonly usernameMin = USERNAME_MIN;
   protected readonly usernameMax = USERNAME_MAX;
   protected readonly emailMax = EMAIL_MAX;
+  protected readonly passwordMaxBytes = PASSWORD_MAX_BYTES;
 
   readonly form = new FormGroup({
     username: new FormControl('', {
@@ -52,6 +56,7 @@ export class Profile {
         Validators.required,
         Validators.minLength(USERNAME_MIN),
         Validators.maxLength(USERNAME_MAX),
+        Validators.pattern(USERNAME_PATTERN),
       ],
     }),
     email: new FormControl('', {
@@ -59,7 +64,10 @@ export class Profile {
       validators: [Validators.required, Validators.email, Validators.maxLength(EMAIL_MAX)],
     }),
     /** Empty keeps the current password. */
-    password: new FormControl('', { nonNullable: true, validators: [passwordValidator] }),
+    password: new FormControl('', {
+      nonNullable: true,
+      validators: [passwordValidator, maxUtf8Bytes(PASSWORD_MAX_BYTES)],
+    }),
   });
 
   readonly subscriptions = signal<TopicResponse[]>([]);

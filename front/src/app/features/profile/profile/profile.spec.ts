@@ -135,6 +135,19 @@ describe('Profile', () => {
       'a'.repeat(51),
       "Le nom d'utilisateur doit contenir entre 3 et 50 caractères",
     ],
+    [
+      'non-whitelisted',
+      'username',
+      'élise dupont',
+      "Le nom d'utilisateur ne peut contenir que des lettres non accentuées, des chiffres, le " +
+        'point, le tiret et le tiret bas',
+    ],
+    [
+      'too long (74 UTF-8 bytes)',
+      'password',
+      'Aa1!' + 'é'.repeat(35),
+      'Le mot de passe ne doit pas dépasser 72 octets (un caractère accentué en compte 2)',
+    ],
     ['empty', 'email', '', "L'adresse e-mail est obligatoire"],
     ['malformed', 'email', 'alice', "L'adresse e-mail doit être valide"],
     [

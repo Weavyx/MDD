@@ -13,6 +13,11 @@
           >Le nom d'utilisateur doit contenir entre {{ usernameMin }} et
           {{ usernameMax }} caractères</mat-error
         >
+      } @else if (username.hasError('pattern')) {
+        <mat-error
+          >Le nom d'utilisateur ne peut contenir que des lettres non accentuées, des chiffres, le
+          point, le tiret et le tiret bas</mat-error
+        >
       } @else if (username.hasError('server')) {
         <mat-error>{{ username.getError('server') }}</mat-error>
       }
@@ -43,6 +48,11 @@
         <mat-error
           >8 à 72 caractères, dont une majuscule, une minuscule, un chiffre et un caractère
           spécial</mat-error
+        >
+      } @else if (password.hasError('maxUtf8Bytes')) {
+        <mat-error
+          >Le mot de passe ne doit pas dépasser {{ passwordMaxBytes }} octets (un caractère accentué
+          en compte 2)</mat-error
         >
       } @else if (password.hasError('server')) {
         <mat-error>{{ password.getError('server') }}</mat-error>
