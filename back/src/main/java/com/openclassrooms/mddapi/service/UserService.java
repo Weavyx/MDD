@@ -71,9 +71,11 @@ public class UserService {
      * <p>
      * Contrat :
      * <ul>
-     *   <li>un mot de passe {@code null} ou blanc laisse le hash existant intact ; toute
-     *       autre valeur est ré-encodée avec BCrypt et remplace l'ancien hash — l'ancien
-     *       mot de passe n'est jamais demandé, le JWT tenant lieu de preuve d'identité ;</li>
+     *   <li>un mot de passe {@code null} (champ absent du JSON) laisse le hash existant
+     *       intact ; toute autre valeur est ré-encodée avec BCrypt et remplace l'ancien
+     *       hash — l'ancien mot de passe n'est jamais demandé, le JWT tenant lieu de preuve
+     *       d'identité. Un mot de passe vide ou blanc n'arrive jamais ici : la validation de
+     *       {@code UpdateProfileRequest} le rejette en 400 ;</li>
      *   <li>l'unicité de l'email et du nom d'utilisateur n'est vérifiée que si la valeur
      *       change, et en excluant l'utilisateur lui-même : renvoyer sa propre valeur ne
      *       produit pas de conflit ;</li>
@@ -102,7 +104,7 @@ public class UserService {
 
         user.setEmail(requestEmail);
         user.setUsername(requestUsername);
-        if (requestPassword != null && !requestPassword.isBlank()) {
+        if (requestPassword != null) {
             user.setPasswordHash(passwordEncoder.encode(requestPassword));
         }
 

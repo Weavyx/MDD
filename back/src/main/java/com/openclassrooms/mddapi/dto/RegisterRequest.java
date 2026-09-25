@@ -1,5 +1,6 @@
 package com.openclassrooms.mddapi.dto;
 
+import com.openclassrooms.mddapi.validation.MaxUtf8Bytes;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -10,6 +11,7 @@ import lombok.Data;
 public class RegisterRequest {
     @NotBlank(message = "Le nom d'utilisateur est obligatoire")
     @Size(min = 3, max = 50, message = "Le nom d'utilisateur doit contenir entre 3 et 50 caractères")
+    @Pattern(regexp = "^[A-Za-z0-9._-]+$", message = "Le nom d'utilisateur ne peut contenir que des lettres non accentuées, des chiffres, le point, le tiret et le tiret bas")
     private String username;
 
     @NotBlank(message = "L'adresse e-mail est obligatoire")
@@ -28,12 +30,13 @@ public class RegisterRequest {
      * (voir <a href="https://owasp.org/www-community/password-special-characters">
      * OWASP - Password Special Characters</a>).
      * <p>
-     * Borne haute fixée à 72 caractères : BCrypt tronque silencieusement tout
-     *      * au-delà de 72 octets, rendant inefficace (et trompeuse) toute longueur
-     *      * supérieure.
+     * Borne haute fixée à 72 octets UTF-8 (forme NFC), et non 72 caractères : BCrypt
+     * refuse au-delà de 72 octets (exception à l'encodage, donc 500), et un caractère
+     * accentué en occupe 2.
      */
     @NotBlank(message = "Le mot de passe est obligatoire")
-    @Size(min = 8, max = 72, message = "Le mot de passe doit contenir entre 8 et 72 caractères")
+    @Size(min = 8, message = "Le mot de passe doit contenir au moins 8 caractères")
+    @MaxUtf8Bytes(72)
     @Pattern(
             regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*\\p{Punct}).{8,}$",
             message = "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial"
