@@ -11,6 +11,10 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
+/**
+ * Émission des jetons d'accès ; la validation est entièrement déléguée au
+ * {@code JwtDecoder} de {@link JwtConfig} et au filtre Bearer de Spring Security.
+ */
 @Service
 public class JwtService {
 
@@ -26,6 +30,17 @@ public class JwtService {
         this.jwtEncoder = jwtEncoder;
     }
 
+    /**
+     * Signe un jeton HS256 dont les seuls claims sont {@code iss} ({@code mdd.jwt.issuer},
+     * chaîne simple non-URL, valide au sens de la RFC 7519), {@code iat}, {@code exp}
+     * ({@code iat} + {@code mdd.jwt.expiration-minutes}) et {@code sub}.
+     * <p>
+     * {@code sub} doit être l'id numérique de l'utilisateur sous forme de chaîne : les
+     * contrôleurs le reconvertissent par {@code Long.valueOf(jwt.getSubject())} ; toute
+     * autre valeur produirait une {@code NumberFormatException} à la première requête
+     * authentifiée. Ni email, ni nom d'utilisateur, ni rôle ne sont embarqués. Le paramètre
+     * n'est pas vérifié : ce service ne consulte jamais la base.
+     */
     public String generateToken(String userId) {
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer(jwtIssuer)

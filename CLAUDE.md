@@ -37,7 +37,7 @@ MDD ("Monde de Dév"), OpenClassrooms P5 option B. Mono-repo: `back/` Spring Boo
 - Layered monolith, packages by layer, concrete services without interfaces, one DTO per action (`*Request`/`*Response`, Lombok `@Data`), manual inline mapping, no MapStruct. Entities are immutable except `User`; associations are unidirectional `@ManyToOne LAZY` with `@EntityGraph` where needed; no `cascade`, no `@OneToMany`.
 - `Topic` has no creation endpoint; there is no seed in the repo yet.
 - `spring.profiles.active=local` is hard-coded in `application.properties`; there is no prod profile, `ddl-auto=update` and `show-sql=true` are known debts (see `REVUE_TECHNIQUE.md`), not things to "fix" in passing.
-- The rationale for each decision lives in the Obsidian vault (`Projets/MDD/`); this file records only the constraints.
+- The rationale for each decision lives in the Obsidian vault (`OpenClassrooms/Formation Java Angular/Projets/Projet_05 - MDD (full-stack)/prepa/`, index `prepa/Etapes des choix logiques.md`); this file records only the constraints.
 
 ## Frontend
 

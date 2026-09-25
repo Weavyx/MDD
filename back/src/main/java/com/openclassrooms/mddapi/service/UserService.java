@@ -21,6 +21,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Profil et abonnements de l'utilisateur courant.
+ * <p>
+ * Toutes les méthodes reçoivent un {@code userId} qui provient du claim {@code sub} d'un
+ * JWT déjà validé par la chaîne de sécurité : elles ne vérifient pas que l'appelant a le
+ * droit d'agir sur cet utilisateur, seulement que l'utilisateur ou le topic visé existe
+ * encore. Un compte supprimé entre l'émission du jeton et l'appel se traduit donc par une
+ * {@link UserNotFoundException} (404), pas par un 401.
+ */
 @Service
 public class UserService {
     private final UserRepository userRepository;
@@ -35,6 +44,14 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * Profil avec la liste des abonnements, en deux requêtes fixes (utilisateur, puis
+     * abonnements avec leur topic chargé par {@code @EntityGraph}) quel que soit le
+     * nombre d'abonnements. Chaque {@link TopicResponse} renvoyé a {@code subscribed}
+     * à {@code true} par construction.
+     *
+     * @throws UserNotFoundException si aucun utilisateur ne porte cet id (404)
+     */
     @Transactional(readOnly = true)
     public UserProfileResponse getProfile(Long userId) {
         User user = findUser(userId);
@@ -49,6 +66,26 @@ public class UserService {
         return new UserProfileResponse(user.getId(), user.getEmail(), user.getUsername(), subscriptions);
     }
 
+    /**
+     * Remplace email et nom d'utilisateur, et le mot de passe seulement s'il est fourni.
+     * <p>
+     * Contrat :
+     * <ul>
+     *   <li>un mot de passe {@code null} ou blanc laisse le hash existant intact ; toute
+     *       autre valeur est ré-encodée avec BCrypt et remplace l'ancien hash — l'ancien
+     *       mot de passe n'est jamais demandé, le JWT tenant lieu de preuve d'identité ;</li>
+     *   <li>l'unicité de l'email et du nom d'utilisateur n'est vérifiée que si la valeur
+     *       change, et en excluant l'utilisateur lui-même : renvoyer sa propre valeur ne
+     *       produit pas de conflit ;</li>
+     *   <li>la vérification d'unicité et l'enregistrement ne sont pas atomiques entre deux
+     *       requêtes concurrentes ; la contrainte {@code UNIQUE} en base tranche alors par
+     *       une {@code DataIntegrityViolationException} (409 générique).</li>
+     * </ul>
+     *
+     * @throws UserNotFoundException      si aucun utilisateur ne porte cet id (404)
+     * @throws EmailAlreadyUsedException  si le nouvel email appartient à un autre compte (409)
+     * @throws UsernameAlreadyUsedException si le nouveau nom appartient à un autre compte (409)
+     */
     @Transactional
     public UserResponse updateProfile(Long userId, UpdateProfileRequest request) {
         User user = findUser(userId);
@@ -73,6 +110,19 @@ public class UserService {
         return new UserResponse(savedUser.getId(), savedUser.getEmail(), savedUser.getUsername());
     }
 
+    /**
+     * Crée l'abonnement de l'utilisateur au topic.
+     * <p>
+     * L'existence du topic est vérifiée par un {@code SELECT} (pour produire un 404 fiable) ;
+     * celle de l'utilisateur ne l'est pas : {@code getReferenceById} fournit un proxy sans
+     * requête, l'id venant d'un JWT validé. Si le compte a été supprimé entre-temps, la
+     * violation de clé étrangère au {@code flush} remonte en
+     * {@code DataIntegrityViolationException} (409), pas en 404. Le double abonnement est
+     * refusé avant l'insertion, et à défaut par la contrainte {@code UNIQUE(user_id, topic_id)}.
+     *
+     * @throws TopicNotFoundException     si le topic n'existe pas (404)
+     * @throws AlreadySubscribedException si l'abonnement existe déjà (409)
+     */
     @Transactional
     public void subscribe(Long userId, Long topicId) {
         Topic topic = topicRepository.findById(topicId)
@@ -87,6 +137,15 @@ public class UserService {
         subscriptionRepository.save(subscription);
     }
 
+    /**
+     * Supprime l'abonnement en une seule instruction {@code DELETE}, sans charger l'entité.
+     * <p>
+     * Idempotent : l'absence d'abonnement n'est pas une erreur, le nombre de lignes
+     * supprimées est ignoré. Seul un topic inexistant est refusé, afin qu'un identifiant
+     * erroné ne soit pas confondu avec un désabonnement réussi.
+     *
+     * @throws TopicNotFoundException si le topic n'existe pas (404)
+     */
     @Transactional
     public void unsubscribe(Long userId, Long topicId) {
         topicRepository.findById(topicId)

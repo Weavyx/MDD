@@ -18,9 +18,23 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     @EntityGraph(attributePaths = "topic")
     List<Subscription> findByUserId(Long userId);
 
+    /**
+     * Les seuls ids des topics suivis par {@code userId}, sans charger ni les abonnements ni
+     * les topics : projection destinée à la jointure en mémoire de
+     * {@code TopicService.findAllWithSubscriptionStatus}. Liste vide pour un utilisateur
+     * sans abonnement ou inexistant.
+     */
     @Query("SELECT s.topic.id FROM Subscription s WHERE s.user.id = :userId")
     List<Long> findSubscribedTopicIdsByUserId(@Param("userId") Long userId);
 
+    /**
+     * Supprime en une instruction l'abonnement de {@code userId} au topic {@code topicId},
+     * sans le charger. Renvoie le nombre de lignes supprimées (0 ou 1), que l'appelant
+     * ignore pour rester idempotent. Requête {@code @Modifying} : doit s'exécuter dans une
+     * transaction (fournie par {@code UserService.unsubscribe}) et n'invalide pas le contexte
+     * de persistance. La condition sur {@code user_id} est ce qui empêche de désabonner tous
+     * les utilisateurs du topic — vérifié par {@code SubscriptionRepositoryIT}.
+     */
     @Modifying
     @Query("DELETE FROM Subscription s WHERE s.user.id = :userId AND s.topic.id = :topicId")
     int deleteByUserIdAndTopicId(@Param("userId") Long userId, @Param("topicId") Long topicId);
