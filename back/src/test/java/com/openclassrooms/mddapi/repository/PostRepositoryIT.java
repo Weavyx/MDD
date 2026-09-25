@@ -27,8 +27,8 @@ class PostRepositoryIT extends AbstractRepositoryIT {
     @Test
     void findPostsByUserId_utilisateurAbonneAUnTopic_neRetourneQueLesPostsDeCeTopicTriesParDate() {
         User user = persistUser("alice@mail.com", "alice");
-        Topic subscribedTopic = persistTopic("Java", "Description Java");
-        Topic otherTopic = persistTopic("Angular", "Description Angular");
+        Topic subscribedTopic = persistTopic("Topic IT A", "Description Java");
+        Topic otherTopic = persistTopic("Topic IT B", "Description Angular");
         entityManager.persistAndFlush(new Subscription(user, subscribedTopic));
 
         Post olderPost = persistPost("Premier article", "Contenu 1", user, subscribedTopic);
@@ -53,11 +53,11 @@ class PostRepositoryIT extends AbstractRepositoryIT {
     void findPostsByUserId_postEcritParUnAutreAuteurDansUnTopicSouscrit_estInclusDansLeFil() {
         User alice = persistUser("alice@mail.com", "alice");
         User bob = persistUser("bob@mail.com", "bob");
-        Topic java = persistTopic("Java", "Description Java");
+        Topic java = persistTopic("Topic IT A", "Description Java");
         entityManager.persistAndFlush(new Subscription(alice, java));
 
         // Le fil filtre par topic souscrit, pas par auteur : bob n'est pas abonné et
-        // n'est pas alice, son post dans "Java" doit quand même apparaître chez alice.
+        // n'est pas alice, son post dans "Topic IT A" doit quand même apparaître chez alice.
         Post postDeBob = persistPost("Article de bob", "Contenu de bob", bob, java);
         entityManager.clear();
 
@@ -69,7 +69,7 @@ class PostRepositoryIT extends AbstractRepositoryIT {
     @Test
     void findWithUserAndTopicById_postExistant_retourneUserEtTopicChargesSansLazyInitializationException() {
         User user = persistUser("alice@mail.com", "alice");
-        Topic topic = persistTopic("Java", "Description Java");
+        Topic topic = persistTopic("Topic IT A", "Description Java");
         Post post = persistPost("Titre", "Contenu", user, topic);
         entityManager.clear();
 
@@ -83,7 +83,7 @@ class PostRepositoryIT extends AbstractRepositoryIT {
         assertThat(Hibernate.isInitialized(found.get().getUser())).isTrue();
         assertThat(Hibernate.isInitialized(found.get().getTopic())).isTrue();
         assertThat(found.get().getUser().getUsername()).isEqualTo("alice");
-        assertThat(found.get().getTopic().getName()).isEqualTo("Java");
+        assertThat(found.get().getTopic().getName()).isEqualTo("Topic IT A");
     }
 
     private void setCreatedAt(Long postId, LocalDateTime createdAt) {
