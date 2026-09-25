@@ -11,6 +11,8 @@ import { AuthService } from './core/auth/auth.service';
 import { Home } from './features/auth/home/home';
 import { Login } from './features/auth/login/login';
 import { Register } from './features/auth/register/register';
+import { LegalNotice } from './features/legal/legal-notice/legal-notice';
+import { PrivacyPolicy } from './features/legal/privacy-policy/privacy-policy';
 import { Feed } from './features/posts/feed/feed';
 import { PostCreate } from './features/posts/post-create/post-create';
 import { PostDetail } from './features/posts/post-detail/post-detail';
@@ -82,6 +84,17 @@ describe('routes', () => {
     });
   });
 
+  describe('legal pages', () => {
+    it.each<[string, boolean, Type<unknown>]>([
+      ['/mentions-legales', false, LegalNotice],
+      ['/mentions-legales', true, LegalNotice],
+      ['/confidentialite', false, PrivacyPolicy],
+      ['/confidentialite', true, PrivacyPolicy],
+    ])('opens %s for everyone (logged in: %s)', async (url, isAuthenticated, component) => {
+      expect(await navigate(url, isAuthenticated)).toEqual({ url, component });
+    });
+  });
+
   describe('page titles', () => {
     it.each([
       ['/', 'Accueil | MDD', false],
@@ -92,6 +105,10 @@ describe('routes', () => {
       ['/posts/42', 'Article | MDD', true],
       ['/topics', 'Thèmes | MDD', true],
       ['/profile', 'Profil | MDD', true],
+      ['/mentions-legales', 'Mentions légales | MDD', false],
+      ['/mentions-legales', 'Mentions légales | MDD', true],
+      ['/confidentialite', 'Confidentialité | MDD', false],
+      ['/confidentialite', 'Confidentialité | MDD', true],
     ])('titles %s "%s"', async (url, title, isAuthenticated) => {
       await navigate(url, isAuthenticated);
 

@@ -1,0 +1,24 @@
+// Shared by the two legal pages: a readable column of plain text.
+.legal {
+  max-width: 720px;
+  margin: 0 auto;
+  overflow-wrap: break-word;
+
+  h1 {
+    font: var(--mat-sys-headline-medium);
+  }
+
+  h2 {
+    margin-top: 24px;
+    font: var(--mat-sys-title-large);
+  }
+
+  p,
+  li {
+    font: var(--mat-sys-body-large);
+  }
+
+  a {
+    color: var(--mat-sys-primary);
+  }
+}

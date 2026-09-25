@@ -56,5 +56,18 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/profile/profile/profile').then((m) => m.Profile),
   },
+  // Public for everyone, logged in or not: no guard.
+  {
+    path: 'mentions-legales',
+    title: 'Mentions légales | MDD',
+    loadComponent: () =>
+      import('./features/legal/legal-notice/legal-notice').then((m) => m.LegalNotice),
+  },
+  {
+    path: 'confidentialite',
+    title: 'Confidentialité | MDD',
+    loadComponent: () =>
+      import('./features/legal/privacy-policy/privacy-policy').then((m) => m.PrivacyPolicy),
+  },
   { path: '**', redirectTo: '' },
 ];
