@@ -45,8 +45,11 @@ describe('toApiError', () => {
     expect(toApiError(error)).toEqual({ message: null, fieldErrors: {} });
   });
 
-  it('returns nothing for a body that is not an ErrorResponse', () => {
-    const error = new HttpErrorResponse({ status: 0, error: new ProgressEvent('error') });
+  it.each([
+    ['a network error', new ProgressEvent('error')],
+    ['a message that is not a string', { status: 500, message: 42 }],
+  ])('returns nothing for a body that is not an ErrorResponse (%s)', (_, body) => {
+    const error = new HttpErrorResponse({ status: 0, error: body });
 
     expect(toApiError(error)).toEqual({ message: null, fieldErrors: {} });
   });
