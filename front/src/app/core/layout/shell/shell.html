@@ -41,46 +41,48 @@
   </mat-sidenav>
 
   <mat-sidenav-content class="shell-body">
-    <mat-toolbar class="shell-toolbar">
-      <a class="shell-logo" [routerLink]="isAuthenticated() ? '/feed' : '/'">MDD</a>
-      @if (isAuthenticated()) {
-        <span class="shell-spacer"></span>
-        @if (isHandset()) {
-          <button matIconButton type="button" aria-label="Ouvrir le menu" (click)="openMenu()">
-            <mat-icon>menu</mat-icon>
-          </button>
-        } @else {
-          <nav class="shell-nav" aria-label="Navigation principale">
-            <button matButton type="button" class="shell-logout" (click)="logout()">
-              <span class="shell-label">Se déconnecter</span>
+    @if (!isHome()) {
+      <mat-toolbar class="shell-toolbar">
+        <a class="shell-logo" [routerLink]="isAuthenticated() ? '/feed' : '/'">MDD</a>
+        @if (isAuthenticated()) {
+          <span class="shell-spacer"></span>
+          @if (isHandset()) {
+            <button matIconButton type="button" aria-label="Ouvrir le menu" (click)="openMenu()">
+              <mat-icon>menu</mat-icon>
             </button>
-            <a
-              matButton
-              routerLink="/feed"
-              routerLinkActive="shell-active"
-              ariaCurrentWhenActive="page"
-              ><span class="shell-label">Articles</span></a
-            >
-            <a
-              matButton
-              routerLink="/topics"
-              routerLinkActive="shell-active"
-              ariaCurrentWhenActive="page"
-              ><span class="shell-label">Thèmes</span></a
-            >
-            <a
-              matIconButton
-              routerLink="/profile"
-              routerLinkActive="shell-active"
-              ariaCurrentWhenActive="page"
-              aria-label="Profil"
-            >
-              <mat-icon>account_circle</mat-icon>
-            </a>
-          </nav>
+          } @else {
+            <nav class="shell-nav" aria-label="Navigation principale">
+              <button matButton type="button" class="shell-logout" (click)="logout()">
+                <span class="shell-label">Se déconnecter</span>
+              </button>
+              <a
+                matButton
+                routerLink="/feed"
+                routerLinkActive="shell-active"
+                ariaCurrentWhenActive="page"
+                ><span class="shell-label">Articles</span></a
+              >
+              <a
+                matButton
+                routerLink="/topics"
+                routerLinkActive="shell-active"
+                ariaCurrentWhenActive="page"
+                ><span class="shell-label">Thèmes</span></a
+              >
+              <a
+                matIconButton
+                routerLink="/profile"
+                routerLinkActive="shell-active"
+                ariaCurrentWhenActive="page"
+                aria-label="Profil"
+              >
+                <mat-icon>account_circle</mat-icon>
+              </a>
+            </nav>
+          }
         }
-      }
-    </mat-toolbar>
+      </mat-toolbar>
+    }
 
     <main class="shell-page">
       <router-outlet />

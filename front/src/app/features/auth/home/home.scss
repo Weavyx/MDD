@@ -1,0 +1,53 @@
+.home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 48px;
+  min-height: calc(100dvh - 32px);
+}
+
+// The page heading stays in the accessibility tree; the logo is what the eye sees.
+.home-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.home-logo {
+  margin: 0;
+  padding: 24px 56px;
+  border-radius: 999px 999px 999px 32px;
+  background-color: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+  font: var(--mat-sys-display-large);
+  font-weight: 700;
+  letter-spacing: 4px;
+}
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px 48px;
+
+  a {
+    min-width: 160px;
+  }
+}
+
+@media (max-width: 599.98px) {
+  .home-logo {
+    padding: 16px 40px;
+    font: var(--mat-sys-display-medium);
+    font-weight: 700;
+  }
+
+  .home-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+}
