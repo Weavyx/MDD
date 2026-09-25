@@ -190,7 +190,7 @@ spring.datasource.password=${MYSQL_PASSWORD}
 mdd.jwt.secret=${JWT_SECRET}
 ```
 
-Le profil `local` est activé en dur par `application.properties` (`spring.profiles.active=local`). Il n'existe pas de profil de production ; `spring.jpa.hibernate.ddl-auto=update` et `spring.jpa.show-sql=true` s'appliquent partout (dette consignée dans `REVUE_TECHNIQUE.md`, axe c).
+Le profil `local` est activé en dur par `application.properties` (`spring.profiles.active=local`). Il n'existe pas de profil de production ; `spring.jpa.show-sql=true` s'applique partout (dette consignée dans `REVUE_TECHNIQUE.md`, axe c). Depuis le 25 septembre 2026, le schéma est géré par Flyway et seulement validé par Hibernate (`ddl-auto=validate`).
 
 **Maven ne lit pas `.env`** : les variables doivent être exportées dans le shell avant `spring-boot:run` et avant `verify`, à la main, par mise (le `mise.toml` à la racine charge `.env` dans le shell après un `mise trust`) ou par le plugin EnvFile d'IntelliJ.
 
@@ -202,7 +202,7 @@ cd back
 ./mvnw spring-boot:run        # avec les variables .env exportées ; API sur http://localhost:8080
 ```
 
-Le schéma est créé ou mis à jour par Hibernate au démarrage. Les topics n'ayant pas d'endpoint de création, insérer au moins une ligne dans `topics` (`name`, `description`) pour pouvoir publier.
+Le schéma est créé au démarrage par les migrations Flyway de `back/src/main/resources/db/migration/`, qui insèrent aussi les huit thèmes de référence (`V2__insert_reference_topics.sql`) ; Hibernate se contente de le valider.
 
 ### 5.4 Lancer les tests
 
