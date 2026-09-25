@@ -1,8 +1,11 @@
 <mat-sidenav-container class="shell">
+  <!-- Fixed: once closed, the menu waits just past the right edge; positioned in the
+       container it would widen the container's scroll width by its own width. -->
   <mat-sidenav
     class="shell-menu"
     position="end"
     mode="over"
+    fixedInViewport
     [opened]="menuOpen()"
     (closedStart)="closeMenu()"
   >

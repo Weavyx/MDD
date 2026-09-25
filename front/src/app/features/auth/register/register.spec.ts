@@ -194,6 +194,35 @@ describe('Register', () => {
     expect(show).not.toHaveBeenCalled();
   });
 
+  it('shows fieldErrors messages under the username and the password', async () => {
+    await fill({});
+    await submit();
+
+    httpTesting.expectOne('/api/auth/register').flush(
+      {
+        status: 400,
+        error: 'Bad Request',
+        message: 'Requête invalide',
+        fieldErrors: {
+          username: "Le nom d'utilisateur doit contenir entre 3 et 50 caractères",
+          password: 'Le mot de passe ne doit pas dépasser 72 caractères',
+        },
+      },
+      { status: 400, statusText: 'Bad Request' },
+    );
+    await fixture.whenStable();
+
+    const fields = Array.from(element.querySelectorAll('mat-form-field'), (f) =>
+      errorTexts(f as HTMLElement),
+    );
+    expect(fields).toEqual([
+      ["Le nom d'utilisateur doit contenir entre 3 et 50 caractères"],
+      [],
+      ['Le mot de passe ne doit pas dépasser 72 caractères'],
+    ]);
+    expect(show).not.toHaveBeenCalled();
+  });
+
   it('clears a fieldErrors message once the field is edited', async () => {
     await fill({});
     await submit();

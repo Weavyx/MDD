@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Type, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { Title } from '@angular/platform-browser';
 import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 
@@ -26,7 +27,13 @@ describe('routes', () => {
         provideRouter(routes),
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: AuthService, useValue: { isAuthenticated: signal(isAuthenticated) } },
+        {
+          provide: AuthService,
+          useValue: {
+            isAuthenticated: signal(isAuthenticated),
+            checkSession: () => isAuthenticated,
+          },
+        },
       ],
     });
     const harness = await RouterTestingHarness.create();
@@ -72,6 +79,23 @@ describe('routes', () => {
       ['/profile', Profile],
     ])('opens the protected page %s', async (url, component) => {
       expect(await navigate(url, true)).toEqual({ url, component });
+    });
+  });
+
+  describe('page titles', () => {
+    it.each([
+      ['/', 'Accueil | MDD', false],
+      ['/login', 'Connexion | MDD', false],
+      ['/register', 'Inscription | MDD', false],
+      ['/feed', 'Articles | MDD', true],
+      ['/posts/new', 'Nouvel article | MDD', true],
+      ['/posts/42', 'Article | MDD', true],
+      ['/topics', 'Thèmes | MDD', true],
+      ['/profile', 'Profil | MDD', true],
+    ])('titles %s "%s"', async (url, title, isAuthenticated) => {
+      await navigate(url, isAuthenticated);
+
+      expect(TestBed.inject(Title).getTitle()).toBe(title);
     });
   });
 });

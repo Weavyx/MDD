@@ -127,4 +127,31 @@ describe('Shell', () => {
     expect(logout).toHaveBeenCalledOnce();
     expect(sidenav?.classList).not.toContain('mat-drawer-opened');
   });
+
+  it.each(['/feed', '/topics', '/profile'])(
+    'closes the side menu when its %s link is followed',
+    async (href) => {
+      const fixture = await render({ isAuthenticated: true, isHandset: true, url: '/posts/1' });
+      const element = fixture.nativeElement as HTMLElement;
+      const sidenav = element.querySelector('mat-sidenav');
+      element.querySelector<HTMLButtonElement>('[aria-label="Ouvrir le menu"]')?.click();
+      await fixture.whenStable();
+      expect(sidenav?.classList).toContain('mat-drawer-opened');
+
+      sidenav?.querySelector<HTMLAnchorElement>(`a[href="${href}"]`)?.click();
+      await fixture.whenStable();
+
+      expect(TestBed.inject(Router).url).toBe(href);
+      expect(sidenav?.classList).not.toContain('mat-drawer-opened');
+    },
+  );
+
+  // Positioned in the container, the closed menu (translated just past the right edge)
+  // widened the container's scroll width by its own width.
+  it('fixes the side menu to the viewport', async () => {
+    const element = (await render({ isAuthenticated: true, isHandset: true }))
+      .nativeElement as HTMLElement;
+
+    expect(element.querySelector('mat-sidenav')?.classList).toContain('mat-sidenav-fixed');
+  });
 });

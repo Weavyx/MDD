@@ -142,6 +142,33 @@ describe('Login', () => {
     expect(show).not.toHaveBeenCalled();
   });
 
+  it('shows fieldErrors messages under the identifier and the password', async () => {
+    await fillAndSubmit();
+
+    httpTesting.expectOne('/api/auth/login').flush(
+      {
+        status: 400,
+        error: 'Bad Request',
+        message: 'Requête invalide',
+        fieldErrors: {
+          identifier: "L'identifiant ne doit pas dépasser 255 caractères",
+          password: 'Le mot de passe ne doit pas dépasser 72 caractères',
+        },
+      },
+      { status: 400, statusText: 'Bad Request' },
+    );
+    await fixture.whenStable();
+
+    const fields = Array.from(element.querySelectorAll('mat-form-field'), (f) =>
+      errorTexts(f as HTMLElement),
+    );
+    expect(fields).toEqual([
+      ["L'identifiant ne doit pas dépasser 255 caractères"],
+      ['Le mot de passe ne doit pas dépasser 72 caractères'],
+    ]);
+    expect(show).not.toHaveBeenCalled();
+  });
+
   it('notifies a fieldErrors message that matches no field', async () => {
     await fillAndSubmit();
 

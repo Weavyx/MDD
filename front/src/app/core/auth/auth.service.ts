@@ -20,13 +20,26 @@ export class AuthService {
 
   /**
    * True if and only if the token is present, decodable, has a numeric `exp` that is still
-   * in the future. Re-evaluated when the token changes, not when time passes: a token that
-   * expires while the page is open is caught by the interceptor's 401 handling.
+   * in the future. Re-evaluated when the token changes, not when time passes: the guards call
+   * `checkSession` on each navigation, and a token that expires while the page is open is
+   * caught by the interceptor's 401 handling.
    */
-  readonly isAuthenticated = computed(() => {
-    const exp = readExpiry(this.tokenState());
-    return exp !== null && exp * 1000 > Date.now();
-  });
+  readonly isAuthenticated = computed(() => isUnexpired(this.tokenState()));
+
+  /**
+   * Re-reads the clock, for the guards: true if the token is still valid now. Otherwise any
+   * stored token (expired since the page was loaded, or unreadable) is forgotten, in storage
+   * and in memory, without navigating: the calling guard decides where to go.
+   */
+  checkSession(): boolean {
+    if (isUnexpired(this.tokenState())) {
+      return true;
+    }
+    if (this.tokenState() !== null) {
+      this.clearToken();
+    }
+    return false;
+  }
 
   /** Stores the token returned by login or register. */
   login(token: string): void {
@@ -40,13 +53,17 @@ export class AuthService {
 
   /** Forgets the token (there is no server-side logout) and goes back to the home page. */
   logout(): void {
+    this.clearToken();
+    void this.router.navigateByUrl('/');
+  }
+
+  private clearToken(): void {
     try {
       localStorage.removeItem(TOKEN_KEY);
     } catch {
       // Storage unavailable: nothing persisted to remove.
     }
     this.tokenState.set(null);
-    void this.router.navigateByUrl('/');
   }
 }
 
@@ -56,6 +73,12 @@ function readStoredToken(): string | null {
   } catch {
     return null;
   }
+}
+
+/** True if the token has a readable `exp` that is still in the future, by the current clock. */
+function isUnexpired(token: string | null): boolean {
+  const exp = readExpiry(token);
+  return exp !== null && exp * 1000 > Date.now();
 }
 
 /** Returns the numeric `exp` claim of a JWT, or `null` if it cannot be read. */
