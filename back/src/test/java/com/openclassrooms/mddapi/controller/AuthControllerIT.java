@@ -148,6 +148,31 @@ class AuthControllerIT {
     }
 
     @Test
+    void register_usernameAuFormatEmail_retourne400EtServiceJamaisAppele() throws Exception {
+        // Sans "@" possible dans un username, la requête de login
+        // "email = :identifier OR username = :identifier" ne peut plus trouver deux comptes.
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"alice@mail.com\",\"username\":\"a@b.fr\",\"password\":\"Password1!\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.username").value("Le nom d'utilisateur ne peut contenir que des lettres non accentuées, des chiffres, le point, le tiret et le tiret bas"));
+
+        verify(authService, never()).register(any());
+    }
+
+    @Test
+    void register_usernameAvecPointTiretEtTiretBas_retourne201() throws Exception {
+        when(authService.register(any())).thenReturn(new AuthResponse("jwt-token"));
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"alice@mail.com\",\"username\":\"demo_user-1.x\",\"password\":\"Password1!\"}"))
+                .andExpect(status().isCreated());
+
+        verify(authService).register(any());
+    }
+
+    @Test
     void register_motDePasseAbsent_retourne400EtServiceJamaisAppele() throws Exception {
         // @Size et @Pattern acceptent null par conception (Bean Validation) : sans @NotBlank,
         // un corps sans clé "password" franchissait la validation et atteignait

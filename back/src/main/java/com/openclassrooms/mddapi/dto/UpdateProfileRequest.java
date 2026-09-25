@@ -11,6 +11,7 @@ import lombok.Data;
 public class UpdateProfileRequest {
     @NotBlank(message = "Le nom d'utilisateur est obligatoire")
     @Size(min = 3, max = 50, message = "Le nom d'utilisateur doit contenir entre 3 et 50 caractères")
+    @Pattern(regexp = "^[A-Za-z0-9._-]+$", message = "Le nom d'utilisateur ne peut contenir que des lettres non accentuées, des chiffres, le point, le tiret et le tiret bas")
     private String username;
 
     @NotBlank(message = "L'adresse e-mail est obligatoire")

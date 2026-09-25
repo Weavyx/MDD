@@ -266,6 +266,32 @@ class UserControllerIT {
     }
 
     @Test
+    void updateProfile_usernameAuFormatEmail_retourne400EtServiceJamaisAppele() throws Exception {
+        mockMvc.perform(put("/api/users/me")
+                        .with(jwt().jwt(jwt -> jwt.subject("1")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"alice@mail.com\",\"username\":\"a@b.fr\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.username").value("Le nom d'utilisateur ne peut contenir que des lettres non accentuées, des chiffres, le point, le tiret et le tiret bas"));
+
+        verify(userService, never()).updateProfile(anyLong(), any());
+    }
+
+    @Test
+    void updateProfile_usernameAvecPointTiretEtTiretBas_retourne200() throws Exception {
+        when(userService.updateProfile(anyLong(), any(UpdateProfileRequest.class)))
+                .thenReturn(new UserResponse(1L, "alice@mail.com", "demo_user-1.x"));
+
+        mockMvc.perform(put("/api/users/me")
+                        .with(jwt().jwt(jwt -> jwt.subject("1")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"alice@mail.com\",\"username\":\"demo_user-1.x\"}"))
+                .andExpect(status().isOk());
+
+        verify(userService).updateProfile(anyLong(), any(UpdateProfileRequest.class));
+    }
+
+    @Test
     void updateProfile_emailAbsent_retourne400() throws Exception {
         mockMvc.perform(put("/api/users/me")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
