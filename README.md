@@ -104,7 +104,25 @@ npx ng test --watch=false --coverage
 
 Mesure la couverture ; le rapport HTML est écrit dans `front/coverage/front/index.html`.
 
-**End-to-end** : les tests Cypress arrivent dans une autre pull request.
+**End-to-end** (depuis `front/`, avec l'API lancée sur `http://localhost:8080` et le front sur `http://localhost:4200`) :
+
+```bash
+npx cypress install
+```
+
+Télécharge le binaire Cypress, une fois sur une machine neuve.
+
+```bash
+npm run e2e
+```
+
+Lance les specs Cypress sans fenêtre (Electron) ; `npm run e2e:open` ouvre l'interface interactive.
+
+```bash
+npm run e2e:firefox
+```
+
+Lance les mêmes specs dans Firefox : c'est le repli sous Wayland, où Electron sans fenêtre ne termine pas les transitions CSS. Pour un front servi sur un autre port, ajouter `-- --config baseUrl=http://localhost:4201`.
 
 ## Documentation
 

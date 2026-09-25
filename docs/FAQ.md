@@ -8,9 +8,9 @@ Questions fréquentes des utilisateurs de MDD. Les textes entre guillemets sont 
 
 Réponse : sur la page d'accueil, cliquez sur « S'inscrire ». Remplissez les trois champs :
 
-- « Nom d'utilisateur » : entre 3 et 50 caractères ;
+- « Nom d'utilisateur » : entre 3 et 50 caractères, uniquement des lettres non accentuées, des chiffres, le point, le tiret et le tiret bas (pas d'espace ni d'`@`) ;
 - « Adresse e-mail » : une adresse valide, 255 caractères au plus ;
-- « Mot de passe » : il doit respecter la règle « Le mot de passe doit contenir 8 à 72 caractères, dont une majuscule, une minuscule, un chiffre et un caractère spécial ». Le caractère spécial est un signe de ponctuation ou un symbole du clavier (par exemple `! ? @ # $ % & * - _ .`). Les espaces et les lettres accentuées ne comptent pas comme caractères spéciaux.
+- « Mot de passe » : il doit respecter la règle « Le mot de passe doit contenir au moins 8 caractères, dont une majuscule, une minuscule, un chiffre et un caractère spécial ». Le caractère spécial est un signe de ponctuation ou un symbole du clavier (par exemple `! ? @ # $ % & * - _ .`). Les espaces et les lettres accentuées ne comptent pas comme caractères spéciaux. Le mot de passe est aussi limité en taille : « Le mot de passe ne doit pas dépasser 72 octets (un caractère accentué en compte 2) ». Sans accent, la limite est donc de 72 lettres, chiffres ou symboles ; chaque lettre accentuée la réduit d'une unité.
 
 Cliquez ensuite sur « S'inscrire ». Vous êtes connecté immédiatement et arrivez sur votre fil d'articles.
 
@@ -34,7 +34,7 @@ Réponse : cette version de MDD ne propose pas de réinitialisation du mot de pa
 
 **Question : comment m'abonner à un thème ?**
 
-Réponse : cliquez sur « Thèmes » dans la barre du haut (ou dans le menu sur téléphone). Chaque thème affiche un bouton « S'abonner » ; une fois abonné, le bouton devient « Déjà abonné » et n'est plus cliquable.
+Réponse : cliquez sur « Thèmes » dans la barre du haut (ou dans le menu sur téléphone). Chaque thème affiche un bouton « S'abonner » ; une fois abonné, le bouton devient « Déjà abonné » et n'est plus cliquable. Si vous vous êtes déjà abonné depuis un autre onglet, le bouton passe aussi à « Déjà abonné », sans message d'erreur.
 
 **Question : comment me désabonner d'un thème ?**
 
