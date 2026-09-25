@@ -65,7 +65,7 @@ MDD ("Monde de Dév"), OpenClassrooms P5 option B. Mono-repo: `back/` Spring Boo
 
 ## Deliverable docs
 
-- `back/docs/`: `RAPPORT_DE_TESTS.md` and `REVUE_TECHNIQUE.md` are deliverables; `TESTS_REVIEW.md` is the dated journal of the test review; `*_MERGE_AUDIT.md` are historical PR audits partly superseded (#12, #13); `*_TEST_CHECKLIST.md` were never executed.
+- `back/docs/`: `RAPPORT_DE_TESTS.md` and `REVUE_TECHNIQUE.md` are deliverables; `TESTS_REVIEW.md` is the dated journal of the test review; `archives/` holds the `*_MERGE_AUDIT.md` (historical PR audits partly superseded by #12, #13) and the `*_TEST_CHECKLIST.md` (never executed).
 - A wrong figure in a repo doc is corrected in place (measure, fix, dated line at the end saying how it was measured), in a dedicated commit. Divergences in the Obsidian vault are reported, never edited.
 - A requirement present in the vault but absent from the PDFs comes from the OpenClassrooms mission text: a missing source, not a false one. Never write "not found" or invent a requirement.
 - Temporary progress/tracking files are never committed: keep them untracked and delete them at the end.

@@ -177,7 +177,7 @@ Les éléments suivants ne bloquent pas ce merge (aucun ❌ restant) mais resten
 
 1. **`MethodArgumentNotValidException` non gérée explicitement dans `GlobalExceptionHandler`** (voir divergence 2 ci-dessus) — le code retour (400) est correct par défaut, mais le format du corps de réponse n'est pas garanti cohérent avec `ErrorResponse`.
 
-2. **Checklist de tests manuels non exécutée** : `back/docs/POSTS_TEST_CHECKLIST.md` liste les scénarios de test manuel pour les 4 endpoints. Toutes les colonnes « Résultat observé » et « Statut » sont vides à ce jour — aucun scénario n'a encore été vérifié manuellement.
+2. **Checklist de tests manuels non exécutée** : `back/docs/archives/POSTS_TEST_CHECKLIST.md` liste les scénarios de test manuel pour les 4 endpoints. Toutes les colonnes « Résultat observé » et « Statut » sont vides à ce jour — aucun scénario n'a encore été vérifié manuellement.
 
 ---
 
