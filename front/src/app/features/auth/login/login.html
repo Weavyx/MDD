@@ -1,2 +1,39 @@
-<h1>Se connecter</h1>
-<p>À implémenter</p>
+<section class="auth-page">
+  <a matIconButton class="auth-back" routerLink="/" aria-label="Retour à l'accueil">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+
+  <h1 class="auth-title">Se connecter</h1>
+
+  <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <mat-form-field>
+      <mat-label>E-mail ou nom d'utilisateur</mat-label>
+      <input matInput formControlName="identifier" autocomplete="username" />
+      @let identifier = form.controls.identifier;
+      @if (identifier.hasError('required')) {
+        <mat-error>L'identifiant est obligatoire</mat-error>
+      } @else if (identifier.hasError('server')) {
+        <mat-error>{{ identifier.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Mot de passe</mat-label>
+      <input matInput type="password" formControlName="password" autocomplete="current-password" />
+      @let password = form.controls.password;
+      @if (password.hasError('required')) {
+        <mat-error>Le mot de passe est obligatoire</mat-error>
+      } @else if (password.hasError('server')) {
+        <mat-error>{{ password.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    @if (badCredentials()) {
+      <p class="auth-alert" role="alert">Identifiants incorrects</p>
+    }
+
+    <button matButton="filled" type="submit" class="auth-submit" [disabled]="submitting()">
+      Se connecter
+    </button>
+  </form>
+</section>

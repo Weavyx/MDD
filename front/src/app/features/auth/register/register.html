@@ -1,2 +1,61 @@
-<h1>Inscription</h1>
-<p>À implémenter</p>
+<section class="auth-page">
+  <a matIconButton class="auth-back" routerLink="/" aria-label="Retour à l'accueil">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+
+  <h1 class="auth-title">Inscription</h1>
+
+  <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <mat-form-field>
+      <mat-label>Nom d'utilisateur</mat-label>
+      <input matInput formControlName="username" autocomplete="username" />
+      @let username = form.controls.username;
+      @if (username.hasError('required')) {
+        <mat-error>Le nom d'utilisateur est obligatoire</mat-error>
+      } @else if (username.hasError('minlength') || username.hasError('maxlength')) {
+        <mat-error>Le nom d'utilisateur doit contenir entre 3 et 50 caractères</mat-error>
+      } @else if (username.hasError('server')) {
+        <mat-error>{{ username.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Adresse e-mail</mat-label>
+      <input matInput type="email" formControlName="email" autocomplete="email" />
+      @let email = form.controls.email;
+      @if (email.hasError('required')) {
+        <mat-error>L'adresse e-mail est obligatoire</mat-error>
+      } @else if (email.hasError('maxlength')) {
+        <mat-error>L'adresse e-mail ne doit pas dépasser 255 caractères</mat-error>
+      } @else if (email.hasError('email')) {
+        <mat-error>L'adresse e-mail doit être valide</mat-error>
+      } @else if (email.hasError('server')) {
+        <mat-error>{{ email.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Mot de passe</mat-label>
+      <input matInput type="password" formControlName="password" autocomplete="new-password" />
+      @let password = form.controls.password;
+      @if (password.hasError('required')) {
+        <mat-error>Le mot de passe est obligatoire</mat-error>
+      } @else if (password.hasError('password')) {
+        <mat-error>
+          Le mot de passe doit contenir 8 à 72 caractères, dont une majuscule, une minuscule, un
+          chiffre et un caractère spécial
+        </mat-error>
+      } @else if (password.hasError('server')) {
+        <mat-error>{{ password.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    @if (conflict(); as message) {
+      <p class="auth-alert" role="alert">{{ message }}</p>
+    }
+
+    <button matButton="filled" type="submit" class="auth-submit" [disabled]="submitting()">
+      S'inscrire
+    </button>
+  </form>
+</section>
