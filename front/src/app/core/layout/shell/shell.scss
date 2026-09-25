@@ -58,6 +58,36 @@
   margin: 8px 16px;
 }
 
+// A column so that the footer sits at the bottom of short pages.
+.shell-body {
+  display: flex;
+  flex-direction: column;
+}
+
 .shell-page {
+  flex: 1 0 auto;
   padding: 16px;
+}
+
+.shell-footer {
+  padding: 8px 16px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  background-color: var(--mat-sys-surface);
+}
+
+.shell-footer-sticky {
+  position: sticky;
+  bottom: 0;
+}
+
+.shell-legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 24px;
+
+  a {
+    font: var(--mat-sys-label-medium);
+    color: var(--mat-sys-on-surface-variant);
+  }
 }

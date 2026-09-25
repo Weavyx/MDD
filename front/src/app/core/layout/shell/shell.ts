@@ -14,7 +14,8 @@ import { AuthService } from '../../auth/auth.service';
 /**
  * Application frame: toolbar, navigation and the routed page. Navigation links only appear
  * once logged in; on a handset they move into a side menu opened by a burger button. The
- * home page (`/`) has no toolbar: its own logo already fills the screen.
+ * home page (`/`) has no toolbar: its own logo already fills the screen. A footer with the
+ * legal links closes every page.
  */
 @Component({
   selector: 'app-shell',

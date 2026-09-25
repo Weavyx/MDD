@@ -90,5 +90,14 @@
     <main class="shell-page">
       <router-outlet />
     </main>
+
+    <!-- On every page, the home page included: the home page already fills the screen, so
+         there the footer sticks to the bottom edge to stay in view. -->
+    <footer class="shell-footer" [class.shell-footer-sticky]="isHome()">
+      <nav class="shell-legal" aria-label="Informations légales">
+        <a routerLink="/mentions-legales">Mentions légales</a>
+        <a routerLink="/confidentialite">Politique de confidentialité</a>
+      </nav>
+    </footer>
   </mat-sidenav-content>
 </mat-sidenav-container>

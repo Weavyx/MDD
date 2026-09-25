@@ -146,6 +146,33 @@ describe('Shell', () => {
     },
   );
 
+  it.each([
+    ['/', false],
+    ['/feed', true],
+  ])('shows the legal links in the footer on %s', async (url, isAuthenticated) => {
+    const element = (await render({ isAuthenticated, isHandset: false, url }))
+      .nativeElement as HTMLElement;
+    const links = element.querySelectorAll('footer nav[aria-label="Informations légales"] a');
+
+    expect(
+      Array.from(links, (a) => ({ text: a.textContent?.trim(), href: a.getAttribute('href') })),
+    ).toEqual([
+      { text: 'Mentions légales', href: '/mentions-legales' },
+      { text: 'Politique de confidentialité', href: '/confidentialite' },
+    ]);
+  });
+
+  // The home page fills the screen on its own: a footer in the flow would sit below the fold.
+  it.each([
+    ['/', true],
+    ['/login', false],
+  ])('keeps the footer in view on %s: %s', async (url, sticky) => {
+    const element = (await render({ isAuthenticated: false, isHandset: false, url }))
+      .nativeElement as HTMLElement;
+
+    expect(element.querySelector('footer')?.classList.contains('shell-footer-sticky')).toBe(sticky);
+  });
+
   // Positioned in the container, the closed menu (translated just past the right edge)
   // widened the container's scroll width by its own width.
   it('fixes the side menu to the viewport', async () => {
