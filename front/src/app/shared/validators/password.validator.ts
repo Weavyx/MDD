@@ -2,11 +2,11 @@ import { ValidatorFn } from '@angular/forms';
 
 /**
  * Same rule as the backend `RegisterRequest`/`UpdateProfileRequest` password: a digit, a
- * lowercase letter, an uppercase letter, a special character, 8 to 72 characters.
- * `[!-\/:-@\[-`{-~]` is the exact ASCII equivalent of Java's `\p{Punct}`; `{8,72}` merges
- * `@Size(min = 8, max = 72)` into the pattern.
+ * lowercase letter, an uppercase letter, a special character, at least 8 characters.
+ * `[!-\/:-@\[-`{-~]` is the exact ASCII equivalent of Java's `\p{Punct}`. The upper bound is
+ * 72 UTF-8 bytes, not characters: `maxUtf8Bytes(72)` checks it next to this validator.
  */
-const PASSWORD_PATTERN = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!-\/:-@\[-`{-~]).{8,72}$/;
+const PASSWORD_PATTERN = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!-\/:-@\[-`{-~]).{8,}$/;
 
 /**
  * Returns `{ password: true }` when the value breaks the rule. An empty value is valid here:

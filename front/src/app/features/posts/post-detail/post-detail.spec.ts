@@ -133,6 +133,25 @@ describe('PostDetail', () => {
     expect(el().querySelector('mat-error')).toBeNull();
   });
 
+  it('disables the send button and sends one comment only during the request', async () => {
+    await open('/posts/7');
+    typeComment('Très clair');
+    await send();
+    const button = el().querySelector<HTMLButtonElement>('.comment-send')!;
+    expect(button.disabled).toBe(true);
+
+    await send();
+    // A submission that bypasses the disabled button (Enter key, script) is ignored as well.
+    el().querySelector('form')!.dispatchEvent(new Event('submit'));
+    await stable();
+
+    httpTesting
+      .expectOne({ method: 'POST', url: '/api/posts/7/comments' })
+      .flush(null, { status: 500, statusText: 'Server Error' });
+    await stable();
+    expect(button.disabled).toBe(false);
+  });
+
   it.each([
     ['empty', ''],
     ['made of spaces only', '   '],
@@ -189,6 +208,27 @@ describe('PostDetail', () => {
 
     expect(show).toHaveBeenCalledWith('Une erreur est survenue. Veuillez réessayer.');
     expect(el().querySelector<HTMLTextAreaElement>('textarea')!.value).toBe('Bravo');
+  });
+
+  it('leaves a 401 on a comment to the interceptor and notifies nothing', async () => {
+    await open('/posts/7');
+    typeComment('Bravo');
+    await send();
+
+    httpTesting
+      .expectOne({ method: 'POST', url: '/api/posts/7/comments' })
+      .flush(null, { status: 401, statusText: 'Unauthorized' });
+    await stable();
+
+    expect(show).not.toHaveBeenCalled();
+  });
+
+  it('leaves a 401 on load to the interceptor and notifies nothing', async () => {
+    await harness.navigateByUrl('/posts/7');
+    httpTesting.expectOne('/api/posts/7').flush(null, { status: 401, statusText: 'Unauthorized' });
+    await stable();
+
+    expect(show).not.toHaveBeenCalled();
   });
 
   it('reports a failed load that is not a 404 through the notification service', async () => {

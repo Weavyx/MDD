@@ -16,8 +16,13 @@ describe('Register', () => {
   const show = vi.fn();
 
   const PASSWORD_RULE =
-    'Le mot de passe doit contenir 8 à 72 caractères, dont une majuscule, une minuscule, un ' +
+    'Le mot de passe doit contenir au moins 8 caractères, dont une majuscule, une minuscule, un ' +
     'chiffre et un caractère spécial';
+  const PASSWORD_BYTES =
+    'Le mot de passe ne doit pas dépasser 72 octets (un caractère accentué en compte 2)';
+  const USERNAME_CHARACTERS =
+    "Le nom d'utilisateur ne peut contenir que des lettres non accentuées, des chiffres, le " +
+    'point, le tiret et le tiret bas';
 
   beforeEach(async () => {
     TestBed.configureTestingModule({
@@ -100,6 +105,9 @@ describe('Register', () => {
     ],
     ['a password without a special character', { password: 'Password12' }, PASSWORD_RULE],
     ['a password of 7 characters', { password: 'Pass1!a' }, PASSWORD_RULE],
+    ['a password of 74 UTF-8 bytes', { password: 'Aa1!' + 'é'.repeat(35) }, PASSWORD_BYTES],
+    ['a username with a space', { username: 'alice dupont' }, USERNAME_CHARACTERS],
+    ['a username with an accented letter', { username: 'élise' }, USERNAME_CHARACTERS],
   ])('rejects %s', async (_, values, message) => {
     await fill(values);
     await submit();
@@ -116,12 +124,44 @@ describe('Register', () => {
     expect(password.querySelector('mat-error')?.textContent).toBe(PASSWORD_RULE);
   });
 
+  it('shows the byte limit of the password in full', async () => {
+    await fill({ password: 'Aa1!' + 'é'.repeat(35) });
+    await submit();
+
+    const password = element.querySelectorAll('mat-form-field')[2];
+    expect(password.querySelector('mat-error')?.textContent).toBe(PASSWORD_BYTES);
+  });
+
+  it.each([
+    ['a password of 72 UTF-8 bytes with accents', { password: 'Aa1!' + 'é'.repeat(34) }],
+    ['a username made of every allowed character class', { username: 'Al.ice_9-B' }],
+  ])('accepts %s', async (_, values) => {
+    await fill(values);
+    await submit();
+
+    expect(errorTexts(element)).toEqual([]);
+    httpTesting.expectOne('/api/auth/register');
+  });
+
   it.each([3, 50])('accepts a username of %i characters', async (length) => {
     await fill({ username: 'a'.repeat(length) });
     await submit();
 
     expect(errorTexts(element)).toEqual([]);
     httpTesting.expectOne('/api/auth/register');
+  });
+
+  it('disables the button and sends one request only on a second click', async () => {
+    await fill({});
+    await submit();
+    expect(submitButton().disabled).toBe(true);
+    await submit();
+
+    httpTesting
+      .expectOne('/api/auth/register')
+      .flush(null, { status: 500, statusText: 'Server Error' });
+    await fixture.whenStable();
+    expect(submitButton().disabled).toBe(false);
   });
 
   it('registers, logs in with the returned token and opens the feed', async () => {

@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 
 import { toApiError } from '../../../core/http/api-error';
 import { NotificationService } from '../../../core/notification/notification.service';
+import { maxUtf8Bytes } from '../../../shared/validators/max-utf8-bytes.validator';
 import { passwordValidator } from '../../../shared/validators/password.validator';
 import { TopicCard } from '../../topics/topic-card/topic-card';
 import { TopicResponse } from '../../topics/topic.models';
@@ -18,7 +19,9 @@ import { UserService } from '../user.service';
 /** Same bounds as the backend `UpdateProfileRequest`. */
 const USERNAME_MIN = 3;
 const USERNAME_MAX = 50;
+const USERNAME_PATTERN = /^[A-Za-z0-9._-]+$/;
 const EMAIL_MAX = 255;
+const PASSWORD_MAX_BYTES = 72;
 
 /** The user's profile form and the list of topics they follow. */
 @Component({
@@ -44,6 +47,7 @@ export class Profile {
   protected readonly usernameMin = USERNAME_MIN;
   protected readonly usernameMax = USERNAME_MAX;
   protected readonly emailMax = EMAIL_MAX;
+  protected readonly passwordMaxBytes = PASSWORD_MAX_BYTES;
 
   readonly form = new FormGroup({
     username: new FormControl('', {
@@ -52,6 +56,7 @@ export class Profile {
         Validators.required,
         Validators.minLength(USERNAME_MIN),
         Validators.maxLength(USERNAME_MAX),
+        Validators.pattern(USERNAME_PATTERN),
       ],
     }),
     email: new FormControl('', {
@@ -59,11 +64,16 @@ export class Profile {
       validators: [Validators.required, Validators.email, Validators.maxLength(EMAIL_MAX)],
     }),
     /** Empty keeps the current password. */
-    password: new FormControl('', { nonNullable: true, validators: [passwordValidator] }),
+    password: new FormControl('', {
+      nonNullable: true,
+      validators: [passwordValidator, maxUtf8Bytes(PASSWORD_MAX_BYTES)],
+    }),
   });
 
   readonly subscriptions = signal<TopicResponse[]>([]);
   readonly saving = signal(false);
+  /** Topics whose unsubscription request is in flight: their button is disabled meanwhile. */
+  readonly pending = signal<ReadonlySet<number>>(new Set());
 
   constructor() {
     this.userService
@@ -85,9 +95,11 @@ export class Profile {
       return;
     }
     const { username, email, password } = this.form.getRawValue();
+    // The API keeps the password when the key is absent and refuses an empty one (400).
+    const request = password === '' ? { username, email } : { username, email, password };
     this.saving.set(true);
     this.userService
-      .updateProfile({ username, email, password: password === '' ? null : password })
+      .updateProfile(request)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (user) => {
@@ -103,13 +115,35 @@ export class Profile {
   }
 
   unsubscribe(topic: TopicResponse): void {
+    if (this.pending().has(topic.id)) {
+      return;
+    }
+    this.setPending(topic.id, true);
     this.topicService
       .unsubscribe(topic.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => this.subscriptions.update((topics) => topics.filter((t) => t.id !== topic.id)),
-        error: (error: HttpErrorResponse) => this.notifyError(error, 'Le désabonnement a échoué'),
+        next: () => {
+          this.setPending(topic.id, false);
+          this.subscriptions.update((topics) => topics.filter((t) => t.id !== topic.id));
+        },
+        error: (error: HttpErrorResponse) => {
+          this.setPending(topic.id, false);
+          this.notifyError(error, 'Le désabonnement a échoué');
+        },
       });
+  }
+
+  private setPending(topicId: number, pending: boolean): void {
+    this.pending.update((ids) => {
+      const next = new Set(ids);
+      if (pending) {
+        next.add(topicId);
+      } else {
+        next.delete(topicId);
+      }
+      return next;
+    });
   }
 
   /** `fieldErrors` go under their field; anything else (409 included) is a notification. */

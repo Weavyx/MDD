@@ -104,14 +104,15 @@ describe('Profile', () => {
     expect(show).not.toHaveBeenCalled();
   });
 
-  it('sends a null password when the field is left empty', async () => {
+  it('omits the password key when the field is left empty', async () => {
     const fixture = await render();
     await type(fixture, 'username', 'alice2');
 
     await submit(fixture);
 
     const req = httpTesting.expectOne({ method: 'PUT', url: '/api/users/me' });
-    expect(req.request.body).toEqual({ username: 'alice2', email: 'alice@mdd.fr', password: null });
+    expect(req.request.body).toStrictEqual({ username: 'alice2', email: 'alice@mdd.fr' });
+    expect(Object.keys(req.request.body)).not.toContain('password');
     req.flush({ id: 1, email: 'alice@mdd.fr', username: 'alice2' });
   });
 
@@ -123,7 +124,9 @@ describe('Profile', () => {
     await submit(fixture);
 
     httpTesting.expectNone({ method: 'PUT' });
-    expect(fieldError(element, 'password')).toContain('une majuscule');
+    expect(fieldError(element, 'password')).toBe(
+      'au moins 8 caractères, dont une majuscule, une minuscule, un chiffre et un caractère spécial',
+    );
   });
 
   it.each([
@@ -134,6 +137,19 @@ describe('Profile', () => {
       'username',
       'a'.repeat(51),
       "Le nom d'utilisateur doit contenir entre 3 et 50 caractères",
+    ],
+    [
+      'non-whitelisted',
+      'username',
+      'élise dupont',
+      "Le nom d'utilisateur ne peut contenir que des lettres non accentuées, des chiffres, le " +
+        'point, le tiret et le tiret bas',
+    ],
+    [
+      'too long (74 UTF-8 bytes)',
+      'password',
+      'Aa1!' + 'é'.repeat(35),
+      'Le mot de passe ne doit pas dépasser 72 octets (un caractère accentué en compte 2)',
     ],
     ['empty', 'email', '', "L'adresse e-mail est obligatoire"],
     ['malformed', 'email', 'alice', "L'adresse e-mail doit être valide"],
@@ -171,6 +187,22 @@ describe('Profile', () => {
     expect(show).toHaveBeenCalledExactlyOnceWith('Profil mis à jour');
     expect(input(element, 'password').value).toBe('');
     expect(input(element, 'username').value).toBe('alice');
+  });
+
+  it('disables "Sauvegarder" and sends one request only on a second click', async () => {
+    const fixture = await render();
+    const element = fixture.nativeElement as HTMLElement;
+    const save = element.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+
+    await submit(fixture);
+    expect(save.disabled).toBe(true);
+    await submit(fixture);
+
+    httpTesting
+      .expectOne({ method: 'PUT', url: '/api/users/me' })
+      .flush({ id: 1, email: 'alice@mdd.fr', username: 'alice' });
+    await fixture.whenStable();
+    expect(save.disabled).toBe(false);
   });
 
   it('notifies the API message of a 409', async () => {
@@ -260,6 +292,26 @@ describe('Profile', () => {
     expect(cardTitles(element)).toEqual(['Spring']);
   });
 
+  it('disables "Se désabonner" and sends one request only during the request', async () => {
+    const fixture = await render();
+    const element = fixture.nativeElement as HTMLElement;
+    const unsubscribe = element.querySelector<HTMLButtonElement>('app-topic-card button')!;
+
+    unsubscribe.click();
+    await fixture.whenStable();
+    expect(unsubscribe.disabled).toBe(true);
+    unsubscribe.click();
+    // A call that bypasses the disabled button (keyboard, script) is ignored as well.
+    fixture.componentInstance.unsubscribe(profile.subscriptions[0]);
+    await fixture.whenStable();
+
+    httpTesting
+      .expectOne({ method: 'DELETE', url: '/api/users/me/subscriptions/2' })
+      .flush(null, { status: 204, statusText: 'No Content' });
+    await fixture.whenStable();
+    expect(cardTitles(element)).toEqual(['Spring']);
+  });
+
   it('keeps the card and notifies when the unsubscription fails', async () => {
     const fixture = await render();
     const element = fixture.nativeElement as HTMLElement;
@@ -272,6 +324,7 @@ describe('Profile', () => {
 
     expect(cardTitles(element)).toEqual(['Angular', 'Spring']);
     expect(show).toHaveBeenCalledExactlyOnceWith('Le désabonnement a échoué');
+    expect(element.querySelector<HTMLButtonElement>('app-topic-card button')!.disabled).toBe(false);
   });
 
   it('shows a short message when there is no subscription', async () => {

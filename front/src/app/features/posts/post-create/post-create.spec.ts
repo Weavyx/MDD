@@ -116,6 +116,24 @@ describe('PostCreate', () => {
     expect(TestBed.inject(Router).url).toBe('/feed');
   });
 
+  it('disables "Créer" and sends one request only while the post is being created', async () => {
+    await fill();
+    await submit();
+    const button = el().querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    expect(button.disabled).toBe(true);
+
+    await submit();
+    // A submission that bypasses the disabled button (Enter key, script) is ignored as well.
+    el().querySelector('form')!.dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+
+    httpTesting
+      .expectOne({ method: 'POST', url: '/api/posts' })
+      .flush(null, { status: 500, statusText: 'Server Error' });
+    await fixture.whenStable();
+    expect(button.disabled).toBe(false);
+  });
+
   it('shows the API field errors under the matching fields', async () => {
     await fill();
     await submit();
@@ -149,6 +167,37 @@ describe('PostCreate', () => {
 
     expect(show).toHaveBeenCalledWith('Topic introuvable');
     expect(errors()).toEqual([]);
+  });
+
+  it('leaves a 401 on submit to the interceptor and notifies nothing', async () => {
+    await fill();
+    await submit();
+
+    httpTesting
+      .expectOne({ method: 'POST', url: '/api/posts' })
+      .flush(null, { status: 401, statusText: 'Unauthorized' });
+    await fixture.whenStable();
+
+    expect(show).not.toHaveBeenCalled();
+  });
+
+  it('leaves a 401 on the topic list to the interceptor and notifies nothing', async () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        { provide: NotificationService, useValue: { show } },
+      ],
+    });
+    httpTesting = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(PostCreate);
+
+    httpTesting.expectOne('/api/topics').flush(null, { status: 401, statusText: 'Unauthorized' });
+    await fixture.whenStable();
+
+    expect(show).not.toHaveBeenCalled();
   });
 
   it('reports a failed topic list through the notification service', async () => {

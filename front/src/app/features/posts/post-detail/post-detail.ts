@@ -117,7 +117,8 @@ export class PostDetail {
             control.setErrors({ server: fieldError });
           } else if (error.status === 404) {
             this.notFound.set(true);
-          } else {
+          } else if (error.status !== 401) {
+            // A 401 is already handled by the interceptor (logout and redirect to `/login`).
             this.notification.show(apiError.message ?? FALLBACK_ERROR);
           }
         },
@@ -134,7 +135,8 @@ export class PostDetail {
           if (error.status === 404) {
             this.post.set(null);
             this.notFound.set(true);
-          } else {
+          } else if (error.status !== 401) {
+            // A 401 is already handled by the interceptor (logout and redirect to `/login`).
             this.notification.show(toApiError(error).message ?? FALLBACK_ERROR);
           }
         },

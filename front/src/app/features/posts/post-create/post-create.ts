@@ -52,9 +52,12 @@ export class PostCreate {
       .getTopics()
       .pipe(
         catchError((error: HttpErrorResponse) => {
-          this.notification.show(
-            toApiError(error).message ?? 'Impossible de charger la liste des thèmes.',
-          );
+          // A 401 is already handled by the interceptor (logout and redirect to `/login`).
+          if (error.status !== 401) {
+            this.notification.show(
+              toApiError(error).message ?? 'Impossible de charger la liste des thèmes.',
+            );
+          }
           return of([]);
         }),
       ),
@@ -92,6 +95,9 @@ export class PostCreate {
         next: () => void this.router.navigateByUrl('/feed'),
         error: (error: HttpErrorResponse) => {
           this.submitting.set(false);
+          if (error.status === 401) {
+            return; // Already handled by the interceptor.
+          }
           const apiError = toApiError(error);
           const fields = Object.entries(apiError.fieldErrors).filter(
             (entry): entry is [PostField, string] => entry[0] in this.form.controls,

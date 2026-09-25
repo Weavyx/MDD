@@ -45,15 +45,24 @@ export class TopicList {
       .subscribe({
         next: () => {
           this.setPending(topic.id, false);
-          this.topics.update((topics) =>
-            topics.map((t) => (t.id === topic.id ? { ...t, subscribed: true } : t)),
-          );
+          this.markSubscribed(topic.id);
         },
         error: (error: HttpErrorResponse) => {
           this.setPending(topic.id, false);
+          // 409: the subscription already exists (another tab, a double click): not an error.
+          if (error.status === 409) {
+            this.markSubscribed(topic.id);
+            return;
+          }
           this.notifyError(error, "L'abonnement a échoué");
         },
       });
+  }
+
+  private markSubscribed(topicId: number): void {
+    this.topics.update((topics) =>
+      topics.map((t) => (t.id === topicId ? { ...t, subscribed: true } : t)),
+    );
   }
 
   private setPending(topicId: number, pending: boolean): void {

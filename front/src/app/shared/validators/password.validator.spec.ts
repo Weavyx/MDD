@@ -36,12 +36,10 @@ describe('passwordValidator', () => {
     expect(validate('Pass1!a')).toEqual({ password: true });
   });
 
-  it.each([
-    ['the first 72 are valid', 'Aa1!'.padEnd(73, 'x')],
-    ['the last 72 are valid', 'x' + 'Aa1!'.padEnd(72, 'x')],
-  ])('rejects 73 characters when %s', (_, value) => {
+  it('leaves the upper bound to maxUtf8Bytes: 73 characters pass this validator', () => {
+    const value = 'Aa1!'.padEnd(73, 'x');
     expect(value).toHaveLength(73);
-    expect(validate(value)).toEqual({ password: true });
+    expect(validate(value)).toBeNull();
   });
 
   it.each([
