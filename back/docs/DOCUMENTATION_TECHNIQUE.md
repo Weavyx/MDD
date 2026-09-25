@@ -1,12 +1,12 @@
-# Documentation technique — MDD (backend)
+# Documentation technique — MDD
 
-Projet MDD (« Monde de Dev »), OpenClassrooms P5 option B. Document établi le 19 septembre 2026 sur le code de `back/` (Spring Boot 4.1.0, Java 21, MySQL 8.4), mis à jour le 24 septembre 2026 sur `main`, commit `9581c70` compris (`@NotBlank` sur le mot de passe d'inscription) : le contrat décrit est celui de `main`.
+Projet MDD (« Monde de Dev »), OpenClassrooms P5 option B. Document établi le 19 septembre 2026 sur le code de `back/` (Spring Boot 4.1.0, Java 21, MySQL 8.4), mis à jour le 24 septembre 2026 sur `main`, commit `9581c70` compris (`@NotBlank` sur le mot de passe d'inscription) : le contrat décrit est celui de `main`. Section 6 (front-end) ajoutée le 25 septembre 2026 sur `main`, commit `860544c` (PR #25) compris.
 
-**Périmètre.** Le back-end est complet pour le MVP. Le front-end Angular (`front/`) n'est pas commencé (`app.routes.ts` vide, aucun composant) : ce document est donc une documentation d'API et d'environnement, destinée au développeur qui écrira le front. Aucun template n'a été fourni par la mission pour ce livrable ; la structure suit les indicateurs de la grille (« endpoints, schémas de données, dépendances techniques », « configuration de l'environnement »).
+**Périmètre.** Le back-end et le front-end Angular (`front/`) couvrent le MVP : les huit pages (accueil, inscription, connexion, fil, article, création d'article, thèmes, profil) sont routées dans `front/src/app/app.routes.ts` et consomment les onze endpoints décrits ici (tableau en §6.4). Les sections 1 à 5 documentent l'API et l'environnement, la section 6 l'architecture du front. Aucun template n'a été fourni par la mission pour ce livrable ; la structure suit les indicateurs de la grille (« endpoints, schémas de données, dépendances techniques », « configuration de l'environnement »).
 
-**Reste à produire, bloqué par l'absence de front :** captures d'écran de l'interface, analyse des besoins front-end (composants, services, gardes, intercepteurs), FAQ utilisateur (connexion, publication, abonnement, profil), mentions légales et politique de confidentialité.
+**Reste à produire :** captures d'écran de l'interface, mentions légales et politique de confidentialité. La FAQ utilisateur est dans [`docs/FAQ.md`](../../docs/FAQ.md).
 
-Tout ce qui suit a été vérifié dans le code de `back/src/main/java/com/openclassrooms/mddapi/` (contrôleurs, DTO, entités, `SecurityConfig`, `GlobalExceptionHandler`) et, pour le schéma, dans le DDL généré par Hibernate dans le conteneur MySQL de développement (`SHOW CREATE TABLE`).
+Tout ce qui suit a été vérifié dans le code de `back/src/main/java/com/openclassrooms/mddapi/` (contrôleurs, DTO, entités, `SecurityConfig`, `GlobalExceptionHandler`) et, pour le schéma, dans le DDL du conteneur MySQL de développement (`SHOW CREATE TABLE`, 19 septembre), puis dans la migration Flyway `V1__create_schema.sql` (25 septembre).
 
 ## 1. Conventions communes
 
@@ -141,7 +141,7 @@ Trois formes coexistent ; le front doit gérer les trois.
 
 ## 4. Schémas de données
 
-Cinq entités JPA, cinq tables (`ddl-auto=update`, nommage snake_case par Hibernate). Toutes les clés primaires sont `bigint AUTO_INCREMENT`. Colonnes `varchar(255)` sauf indication.
+Cinq entités JPA, cinq tables, créées par la migration Flyway `V1__create_schema.sql` (`back/src/main/resources/db/migration/`) ; Hibernate ne fait que valider le schéma au démarrage (`ddl-auto=validate`). Toutes les clés primaires sont `bigint AUTO_INCREMENT`. Colonnes `varchar(255)` sauf indication.
 
 | Table / entité | Colonnes | Contraintes |
 |---|---|---|
@@ -167,11 +167,12 @@ Chargement : les lectures composites utilisent `@EntityGraph` (`Post` avec `user
 | `spring-boot-starter-data-jpa` + `mysql-connector-j` (runtime) | Persistance JPA/Hibernate sur MySQL |
 | `spring-boot-starter-security` + `spring-boot-starter-oauth2-resource-server` | Chaîne de filtres, validation du JWT (`NimbusJwtDecoder`), émission (`NimbusJwtEncoder`) — aucune bibliothèque JWT tierce |
 | `spring-boot-starter-validation` | Bean Validation sur les DTO d'entrée |
+| `spring-boot-starter-flyway` + `flyway-mysql` | Migrations du schéma et des thèmes de référence au démarrage |
 | `lombok` (provided) | Getters/setters/constructeurs des DTO et entités |
 | Test : `spring-boot-starter-test`, `-webmvc-test`, `-data-jpa-test`, `-security-test`, `spring-security-test`, Testcontainers 1.21.4 (`mysql`, `junit-jupiter`) | Voir `RAPPORT_DE_TESTS.md` |
 | Plugins : `spring-boot-maven-plugin`, `maven-failsafe-plugin`, `jacoco-maven-plugin` 0.8.15 | Exécutable, tests `*IT`, couverture |
 
-Absents, par choix ou par périmètre : Flyway/Liquibase, springdoc-openapi, MapStruct, limiteur de débit, analyseur statique (voir `REVUE_TECHNIQUE.md` §3).
+Absents, par choix ou par périmètre : springdoc-openapi, MapStruct, limiteur de débit, analyseur statique (voir `REVUE_TECHNIQUE.md` §3).
 
 ### 5.2 Variables d'environnement
 
@@ -212,3 +213,101 @@ Le schéma est créé au démarrage par les migrations Flyway de `back/src/main/
 ```
 
 `verify` produit le rapport JaCoCo dans `back/target/site/jacoco/index.html`. Sans `JWT_SECRET`, `MddApiApplicationIT` échoue au chargement du contexte (`Could not resolve placeholder 'JWT_SECRET'`) ; sans Docker, tous les `*IT` adossés à la base échouent au démarrage du conteneur. Détail de la stratégie et des chiffres dans `RAPPORT_DE_TESTS.md`.
+
+## 6. Front-end
+
+Application Angular 21.2 (`front/`), composants standalone, sans zone.js (aucune dépendance `zone.js` dans `front/package.json`), Angular Material et CDK 21.2 sur le thème de `front/src/styles.scss` (`mat.$violet-palette`). Formulaires en Reactive Forms typés ; état porté par des services et des signaux, sans NgRx. Tout ce qui suit a été vérifié dans `front/src/`.
+
+### 6.1 Arborescence
+
+```text
+front/src/app/
+├── app.ts, app.config.ts, app.routes.ts   racine (<app-shell />), providers, routes
+├── core/
+│   ├── auth/          AuthService, authGuard, guestGuard
+│   ├── http/          authInterceptor, toApiError, ErrorResponse (miroir du DTO back)
+│   ├── layout/shell/  Shell : barre du haut, navigation, menu latéral, <router-outlet>
+│   └── notification/  NotificationService (MatSnackBar)
+├── shared/
+│   └── validators/    passwordValidator (même règle que le back)
+└── features/
+    ├── auth/          home, login, register, AuthApiService
+    ├── posts/         feed, post-create, post-detail, PostService
+    ├── topics/        topic-list, topic-card, TopicService
+    └── profile/       profile, UserService
+```
+
+`core/` contient ce qui sert à toute l'application, `shared/` le code réutilisable sans état, `features/` un dossier par domaine fonctionnel (composants de page, service HTTP et interfaces miroirs des DTO du back).
+
+### 6.2 Routes et gardes
+
+Toutes les pages sont chargées à la demande (`loadComponent`) ; le titre de l'onglet est porté par la route (`front/src/app/app.routes.ts`).
+
+| Chemin | Page | Garde |
+|---|---|---|
+| `/` | Accueil (`Home`) | `guestGuard` |
+| `/login` | Connexion (`Login`) | `guestGuard` |
+| `/register` | Inscription (`Register`) | `guestGuard` |
+| `/feed` | Fil d'actualité (`Feed`) | `authGuard` |
+| `/posts/new` | Création d'article (`PostCreate`) | `authGuard` |
+| `/posts/:id` | Article et commentaires (`PostDetail`) | `authGuard` |
+| `/topics` | Thèmes (`TopicList`) | `authGuard` |
+| `/profile` | Profil et abonnements (`Profile`) | `authGuard` |
+| `**` | redirection vers `/` | — |
+
+`/posts/new` est déclarée avant `/posts/:id` pour que `new` ne soit pas lu comme un identifiant. Les deux gardes sont fonctionnelles (`CanActivateFn`) : `authGuard` renvoie vers `/login` un visiteur sans jeton valide ; `guestGuard` renvoie vers `/feed` un utilisateur déjà connecté.
+
+### 6.3 Authentification
+
+- **Stockage.** Le jeton renvoyé par `POST /api/auth/login` ou `POST /api/auth/register` est rangé dans `localStorage` sous la clé `mdd.token` et dans un signal de `AuthService` (`core/auth/auth.service.ts`). Si `localStorage` est indisponible (navigation privée, quota), la session fonctionne en mémoire seulement.
+- **Validité.** Le front ne vérifie pas la signature (c'est le rôle de l'API) : il décode la charge utile pour lire `exp`. Un jeton illisible, sans `exp` numérique ou expiré compte comme absent. `isAuthenticated` est un signal calculé ; il suit les changements de jeton, pas l'écoulement du temps.
+- **Expiration.** Les gardes appellent `checkSession()` à chaque navigation : l'horloge est relue et un jeton expiré depuis le chargement de la page est effacé. Un jeton qui expire pendant qu'une page est ouverte est détecté au premier appel d'API, par le 401 de l'intercepteur.
+- **Intercepteur** (`core/http/auth.interceptor.ts`, fonctionnel, enregistré par `provideHttpClient(withInterceptors(...))`). Il ajoute `Authorization: Bearer <jeton>` aux appels `/api/**` sauf `/api/auth/**`, uniquement si le jeton est encore valide. Un 401 sur un de ces appels déconnecte l'utilisateur et le renvoie vers `/login` ; l'erreur est quand même transmise à l'appelant. Un 401 sur `/api/auth/**` (identifiants faux) passe sans traitement.
+- **Déconnexion.** `logout()` efface le jeton et revient à `/`. Aucun appel serveur : l'API n'a pas de logout (§1).
+
+### 6.4 Endpoints et services Angular
+
+Tous les services appellent des URL relatives et renvoient des `Observable` ; les composants s'y abonnent ou les convertissent avec `toSignal`.
+
+| Endpoint | Service et méthode | Utilisé par |
+|---|---|---|
+| `POST /api/auth/register` | `AuthApiService.register` | `Register` |
+| `POST /api/auth/login` | `AuthApiService.login` | `Login` |
+| `GET /api/topics` | `TopicService.getTopics` | `TopicList`, `PostCreate` (liste des thèmes) |
+| `POST /api/users/me/subscriptions/{topicId}` | `TopicService.subscribe` | `TopicList` |
+| `DELETE /api/users/me/subscriptions/{topicId}` | `TopicService.unsubscribe` | `Profile` |
+| `GET /api/users/me` | `UserService.getProfile` | `Profile` |
+| `PUT /api/users/me` | `UserService.updateProfile` | `Profile` (mot de passe vide envoyé à `null`) |
+| `GET /api/users/me/feed?sort=` | `PostService.getFeed` | `Feed` |
+| `POST /api/posts` | `PostService.createPost` | `PostCreate` |
+| `GET /api/posts/{id}` | `PostService.getPost` | `PostDetail` |
+| `POST /api/posts/{id}/comments` | `PostService.addComment` | `PostDetail` (relit l'article après envoi) |
+
+### 6.5 Gestion des erreurs
+
+- `toApiError` (`core/http/api-error.ts`) extrait `message` et `fieldErrors` d'un corps `ErrorResponse` ; tout autre corps (401 vide, erreur réseau, JSON par défaut de Spring) donne `message: null`, et l'écran choisit alors un message de repli.
+- **Erreurs de champ.** Chaque entrée de `fieldErrors` est posée comme erreur `server` sur le contrôle du même nom et s'affiche sous le champ (`mat-error`) jusqu'à la prochaine saisie.
+- **Cas particuliers.** Le 401 du login (corps vide) devient « Identifiants incorrects » sous le formulaire. Un 409 à l'inscription (« Cet email est déjà utilisé », « Ce nom d'utilisateur est déjà utilisé ») s'affiche au-dessus du bouton ; sur le profil, il passe par une notification. Un 404 sur un article affiche la page « Article introuvable ».
+- **Autres erreurs.** `NotificationService.show` ouvre un `MatSnackBar` (bouton « Fermer », 5 s) avec le message de l'API ou un message de repli propre à l'écran.
+- **Rendu.** Les contenus d'articles et de commentaires sont affichés par interpolation, donc échappés : aucun `innerHTML` ni `bypassSecurityTrust*` dans `front/src/`.
+
+### 6.6 Proxy de développement
+
+`ng serve` (`npm start`) utilise `front/src/proxy.conf.json` (déclaré dans `front/angular.json`, cible `serve`) : les appels `/api/**` sont relayés vers `http://localhost:8080`. Comme les services appellent des URL relatives, le navigateur ne voit qu'une seule origine et aucun réglage CORS n'est nécessaire en local. En production, le front et l'API doivent de même être servis sous la même origine (voir le `README.md` racine, « Déploiement »).
+
+### 6.7 Responsive
+
+`Shell` observe le point de rupture `Breakpoints.Handset` du CDK (`BreakpointObserver`). Sur téléphone, les liens (« Se déconnecter », « Articles », « Thèmes », profil) passent dans un `MatSidenav` ouvert par un bouton menu ; sur écran large, ils sont dans la barre du haut. La page d'accueil n'a pas de barre. Les feuilles de style des pages ajustent leur mise en page sous 600 px de large (`@media (max-width: 599.98px)`, même seuil que `Handset` en portrait).
+
+### 6.8 Tests
+
+Tests unitaires et de composants avec Vitest et jsdom, lancés par le builder `@angular/build:unit-test` (`front/angular.json`, cible `test`). Chaque fichier testé a son `*.spec.ts` à côté de lui.
+
+```bash
+cd front
+npm test                                 # mode surveillance
+npx ng test --watch=false                # une seule exécution
+npx ng test --watch=false --coverage     # + rapport dans front/coverage/front/index.html
+```
+
+Les tests end-to-end (Cypress) font l'objet d'une autre pull request.
