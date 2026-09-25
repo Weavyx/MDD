@@ -124,7 +124,9 @@ describe('Profile', () => {
     await submit(fixture);
 
     httpTesting.expectNone({ method: 'PUT' });
-    expect(fieldError(element, 'password')).toContain('une majuscule');
+    expect(fieldError(element, 'password')).toBe(
+      'au moins 8 caractères, dont une majuscule, une minuscule, un chiffre et un caractère spécial',
+    );
   });
 
   it.each([
