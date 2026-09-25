@@ -19,15 +19,18 @@ MDD ("Monde de Dév"), OpenClassrooms P5 option B. Mono-repo: `back/` Spring Boo
 
 ### Frontend (`front/`)
 
-`npm install`, `npm start` (4200), `npm run build`, `npm test` (Vitest; headless: `npx ng test --watch=false`), `npm run format`. No e2e runner yet.
+`npm install`, `npm start` (4200), `npm run build`, `npm test` (Vitest; headless: `npx ng test --watch=false`, coverage: add `--coverage`), `npm run format`.
+
+E2e: Cypress (`cypress/e2e/`), against the real back on 8080 and the front on 4200 (`cypress.config.ts`). Scripts `npm run e2e` (headless Electron), `npm run e2e:open`, `npm run e2e:firefox` (use it under Wayland: headless Electron never finishes CSS transitions). On a new machine run `npx cypress install` once. Other front port: `npm run e2e:firefox -- --config baseUrl=http://localhost:4201`.
 
 ## Backend conventions that differ from defaults
 
 - **Test naming decides the runner**: `*Test` → Surefire (unit, `@ExtendWith(MockitoExtension)`); `*IT` → Failsafe (`@WebMvcTest`, `@DataJpaTest`, `@SpringBootTest`). Spring Boot 4 / Framework 7: use `@MockitoBean`, not `@MockBean`.
 - DB-backed ITs extend `AbstractContainerIT`, which starts one shared MySQL container in a `static {}` block. Do **not** add `@Testcontainers`/`@Container`: the JUnit extension would stop the inherited static container after the first test class.
 - Repository ITs assert eager loading with `Hibernate.isInitialized(...)` before any access (project pattern); `entityManager.detach` does not work for this.
-- Controller ITs authenticate with `jwt().jwt(j -> j.subject("<userId>"))`; the `JwtDecoder` is a `@MockitoBean` that is never stubbed, so no test exercises an invalid/expired token — do not claim otherwise.
+- Controller ITs authenticate with `jwt().jwt(j -> j.subject("<userId>"))`; their `JwtDecoder` is a `@MockitoBean` that is never stubbed. Invalid and expired tokens are covered only by `SecurityIT` (`@SpringBootTest`, real decoder: token signed with another key → 401, expired token → 401). The invalid-signature case has no mutation of its own (the Nimbus decoder always checks the signature).
 - Test quality was checked by **manual mutation** (break `src/main`, expect red, restore); `git diff src/main/java` must be empty after any such check. No PIT.
+- Mutation procedure (back and front): back up the file with `cp` to a session-specific path (e.g. `/tmp/mutation-<branch>.bak`), mutate, run the test, restore from that backup. Never `git checkout --`, `git restore` nor `git show … >` on a mutated file. `git diff` must be empty after the restore.
 
 ## Backend architecture decisions
 
@@ -48,11 +51,11 @@ MDD ("Monde de Dév"), OpenClassrooms P5 option B. Mono-repo: `back/` Spring Boo
 - Screens follow `docs/maquettes/` and must work on mobile and desktop. User-facing text is French and copies the spec wording exactly (e.g. "Déjà abonné").
 
 ### Front architecture decisions (framing of 25/09/2026)
-- Structure by feature: `src/app/core/` (auth, http, layout), `src/app/shared/` (validators), `src/app/features/{auth,posts,topics,profile}/`. A feature session only edits its own feature folder; changes needed in `core/` or `shared/` are reported, not made.
+- Structure by feature: `src/app/core/` (auth, http, layout, notification), `src/app/shared/` (validators), `src/app/features/{auth,posts,topics,profile,legal}/` (`legal`: legal notice `/mentions-legales` and privacy policy `/confidentialite`, public, no guard, linked from the shell footer). A feature session only edits its own feature folder; changes needed in `core/` or `shared/` are reported, not made.
 - State: services + signals. HTTP services return Observables; components convert them with `toSignal` or subscribe; the auth state is a signal in `AuthService`. No NgRx; no `httpResource` nor Signal Forms (experimental in Angular 21).
-- Forms: typed Reactive Forms. Password rule: `shared/validators/password.validator.ts`, same rule as the backend `@Pattern` and `@Size(8, 72)`.
+- Forms: typed Reactive Forms. Password rule shared with the backend: at least 8 characters with a digit, a lowercase, an uppercase and a `\p{Punct}` character (`shared/validators/password.validator.ts` ↔ `@Size(min = 8)` + `@Pattern`), and at most 72 UTF-8 bytes after NFC normalisation (`shared/validators/max-utf8-bytes.validator.ts` ↔ `@MaxUtf8Bytes(72)`; BCrypt refuses more than 72 bytes, it does not truncate). Login has no byte bound (too long → 401). Username: 3 to 50 characters, `^[A-Za-z0-9._-]+$`, front and back. Profile: an empty password field omits the `password` key (absent = unchanged; empty or blank = 400 on the API).
 - Auth: JWT in `localStorage` (key `mdd.token`); expiry read from the `exp` claim (no signature check on the front, the API checks it). Functional `authInterceptor` adds `Authorization: Bearer <token>` to `/api/**` except `/api/auth/**`; a 401 on a non-auth call logs out and redirects to `/login`. Functional guards: `authGuard` (protected pages → `/login`), `guestGuard` (home, login, register → `/feed` when logged in).
-- Errors: `fieldErrors` shown under the matching form field; other errors through `NotificationService` (MatSnackBar); the login 401 (empty body) becomes "Identifiants incorrects" on the front.
+- Errors: `fieldErrors` shown under the matching form field; other errors through `NotificationService` (`core/notification`, MatSnackBar); the login 401 (empty body) becomes "Identifiants incorrects" on the front. A 401 on a non-auth call belongs to the interceptor alone: components never notify it. Every write button is disabled by a signal while its request runs (no second request on a second click). A 409 on subscribe means "already subscribed" (card shows "Déjà abonné", no notification); unsubscribe is idempotent on the API (204).
 - Dev: `ng serve` proxies `/api/**` to `http://localhost:8080` (`src/proxy.conf.json`); services call relative `/api/...` URLs, so any dev port works without CORS.
 - UI: Angular Material, theme `mat.$violet-palette`; responsive nav with CDK `BreakpointObserver` (Handset → burger menu + `MatSidenav`). Mockups are inspiration: every screen and feature is mandatory, pixel fidelity is not.
 - Security: never `innerHTML` nor `bypassSecurityTrust*`; post and comment content are rendered as text.
