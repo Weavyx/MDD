@@ -108,6 +108,14 @@ describe('Register', () => {
     httpTesting.expectNone('/api/auth/register');
   });
 
+  it('shows the password rule without stray whitespace', async () => {
+    await fill({ password: 'Password12' });
+    await submit();
+
+    const password = element.querySelectorAll('mat-form-field')[2];
+    expect(password.querySelector('mat-error')?.textContent).toBe(PASSWORD_RULE);
+  });
+
   it.each([3, 50])('accepts a username of %i characters', async (length) => {
     await fill({ username: 'a'.repeat(length) });
     await submit();

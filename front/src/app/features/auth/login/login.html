@@ -6,7 +6,7 @@
   <h1 class="auth-title">Se connecter</h1>
 
   <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-    <mat-form-field>
+    <mat-form-field subscriptSizing="dynamic">
       <mat-label>E-mail ou nom d'utilisateur</mat-label>
       <input matInput formControlName="identifier" autocomplete="username" />
       @let identifier = form.controls.identifier;
@@ -17,7 +17,7 @@
       }
     </mat-form-field>
 
-    <mat-form-field>
+    <mat-form-field subscriptSizing="dynamic">
       <mat-label>Mot de passe</mat-label>
       <input matInput type="password" formControlName="password" autocomplete="current-password" />
       @let password = form.controls.password;

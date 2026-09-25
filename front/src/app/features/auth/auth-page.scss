@@ -26,8 +26,11 @@
   width: 100%;
   max-width: 360px;
 
+  // Dynamic subscripts: a message on two or three lines (the password rule on a phone)
+  // pushes the next field down instead of overlapping it.
   mat-form-field {
     width: 100%;
+    margin-bottom: 16px;
   }
 }
 

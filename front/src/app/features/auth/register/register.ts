@@ -49,6 +49,10 @@ export class Register {
     password: ['', [Validators.required, passwordValidator]],
   });
 
+  protected readonly passwordRule =
+    'Le mot de passe doit contenir 8 à 72 caractères, dont une majuscule, une minuscule, ' +
+    'un chiffre et un caractère spécial';
+
   protected readonly submitting = signal(false);
   /** Message of a 409 (email or username already used), shown above the button. */
   protected readonly conflict = signal<string | null>(null);
