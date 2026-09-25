@@ -198,6 +198,21 @@ class UserControllerIT {
     }
 
     @Test
+    void updateProfile_motDePasseAccentueDe42CaracteresEt74Octets_retourne400() throws Exception {
+        // 42 caractères mais 74 octets UTF-8 : BCrypt refuserait ce mot de passe (500).
+        String password = "Password1!" + "\u00e9".repeat(32);
+
+        mockMvc.perform(put("/api/users/me")
+                        .with(jwt().jwt(jwt -> jwt.subject("1")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"alice@mail.com\",\"username\":\"alice\",\"password\":\"" + password + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.password").value("Le mot de passe ne doit pas dépasser 72 octets (un caractère accentué en compte 2)"));
+
+        verify(userService, never()).updateProfile(anyLong(), any());
+    }
+
+    @Test
     void updateProfile_emailInvalide_retourne400() throws Exception {
         mockMvc.perform(put("/api/users/me")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))

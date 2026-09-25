@@ -107,9 +107,9 @@ class AuthControllerIT {
     }
 
     @Test
-    void register_motDePasseDepassant72Caracteres_retourne400EtServiceJamaisAppele() throws Exception {
-        // 73 caractères, conformes au pattern : seule la borne @Size(max = 72) doit échouer
-        // (BCrypt tronque silencieusement au-delà de 72 octets).
+    void register_motDePasseDepassant72Octets_retourne400EtServiceJamaisAppele() throws Exception {
+        // 73 caractères ASCII (73 octets), conformes au pattern : seule la borne
+        // @MaxUtf8Bytes(72) doit échouer (BCrypt refuse au-delà de 72 octets).
         String password = "Password1!" + "a".repeat(63);
 
         mockMvc.perform(post("/api/auth/register")
@@ -117,7 +117,22 @@ class AuthControllerIT {
                         .content("{\"email\":\"alice@mail.com\",\"username\":\"alice\",\"password\":\"" + password + "\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.fieldErrors.password").value("Le mot de passe doit contenir entre 8 et 72 caractères"));
+                .andExpect(jsonPath("$.fieldErrors.password").value("Le mot de passe ne doit pas dépasser 72 octets (un caractère accentué en compte 2)"));
+
+        verify(authService, never()).register(any());
+    }
+
+    @Test
+    void register_motDePasseAccentueDe42CaracteresEt74Octets_retourne400EtServiceJamaisAppele() throws Exception {
+        // 42 caractères (sous l'ancienne borne @Size(max = 72) en caractères) mais 74 octets
+        // UTF-8 : c'est le cas qui atteignait BCrypt et finissait en 500.
+        String password = "Password1!" + "\u00e9".repeat(32);
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"alice@mail.com\",\"username\":\"alice\",\"password\":\"" + password + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.password").value("Le mot de passe ne doit pas dépasser 72 octets (un caractère accentué en compte 2)"));
 
         verify(authService, never()).register(any());
     }
