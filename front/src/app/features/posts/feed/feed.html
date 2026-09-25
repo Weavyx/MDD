@@ -1,2 +1,48 @@
-<h1>Articles</h1>
-<p>À implémenter</p>
+<h1 class="feed-heading">Articles</h1>
+
+<div class="feed-actions">
+  <a matButton="filled" routerLink="/posts/new">Créer un article</a>
+  <button
+    matButton
+    type="button"
+    class="feed-sort"
+    [attr.aria-label]="
+      sort() === 'desc'
+        ? 'Trier par date, du plus récent au plus ancien. Inverser l’ordre'
+        : 'Trier par date, du plus ancien au plus récent. Inverser l’ordre'
+    "
+    (click)="toggleSort()"
+  >
+    Trier par
+    <mat-icon iconPositionEnd>{{ sort() === 'desc' ? 'arrow_downward' : 'arrow_upward' }}</mat-icon>
+  </button>
+</div>
+
+@if (posts(); as posts) {
+  @if (posts.length === 0) {
+    <p class="feed-empty">
+      Aucun article pour le moment. Abonnez-vous à des thèmes pour remplir votre fil.
+    </p>
+  } @else {
+    <ul class="feed-grid">
+      @for (post of posts; track post.id) {
+        <li>
+          <a class="feed-card" [routerLink]="['/posts', post.id]">
+            <mat-card appearance="filled">
+              <mat-card-header>
+                <mat-card-title>{{ post.title }}</mat-card-title>
+                <mat-card-subtitle class="feed-meta">
+                  <span>{{ post.createdAt | date: 'dd/MM/yyyy' }}</span>
+                  <span>{{ post.author }}</span>
+                </mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <p class="feed-excerpt">{{ post.excerpt }}</p>
+              </mat-card-content>
+            </mat-card>
+          </a>
+        </li>
+      }
+    </ul>
+  }
+}
