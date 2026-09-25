@@ -1,0 +1,113 @@
+:host {
+  display: block;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.post-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.post-title {
+  margin: 4px 0 0;
+  font: var(--mat-sys-headline-small);
+  overflow-wrap: anywhere;
+}
+
+// Aligned with the title, after the back arrow (40px) and the gap.
+.post-body {
+  padding-left: 48px;
+}
+
+.post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+// Plain text: line breaks typed by the author are kept by CSS, never by HTML.
+.post-content,
+.comment-content {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.post-comments {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+
+  h2 {
+    font: var(--mat-sys-title-medium);
+  }
+}
+
+.post-no-comment {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.comment {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.comment-author {
+  padding-top: 12px;
+  text-align: end;
+  overflow-wrap: anywhere;
+}
+
+.comment-content {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: var(--mat-sys-corner-medium);
+  background-color: var(--mat-sys-surface-container-high);
+}
+
+.comment-form {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.comment-field {
+  flex: 1 1 auto;
+}
+
+.comment-send {
+  margin-top: 8px;
+  color: var(--mat-sys-primary);
+}
+
+.post-not-found {
+  text-align: center;
+}
+
+@media (max-width: 599.98px) {
+  .post-body {
+    padding-left: 0;
+  }
+
+  .comment {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .comment-author {
+    padding-top: 0;
+  }
+}
