@@ -1,59 +1,13 @@
-# Front
+# MDD — front-end
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.21.
+Application Angular 21 de MDD. Installation, configuration et lancement complet (base, API, front) : voir le [README racine](../README.md).
 
-## Development server
+Commandes essentielles, depuis `front/` :
 
-To start a local development server, run:
+- `npm install` : installe les dépendances ;
+- `npm start` : serveur de développement sur `http://localhost:4200`, qui relaie `/api/**` vers l'API sur `http://localhost:8080` (`src/proxy.conf.json`) ;
+- `npm test` : tests Vitest en mode surveillance ; `npx ng test --watch=false` pour une seule exécution, `--coverage` en plus pour la couverture ;
+- `npm run build` : build de production dans `dist/front/` ;
+- `npm run format` : formate le code avec Prettier (`npm run format:check` pour vérifier sans modifier).
 
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Architecture du front (dossiers, routes, authentification, services) : [`back/docs/DOCUMENTATION_TECHNIQUE.md`](../back/docs/DOCUMENTATION_TECHNIQUE.md), section « Front-end ».

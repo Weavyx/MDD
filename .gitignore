@@ -1,9 +1,6 @@
 # IDE
 .idea/
 
-# Legacy reference (non versionné intentionnellement)
-front-legacy/
-
 # Secrets locaux
 .env
 back/src/main/resources/application-local.properties

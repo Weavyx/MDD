@@ -225,7 +225,7 @@ Les éléments suivants ne bloquent pas ce merge (aucun ❌) mais restent à tra
 1. **Vault à mettre à jour** (divergence 1) : section « Points ouverts » de *Etapes d'implémentations.md*, ajout d'une entrée « PR `feat/user-profile` », et note de justification du choix d'endpoint `/api/users/me`.
 2. **`MethodArgumentNotValidException` non gérée explicitement** (divergence 3) — hérité des branches précédentes.
 3. **Coexistence `/api/auth/me` / `/api/users/me`** (divergence 2) — tranchée : les deux sont conservés avec des rôles distincts (voir « Correctif post-audit », décision produit).
-4. **Checklist de tests manuels non exécutée** : `back/docs/USER_PROFILE_TEST_CHECKLIST.md` liste les scénarios de test manuel pour les 2 endpoints. Toutes les colonnes « Résultat observé » et « Statut » sont vides à ce jour.
+4. **Checklist de tests manuels non exécutée** : `back/docs/archives/USER_PROFILE_TEST_CHECKLIST.md` liste les scénarios de test manuel pour les 2 endpoints. Toutes les colonnes « Résultat observé » et « Statut » sont vides à ce jour.
 
 ---
 

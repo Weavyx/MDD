@@ -13,7 +13,7 @@ Audit en lecture seule — aucun fichier de code n'a été modifié. Périmètre
 - `service/TopicService.java`
 - `controller/TopicController.java`
 
-(complété ponctuellement par la lecture de `model/Topic.java` et `model/Subscription.java` pour vérifier l'absence d'association JPA, et de `docs/TOPICS_TEST_CHECKLIST.md`.)
+(complété ponctuellement par la lecture de `model/Topic.java` et `model/Subscription.java` pour vérifier l'absence d'association JPA, et de `docs/archives/TOPICS_TEST_CHECKLIST.md`.)
 
 ---
 
@@ -100,9 +100,9 @@ Les éléments suivants doivent être traités avant un merge définitif — ils
 
 1. **`MethodArgumentTypeMismatchException` non gérée dans `GlobalExceptionHandler`**
    `exception/GlobalExceptionHandler.java` (fichier entier, lignes 15-28) ne déclare que trois `@ExceptionHandler` : `TopicNotFoundException`, `AlreadySubscribedException`, `DataIntegrityViolationException`. Il n'existe **aucun** handler pour `MethodArgumentTypeMismatchException`.
-   Conséquence : un appel `POST /api/topics/abc/subscribe` ou `DELETE /api/topics/abc/subscribe` (où `{id}` n'est pas convertible en `Long` — voir `@PathVariable Long id` dans `controller/TopicController.java:29,36`) ne sera intercepté par aucun handler dédié et remontera probablement en **500** via le comportement par défaut de Spring, avec un risque de fuite de stack trace / détails d'implémentation dans la réponse HTTP selon la configuration de `spring.mvc.problemdetails` / gestion d'erreurs par défaut. Ce cas est d'ailleurs déjà identifié comme non garanti dans `back/docs/TOPICS_TEST_CHECKLIST.md:20` (scénario 9 : « à vérifier - non garanti par le code actuel »).
+   Conséquence : un appel `POST /api/topics/abc/subscribe` ou `DELETE /api/topics/abc/subscribe` (où `{id}` n'est pas convertible en `Long` — voir `@PathVariable Long id` dans `controller/TopicController.java:29,36`) ne sera intercepté par aucun handler dédié et remontera probablement en **500** via le comportement par défaut de Spring, avec un risque de fuite de stack trace / détails d'implémentation dans la réponse HTTP selon la configuration de `spring.mvc.problemdetails` / gestion d'erreurs par défaut. Ce cas est d'ailleurs déjà identifié comme non garanti dans `back/docs/archives/TOPICS_TEST_CHECKLIST.md:20` (scénario 9 : « à vérifier - non garanti par le code actuel »).
 
 2. **Checklist de tests manuels non exécutée**
-   `back/docs/TOPICS_TEST_CHECKLIST.md` liste 13 scénarios de test manuel (`GET /api/topics` : scénarios 1-4 ; `POST /api/topics/{id}/subscribe` : scénarios 5-9 ; `DELETE /api/topics/{id}/subscribe` : scénarios 10-13). Toutes les colonnes « Résultat observé » et « Statut » sont vides à ce jour — aucun des 13 scénarios n'a encore été vérifié manuellement. Ceci doit être exécuté avant un merge définitif dans `main`.
+   `back/docs/archives/TOPICS_TEST_CHECKLIST.md` liste 13 scénarios de test manuel (`GET /api/topics` : scénarios 1-4 ; `POST /api/topics/{id}/subscribe` : scénarios 5-9 ; `DELETE /api/topics/{id}/subscribe` : scénarios 10-13). Toutes les colonnes « Résultat observé » et « Statut » sont vides à ce jour — aucun des 13 scénarios n'a encore été vérifié manuellement. Ceci doit être exécuté avant un merge définitif dans `main`.
 
 3. **`SubscriptionRepository.findByUserId` potentiellement inutilisée** (voir section 2) — à confirmer avant merge si elle sert ailleurs dans le projet, sinon à retirer.
