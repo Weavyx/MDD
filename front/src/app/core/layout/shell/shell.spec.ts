@@ -127,4 +127,13 @@ describe('Shell', () => {
     expect(logout).toHaveBeenCalledOnce();
     expect(sidenav?.classList).not.toContain('mat-drawer-opened');
   });
+
+  // Positioned in the container, the closed menu (translated just past the right edge)
+  // widened the container's scroll width by its own width.
+  it('fixes the side menu to the viewport', async () => {
+    const element = (await render({ isAuthenticated: true, isHandset: true }))
+      .nativeElement as HTMLElement;
+
+    expect(element.querySelector('mat-sidenav')?.classList).toContain('mat-sidenav-fixed');
+  });
 });
