@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-MDD ("Monde de Dév"), OpenClassrooms P5 option B. Mono-repo: `back/` Spring Boot API, `front/` Angular app. `front-legacy/` is a gitignored Angular 14 reference: never build or edit there.
+MDD ("Monde de Dév"), OpenClassrooms P5 option B. Mono-repo: `back/` Spring Boot API, `front/` Angular app.
 
 ## Commands
 
