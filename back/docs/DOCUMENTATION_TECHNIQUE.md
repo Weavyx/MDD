@@ -208,8 +208,8 @@ Le schéma est créé au démarrage par les migrations Flyway de `back/src/main/
 ### 5.4 Lancer les tests
 
 ```bash
-./mvnw test      # 45 tests unitaires (*Test), aucun prérequis
-./mvnw verify    # + 82 tests d'intégration (*IT) : Docker démarré (Testcontainers mysql:8.4) et JWT_SECRET exporté
+./mvnw test      # 56 tests unitaires (*Test), aucun prérequis
+./mvnw verify    # + 97 tests d'intégration (*IT) : Docker démarré (Testcontainers mysql:8.4) et JWT_SECRET exporté
 ```
 
 `verify` produit le rapport JaCoCo dans `back/target/site/jacoco/index.html`. Sans `JWT_SECRET`, `MddApiApplicationIT` échoue au chargement du contexte (`Could not resolve placeholder 'JWT_SECRET'`) ; sans Docker, tous les `*IT` adossés à la base échouent au démarrage du conteneur. Détail de la stratégie et des chiffres dans `RAPPORT_DE_TESTS.md`.
@@ -311,3 +311,5 @@ npx ng test --watch=false --coverage     # + rapport dans front/coverage/front/i
 ```
 
 Les tests end-to-end (Cypress) font l'objet d'une autre pull request.
+
+Correction du 25 septembre 2026 (§5.4) : 45 et 82 tests remplacés par 56 et 97, mesurés par `mise exec -- ./mvnw -q verify` depuis `back/` sur `main` au commit `2a01fc9`, comptes relus dans les XML de `target/surefire-reports` et `target/failsafe-reports`.
