@@ -1,0 +1,63 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.shell {
+  height: 100%;
+}
+
+.shell-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  gap: 8px;
+  background-color: var(--mat-sys-surface);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.shell-logo {
+  font: var(--mat-sys-headline-small);
+  font-weight: 700;
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+}
+
+.shell-spacer {
+  flex: 1 1 auto;
+}
+
+.shell-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+// Colours go on our own projected labels: inside a toolbar, Material forces the button's
+// own colour through a more specific rule.
+.shell-logout .shell-label {
+  color: var(--mat-sys-error);
+}
+
+.shell-active .shell-label,
+.shell-active mat-icon {
+  color: var(--mat-sys-primary);
+}
+
+.shell-menu {
+  width: 220px;
+  text-align: end;
+
+  // A <button> list item would otherwise keep the user-agent `text-align: center`.
+  [mat-list-item] {
+    text-align: inherit;
+  }
+}
+
+.shell-menu-profile {
+  margin: 8px 16px;
+}
+
+.shell-page {
+  padding: 16px;
+}

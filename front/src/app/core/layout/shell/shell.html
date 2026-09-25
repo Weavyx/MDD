@@ -1,0 +1,89 @@
+<mat-sidenav-container class="shell">
+  <mat-sidenav
+    class="shell-menu"
+    position="end"
+    mode="over"
+    [opened]="menuOpen()"
+    (closedStart)="closeMenu()"
+  >
+    <mat-nav-list aria-label="Menu principal">
+      <button mat-list-item type="button" class="shell-logout" (click)="logout()">
+        <span class="shell-label">Se déconnecter</span>
+      </button>
+      <a
+        mat-list-item
+        routerLink="/feed"
+        routerLinkActive="shell-active"
+        ariaCurrentWhenActive="page"
+        (click)="closeMenu()"
+        ><span class="shell-label">Articles</span></a
+      >
+      <a
+        mat-list-item
+        routerLink="/topics"
+        routerLinkActive="shell-active"
+        ariaCurrentWhenActive="page"
+        (click)="closeMenu()"
+        ><span class="shell-label">Thèmes</span></a
+      >
+    </mat-nav-list>
+    <a
+      matIconButton
+      class="shell-menu-profile"
+      routerLink="/profile"
+      routerLinkActive="shell-active"
+      ariaCurrentWhenActive="page"
+      aria-label="Profil"
+      (click)="closeMenu()"
+    >
+      <mat-icon>account_circle</mat-icon>
+    </a>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="shell-body">
+    <mat-toolbar class="shell-toolbar">
+      <a class="shell-logo" [routerLink]="isAuthenticated() ? '/feed' : '/'">MDD</a>
+      @if (isAuthenticated()) {
+        <span class="shell-spacer"></span>
+        @if (isHandset()) {
+          <button matIconButton type="button" aria-label="Ouvrir le menu" (click)="openMenu()">
+            <mat-icon>menu</mat-icon>
+          </button>
+        } @else {
+          <nav class="shell-nav" aria-label="Navigation principale">
+            <button matButton type="button" class="shell-logout" (click)="logout()">
+              <span class="shell-label">Se déconnecter</span>
+            </button>
+            <a
+              matButton
+              routerLink="/feed"
+              routerLinkActive="shell-active"
+              ariaCurrentWhenActive="page"
+              ><span class="shell-label">Articles</span></a
+            >
+            <a
+              matButton
+              routerLink="/topics"
+              routerLinkActive="shell-active"
+              ariaCurrentWhenActive="page"
+              ><span class="shell-label">Thèmes</span></a
+            >
+            <a
+              matIconButton
+              routerLink="/profile"
+              routerLinkActive="shell-active"
+              ariaCurrentWhenActive="page"
+              aria-label="Profil"
+            >
+              <mat-icon>account_circle</mat-icon>
+            </a>
+          </nav>
+        }
+      }
+    </mat-toolbar>
+
+    <main class="shell-page">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

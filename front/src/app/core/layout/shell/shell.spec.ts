@@ -1,0 +1,97 @@
+import { BreakpointObserver, BreakpointState } from '@angular/cdk/layout';
+import { signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { of } from 'rxjs';
+
+import { AuthService } from '../../auth/auth.service';
+import { Shell } from './shell';
+
+describe('Shell', () => {
+  const logout = vi.fn();
+
+  async function render(options: { isAuthenticated: boolean; isHandset: boolean }) {
+    const state: BreakpointState = { matches: options.isHandset, breakpoints: {} };
+    TestBed.configureTestingModule({
+      imports: [Shell],
+      providers: [
+        provideRouter([]),
+        {
+          provide: AuthService,
+          useValue: { isAuthenticated: signal(options.isAuthenticated), logout },
+        },
+        { provide: BreakpointObserver, useValue: { observe: () => of(state) } },
+      ],
+    });
+    const fixture = TestBed.createComponent(Shell);
+    await fixture.whenStable();
+    return fixture;
+  }
+
+  const toolbarText = (element: HTMLElement) =>
+    element.querySelector('mat-toolbar')?.textContent?.replace(/\s+/g, ' ').trim();
+
+  afterEach(() => logout.mockReset());
+
+  it('shows only the logo on public pages', async () => {
+    const element = (await render({ isAuthenticated: false, isHandset: false }))
+      .nativeElement as HTMLElement;
+
+    expect(toolbarText(element)).toBe('MDD');
+    expect(element.querySelector('[aria-label="Ouvrir le menu"]')).toBeNull();
+  });
+
+  it('shows the navigation links on desktop once logged in', async () => {
+    const element = (await render({ isAuthenticated: true, isHandset: false }))
+      .nativeElement as HTMLElement;
+    const nav = element.querySelector('nav[aria-label="Navigation principale"]');
+
+    expect(Array.from(nav?.children ?? [], (child) => child.textContent?.trim())).toEqual([
+      'Se déconnecter',
+      'Articles',
+      'Thèmes',
+      'account_circle',
+    ]);
+    expect(nav?.querySelector('a[href="/feed"]')).not.toBeNull();
+    expect(nav?.querySelector('a[href="/topics"]')).not.toBeNull();
+    expect(nav?.querySelector('a[href="/profile"][aria-label="Profil"]')).not.toBeNull();
+  });
+
+  it('logs out from the toolbar', async () => {
+    const element = (await render({ isAuthenticated: true, isHandset: false }))
+      .nativeElement as HTMLElement;
+
+    element.querySelector<HTMLButtonElement>('nav .shell-logout')?.click();
+
+    expect(logout).toHaveBeenCalledOnce();
+  });
+
+  it('replaces the links with a burger menu on a handset', async () => {
+    const element = (await render({ isAuthenticated: true, isHandset: true }))
+      .nativeElement as HTMLElement;
+
+    expect(element.querySelector('nav[aria-label="Navigation principale"]')).toBeNull();
+    expect(element.querySelector('[aria-label="Ouvrir le menu"]')).not.toBeNull();
+  });
+
+  it('opens the side menu with the same links from the burger', async () => {
+    const fixture = await render({ isAuthenticated: true, isHandset: true });
+    const element = fixture.nativeElement as HTMLElement;
+    const sidenav = element.querySelector('mat-sidenav');
+    expect(sidenav?.classList).not.toContain('mat-drawer-opened');
+
+    element.querySelector<HTMLButtonElement>('[aria-label="Ouvrir le menu"]')?.click();
+    await fixture.whenStable();
+
+    expect(sidenav?.classList).toContain('mat-drawer-opened');
+    expect(sidenav?.querySelector('a[href="/feed"]')?.textContent?.trim()).toBe('Articles');
+    expect(sidenav?.querySelector('a[href="/topics"]')?.textContent?.trim()).toBe('Thèmes');
+    expect(sidenav?.querySelector('a[href="/profile"][aria-label="Profil"]')).not.toBeNull();
+
+    sidenav?.querySelector<HTMLButtonElement>('.shell-logout')?.click();
+    await fixture.whenStable();
+
+    expect(logout).toHaveBeenCalledOnce();
+    expect(sidenav?.classList).not.toContain('mat-drawer-opened');
+  });
+});

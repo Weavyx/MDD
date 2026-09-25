@@ -47,7 +47,16 @@ MDD ("Monde de Dév"), OpenClassrooms P5 option B. Mono-repo: `back/` Spring Boo
 - UI: Angular Material components on the existing SCSS theme (`src/styles.scss`). No Tailwind, no `@angular/aria`.
 - Screens follow `docs/maquettes/` and must work on mobile and desktop. User-facing text is French and copies the spec wording exactly (e.g. "Déjà abonné").
 
-<!-- Front architecture decisions: to be added after the framing session. -->
+### Front architecture decisions (framing of 25/09/2026)
+- Structure by feature: `src/app/core/` (auth, http, layout), `src/app/shared/` (validators), `src/app/features/{auth,posts,topics,profile}/`. A feature session only edits its own feature folder; changes needed in `core/` or `shared/` are reported, not made.
+- State: services + signals. HTTP services return Observables; components convert them with `toSignal` or subscribe; the auth state is a signal in `AuthService`. No NgRx; no `httpResource` nor Signal Forms (experimental in Angular 21).
+- Forms: typed Reactive Forms. Password rule: `shared/validators/password.validator.ts`, same rule as the backend `@Pattern` and `@Size(8, 72)`.
+- Auth: JWT in `localStorage` (key `mdd.token`); expiry read from the `exp` claim (no signature check on the front, the API checks it). Functional `authInterceptor` adds `Authorization: Bearer <token>` to `/api/**` except `/api/auth/**`; a 401 on a non-auth call logs out and redirects to `/login`. Functional guards: `authGuard` (protected pages → `/login`), `guestGuard` (home, login, register → `/feed` when logged in).
+- Errors: `fieldErrors` shown under the matching form field; other errors through `NotificationService` (MatSnackBar); the login 401 (empty body) becomes "Identifiants incorrects" on the front.
+- Dev: `ng serve` proxies `/api/**` to `http://localhost:8080` (`src/proxy.conf.json`); services call relative `/api/...` URLs, so any dev port works without CORS.
+- UI: Angular Material, theme `mat.$violet-palette`; responsive nav with CDK `BreakpointObserver` (Handset → burger menu + `MatSidenav`). Mockups are inspiration: every screen and feature is mandatory, pixel fidelity is not.
+- Security: never `innerHTML` nor `bypassSecurityTrust*`; post and comment content are rendered as text.
+- Tests: Vitest + jsdom. Security code (auth service, interceptor, guards, password validator) is proven by manual mutation; feature specs need at least one mutation per spec file.
 
 ## Evidence and reports
 
