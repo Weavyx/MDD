@@ -20,7 +20,8 @@ describe('Profile', () => {
     ],
   };
 
-  async function render(loaded: UserProfileResponse = profile) {
+  /** Creates the page; the GET /api/users/me it sends is left pending. */
+  function create(): ComponentFixture<Profile> {
     TestBed.configureTestingModule({
       imports: [Profile],
       providers: [
@@ -30,7 +31,11 @@ describe('Profile', () => {
       ],
     });
     httpTesting = TestBed.inject(HttpTestingController);
-    const fixture = TestBed.createComponent(Profile);
+    return TestBed.createComponent(Profile);
+  }
+
+  async function render(loaded: UserProfileResponse = profile) {
+    const fixture = create();
     httpTesting.expectOne({ method: 'GET', url: '/api/users/me' }).flush(loaded);
     await fixture.whenStable();
     return fixture;
@@ -72,6 +77,31 @@ describe('Profile', () => {
     expect(input(element, 'username').value).toBe('alice');
     expect(input(element, 'email').value).toBe('alice@mdd.fr');
     expect(input(element, 'password').value).toBe('');
+  });
+
+  it.each([
+    ['the API message', { status: 500, message: 'Erreur interne' }, 'Erreur interne'],
+    ['a fallback without body', null, 'Impossible de charger le profil'],
+  ])('notifies a failed load with %s and leaves the form empty', async (_, body, expected) => {
+    const fixture = create();
+    httpTesting
+      .expectOne({ method: 'GET', url: '/api/users/me' })
+      .flush(body, { status: 500, statusText: 'Internal Server Error' });
+    await fixture.whenStable();
+
+    expect(show).toHaveBeenCalledExactlyOnceWith(expected);
+    expect(input(fixture.nativeElement, 'username').value).toBe('');
+    expect(cardTitles(fixture.nativeElement)).toEqual([]);
+  });
+
+  it('leaves a 401 on load to the interceptor', async () => {
+    const fixture = create();
+    httpTesting
+      .expectOne({ method: 'GET', url: '/api/users/me' })
+      .flush(null, { status: 401, statusText: 'Unauthorized' });
+    await fixture.whenStable();
+
+    expect(show).not.toHaveBeenCalled();
   });
 
   it('sends a null password when the field is left empty', async () => {
@@ -177,6 +207,34 @@ describe('Profile', () => {
 
     expect(fieldError(element, 'email')).toBe("L'adresse e-mail doit être valide");
     expect(fieldError(element, 'username')).toBeUndefined();
+    expect(show).not.toHaveBeenCalled();
+  });
+
+  it('shows fieldErrors under the username and the password', async () => {
+    const fixture = await render();
+    const element = fixture.nativeElement as HTMLElement;
+
+    await submit(fixture);
+    httpTesting.expectOne({ method: 'PUT', url: '/api/users/me' }).flush(
+      {
+        status: 400,
+        message: 'Requête invalide',
+        fieldErrors: {
+          username: "Le nom d'utilisateur doit contenir entre 3 et 50 caractères",
+          password: 'Le mot de passe ne doit pas dépasser 72 caractères',
+        },
+      },
+      { status: 400, statusText: 'Bad Request' },
+    );
+    await fixture.whenStable();
+
+    expect(fieldError(element, 'username')).toBe(
+      "Le nom d'utilisateur doit contenir entre 3 et 50 caractères",
+    );
+    expect(fieldError(element, 'password')).toBe(
+      'Le mot de passe ne doit pas dépasser 72 caractères',
+    );
+    expect(fieldError(element, 'email')).toBeUndefined();
     expect(show).not.toHaveBeenCalled();
   });
 
