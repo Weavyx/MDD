@@ -1,0 +1,49 @@
+:host {
+  display: block;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.profile-heading {
+  margin: 8px 0 16px;
+  text-align: center;
+  font: var(--mat-sys-headline-small);
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.profile-submit {
+  align-self: center;
+  margin-top: 8px;
+}
+
+.profile-divider {
+  max-width: 900px;
+  margin: 24px auto;
+}
+
+.profile-empty {
+  text-align: center;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 599.98px) {
+  .profile-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
