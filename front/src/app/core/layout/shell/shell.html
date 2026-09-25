@@ -8,7 +8,7 @@
   >
     <mat-nav-list aria-label="Menu principal">
       <button mat-list-item type="button" class="shell-logout" (click)="logout()">
-        Se déconnecter
+        <span class="shell-label">Se déconnecter</span>
       </button>
       <a
         mat-list-item
@@ -16,7 +16,7 @@
         routerLinkActive="shell-active"
         ariaCurrentWhenActive="page"
         (click)="closeMenu()"
-        >Articles</a
+        ><span class="shell-label">Articles</span></a
       >
       <a
         mat-list-item
@@ -24,7 +24,7 @@
         routerLinkActive="shell-active"
         ariaCurrentWhenActive="page"
         (click)="closeMenu()"
-        >Thèmes</a
+        ><span class="shell-label">Thèmes</span></a
       >
     </mat-nav-list>
     <a
@@ -52,21 +52,21 @@
         } @else {
           <nav class="shell-nav" aria-label="Navigation principale">
             <button matButton type="button" class="shell-logout" (click)="logout()">
-              Se déconnecter
+              <span class="shell-label">Se déconnecter</span>
             </button>
             <a
               matButton
               routerLink="/feed"
               routerLinkActive="shell-active"
               ariaCurrentWhenActive="page"
-              >Articles</a
+              ><span class="shell-label">Articles</span></a
             >
             <a
               matButton
               routerLink="/topics"
               routerLinkActive="shell-active"
               ariaCurrentWhenActive="page"
-              >Thèmes</a
+              ><span class="shell-label">Thèmes</span></a
             >
             <a
               matIconButton

@@ -33,17 +33,25 @@
   gap: 4px;
 }
 
-.shell-logout {
+// Colours go on our own projected labels: inside a toolbar, Material forces the button's
+// own colour through a more specific rule.
+.shell-logout .shell-label {
   color: var(--mat-sys-error);
 }
 
-.shell-active {
+.shell-active .shell-label,
+.shell-active mat-icon {
   color: var(--mat-sys-primary);
 }
 
 .shell-menu {
   width: 220px;
   text-align: end;
+
+  // A <button> list item would otherwise keep the user-agent `text-align: center`.
+  [mat-list-item] {
+    text-align: inherit;
+  }
 }
 
 .shell-menu-profile {
