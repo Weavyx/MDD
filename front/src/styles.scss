@@ -10,7 +10,20 @@
 @use '@fontsource/roboto/300' as roboto-300;
 @use '@fontsource/roboto/400' as roboto-400;
 @use '@fontsource/roboto/500' as roboto-500;
-@use '@fontsource/material-icons';
+
+// Material Icons: the package's own @font-face (same family and files, no unicode-range),
+// written here only to use `font-display: block`, so that ligature names such as
+// "arrow_back" are never shown as text while the font loads. Method documented at
+// https://fontsource.org/docs/getting-started/display.
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-display: block;
+  font-weight: 400;
+  src:
+    url(@fontsource/material-icons/files/material-icons-latin-400-normal.woff2) format('woff2'),
+    url(@fontsource/material-icons/files/material-icons-latin-400-normal.woff) format('woff');
+}
 
 html {
   height: 100%;
