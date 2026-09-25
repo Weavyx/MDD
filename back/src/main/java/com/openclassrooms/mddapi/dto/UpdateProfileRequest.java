@@ -19,15 +19,15 @@ public class UpdateProfileRequest {
     private String email;
 
     /**
-     * Optionnel : {@code null} signifie "ne pas changer le mot de passe".
-     * S'il est fourni, il doit respecter les mêmes règles que lors de
-     * l'inscription (voir {@link RegisterRequest#getPassword()}).
+     * Optionnel : absent ou {@code null} signifie "ne pas changer le mot de passe".
+     * Vide ou blanc, il est rejeté (400) par {@code @Size(min = 8)} et {@code @Pattern}.
+     * Sinon, il doit respecter les mêmes règles que lors de l'inscription
+     * (voir {@link RegisterRequest#getPassword()}).
      * <p>
      * L'absence de {@code @NotBlank} est volontaire, contrairement à
      * {@code RegisterRequest.password} : {@code UserService.updateProfile} conserve
-     * le hash existant quand ce champ est {@code null} ou blanc. Ajouter
-     * {@code @NotBlank} ici obligerait à ressaisir le mot de passe à chaque
-     * modification du profil.
+     * le hash existant quand ce champ est {@code null}. Ajouter {@code @NotBlank} ici
+     * obligerait à ressaisir le mot de passe à chaque modification du profil.
      */
     @Size(min = 8, message = "Le mot de passe doit contenir au moins 8 caractères")
     @MaxUtf8Bytes(72)

@@ -45,7 +45,7 @@ public class UserController {
     /**
      * 200 avec le profil mis à jour (sans hash) ; 400 {@code fieldErrors} ; 404 compte
      * disparu ; 409 email ou nom pris par un autre compte. Le mot de passe est optionnel :
-     * absent ou blanc, il est conservé. Le jeton reste valide après changement d'email
+     * absent ou {@code null}, il est conservé ; vide ou blanc, 400. Le jeton reste valide après changement d'email
      * ou de nom, puisqu'il ne porte que l'id.
      */
     @PutMapping("/me")

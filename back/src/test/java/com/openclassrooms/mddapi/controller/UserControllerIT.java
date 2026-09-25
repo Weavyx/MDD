@@ -213,6 +213,31 @@ class UserControllerIT {
     }
 
     @Test
+    void updateProfile_motDePasseVide_retourne400EtServiceJamaisAppele() throws Exception {
+        // Contrat : absent ou null = inchangé ; vide ou blanc = 400 (pas "inchangé").
+        mockMvc.perform(put("/api/users/me")
+                        .with(jwt().jwt(jwt -> jwt.subject("1")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"alice@mail.com\",\"username\":\"alice\",\"password\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.password").exists());
+
+        verify(userService, never()).updateProfile(anyLong(), any());
+    }
+
+    @Test
+    void updateProfile_motDePasseBlanc_retourne400EtServiceJamaisAppele() throws Exception {
+        mockMvc.perform(put("/api/users/me")
+                        .with(jwt().jwt(jwt -> jwt.subject("1")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"alice@mail.com\",\"username\":\"alice\",\"password\":\"        \"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.password").exists());
+
+        verify(userService, never()).updateProfile(anyLong(), any());
+    }
+
+    @Test
     void updateProfile_emailInvalide_retourne400() throws Exception {
         mockMvc.perform(put("/api/users/me")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))

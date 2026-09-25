@@ -132,19 +132,6 @@ class UserServiceTest {
     }
 
     @Test
-    void updateProfile_motDePasseBlanc_hashInchange() {
-        User user = buildUser(1L, "alice@mail.com", "alice", "hash");
-        UpdateProfileRequest request = buildRequest("alice@mail.com", "alice", "   ");
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(userRepository.save(user)).thenReturn(user);
-
-        userService.updateProfile(1L, request);
-
-        assertThat(user.getPasswordHash()).isEqualTo("hash");
-        verify(passwordEncoder, never()).encode(anyString());
-    }
-
-    @Test
     void updateProfile_emailEtUsernameInchanges_aucuneVerificationUniciteEtSaveAppele() {
         User user = buildUser(1L, "alice@mail.com", "alice", "hash");
         UpdateProfileRequest request = buildRequest("alice@mail.com", "alice", null);

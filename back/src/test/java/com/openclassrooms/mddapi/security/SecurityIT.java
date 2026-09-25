@@ -3,6 +3,7 @@ package com.openclassrooms.mddapi.security;
 import com.openclassrooms.mddapi.AbstractContainerIT;
 import com.openclassrooms.mddapi.model.User;
 import com.openclassrooms.mddapi.repository.UserRepository;
+import com.openclassrooms.mddapi.security.jwt.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +14,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -37,6 +40,9 @@ class SecurityIT extends AbstractContainerIT {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JwtService jwtService;
 
     private User user;
 
@@ -69,5 +75,21 @@ class SecurityIT extends AbstractContainerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"identifier\":\"" + EMAIL + "\",\"password\":\"" + password + "\"}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void updateProfile_motDePasseAbsent_retourne200EtHashInchange() throws Exception {
+        String hashAvant = user.getPasswordHash();
+        String token = jwtService.generateToken(user.getId().toString());
+
+        mockMvc.perform(put("/api/users/me")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + EMAIL + "\",\"username\":\"security-it-2\"}"))
+                .andExpect(status().isOk());
+
+        User apres = userRepository.findById(user.getId()).orElseThrow();
+        assertThat(apres.getUsername()).isEqualTo("security-it-2");
+        assertThat(apres.getPasswordHash()).isEqualTo(hashAvant);
     }
 }
