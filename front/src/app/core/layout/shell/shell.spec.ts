@@ -1,21 +1,24 @@
 import { BreakpointObserver, BreakpointState } from '@angular/cdk/layout';
-import { signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
 import { AuthService } from '../../auth/auth.service';
 import { Shell } from './shell';
 
+@Component({ template: '' })
+class Page {}
+
 describe('Shell', () => {
   const logout = vi.fn();
 
-  async function render(options: { isAuthenticated: boolean; isHandset: boolean }) {
+  async function render(options: { isAuthenticated: boolean; isHandset: boolean; url?: string }) {
     const state: BreakpointState = { matches: options.isHandset, breakpoints: {} };
     TestBed.configureTestingModule({
       imports: [Shell],
       providers: [
-        provideRouter([]),
+        provideRouter([{ path: '**', component: Page }]),
         {
           provide: AuthService,
           useValue: { isAuthenticated: signal(options.isAuthenticated), logout },
@@ -24,6 +27,7 @@ describe('Shell', () => {
       ],
     });
     const fixture = TestBed.createComponent(Shell);
+    await TestBed.inject(Router).navigateByUrl(options.url ?? '/login');
     await fixture.whenStable();
     return fixture;
   }
@@ -39,6 +43,35 @@ describe('Shell', () => {
 
     expect(toolbarText(element)).toBe('MDD');
     expect(element.querySelector('[aria-label="Ouvrir le menu"]')).toBeNull();
+  });
+
+  it.each(['/', '/?page=2'])('has no toolbar on the home page (%s)', async (url) => {
+    const element = (await render({ isAuthenticated: false, isHandset: false, url }))
+      .nativeElement as HTMLElement;
+
+    expect(element.querySelector('mat-toolbar')).toBeNull();
+    expect(element.querySelector('main router-outlet')).not.toBeNull();
+  });
+
+  it('keeps the toolbar until a navigation has ended', async () => {
+    TestBed.configureTestingModule({
+      imports: [Shell],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: { isAuthenticated: signal(false), logout } },
+      ],
+    });
+    const fixture = TestBed.createComponent(Shell);
+    await fixture.whenStable();
+
+    expect(toolbarText(fixture.nativeElement as HTMLElement)).toBe('MDD');
+  });
+
+  it.each(['/login', '/register'])('shows the toolbar on %s', async (url) => {
+    const element = (await render({ isAuthenticated: false, isHandset: false, url }))
+      .nativeElement as HTMLElement;
+
+    expect(toolbarText(element)).toBe('MDD');
   });
 
   it('shows the navigation links on desktop once logged in', async () => {
