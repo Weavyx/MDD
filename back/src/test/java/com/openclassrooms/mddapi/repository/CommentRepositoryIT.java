@@ -25,7 +25,7 @@ class CommentRepositoryIT extends AbstractRepositoryIT {
     @Test
     void findByPostIdOrderByCreatedAtAsc_troisCommentairesInseresDansUnOrdreDifferent_retourneParOrdreChronologique() {
         User user = persistUser("alice@mail.com", "alice");
-        Topic topic = persistTopic("Java", "Description Java");
+        Topic topic = persistTopic("Topic IT A", "Description Java");
         Post post = persistPost("Titre", "Contenu", user, topic);
         Post otherPost = persistPost("Autre titre", "Autre contenu", user, topic);
 

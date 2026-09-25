@@ -35,8 +35,8 @@ MDD ("Monde de Dév"), OpenClassrooms P5 option B. Mono-repo: `back/` Spring Boo
 - JWT: Spring Security's native `JwtEncoder`/`JwtDecoder` (Nimbus), HS256 set explicitly, claims `iss`/`iat`/`exp`/`sub` only, 24 h, no refresh, no logout endpoint, no roles. The decoder validates signature and `exp` only (no issuer validator).
 - Errors: one `@RestControllerAdvice` (`GlobalExceptionHandler`) → `ErrorResponse`; validation errors carry `fieldErrors`. Two cases are **intentionally** outside that format and pinned by tests: 401 (empty body + `WWW-Authenticate`, from `BearerTokenAuthenticationEntryPoint`) and malformed JSON (Spring default). Don't add a catch-all `Exception` handler (it would turn 401s into 500s).
 - Layered monolith, packages by layer, concrete services without interfaces, one DTO per action (`*Request`/`*Response`, Lombok `@Data`), manual inline mapping, no MapStruct. Entities are immutable except `User`; associations are unidirectional `@ManyToOne LAZY` with `@EntityGraph` where needed; no `cascade`, no `@OneToMany`.
-- `Topic` has no creation endpoint; there is no seed in the repo yet.
-- `spring.profiles.active=local` is hard-coded in `application.properties`; there is no prod profile, `ddl-auto=update` and `show-sql=true` are known debts (see `REVUE_TECHNIQUE.md`), not things to "fix" in passing.
+- `Topic` has no creation endpoint: reference topics are inserted by the Flyway migration `back/src/main/resources/db/migration/V2__insert_reference_topics.sql`; test data must not reuse their names (`topics.name` is unique).
+- `spring.profiles.active=local` is hard-coded in `application.properties`; there is no prod profile. The schema is owned by Flyway (`back/src/main/resources/db/migration/`) and Hibernate only validates it (`ddl-auto=validate`): any entity change needs a new migration. `show-sql=true` is a known debt (see `REVUE_TECHNIQUE.md`), not a thing to "fix" in passing.
 - The rationale for each decision lives in the Obsidian vault (`OpenClassrooms/Formation Java Angular/Projets/Projet_05 - MDD (full-stack)/prepa/`, index `prepa/Etapes des choix logiques.md`); this file records only the constraints.
 
 ## Frontend
