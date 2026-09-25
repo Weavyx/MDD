@@ -191,6 +191,27 @@ describe('PostDetail', () => {
     expect(el().querySelector<HTMLTextAreaElement>('textarea')!.value).toBe('Bravo');
   });
 
+  it('leaves a 401 on a comment to the interceptor and notifies nothing', async () => {
+    await open('/posts/7');
+    typeComment('Bravo');
+    await send();
+
+    httpTesting
+      .expectOne({ method: 'POST', url: '/api/posts/7/comments' })
+      .flush(null, { status: 401, statusText: 'Unauthorized' });
+    await stable();
+
+    expect(show).not.toHaveBeenCalled();
+  });
+
+  it('leaves a 401 on load to the interceptor and notifies nothing', async () => {
+    await harness.navigateByUrl('/posts/7');
+    httpTesting.expectOne('/api/posts/7').flush(null, { status: 401, statusText: 'Unauthorized' });
+    await stable();
+
+    expect(show).not.toHaveBeenCalled();
+  });
+
   it('reports a failed load that is not a 404 through the notification service', async () => {
     await harness.navigateByUrl('/posts/7');
     httpTesting.expectOne('/api/posts/7').flush(null, { status: 500, statusText: 'Server Error' });

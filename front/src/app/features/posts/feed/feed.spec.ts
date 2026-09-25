@@ -124,4 +124,13 @@ describe('Feed', () => {
 
     expect(show).toHaveBeenCalledWith('Impossible de charger le fil d’actualité.');
   });
+
+  it('leaves a 401 to the interceptor and notifies nothing', async () => {
+    httpTesting
+      .expectOne('/api/users/me/feed?sort=desc')
+      .flush(null, { status: 401, statusText: 'Unauthorized' });
+    await fixture.whenStable();
+
+    expect(show).not.toHaveBeenCalled();
+  });
 });

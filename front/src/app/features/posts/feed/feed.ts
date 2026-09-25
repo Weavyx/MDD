@@ -44,10 +44,14 @@ export class Feed {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (posts) => this.posts.set(posts),
-        error: (error: HttpErrorResponse) =>
-          this.notification.show(
-            toApiError(error).message ?? 'Impossible de charger le fil d’actualité.',
-          ),
+        error: (error: HttpErrorResponse) => {
+          // A 401 is already handled by the interceptor (logout and redirect to `/login`).
+          if (error.status !== 401) {
+            this.notification.show(
+              toApiError(error).message ?? 'Impossible de charger le fil d’actualité.',
+            );
+          }
+        },
       });
   }
 }

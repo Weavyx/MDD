@@ -151,6 +151,37 @@ describe('PostCreate', () => {
     expect(errors()).toEqual([]);
   });
 
+  it('leaves a 401 on submit to the interceptor and notifies nothing', async () => {
+    await fill();
+    await submit();
+
+    httpTesting
+      .expectOne({ method: 'POST', url: '/api/posts' })
+      .flush(null, { status: 401, statusText: 'Unauthorized' });
+    await fixture.whenStable();
+
+    expect(show).not.toHaveBeenCalled();
+  });
+
+  it('leaves a 401 on the topic list to the interceptor and notifies nothing', async () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        { provide: NotificationService, useValue: { show } },
+      ],
+    });
+    httpTesting = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(PostCreate);
+
+    httpTesting.expectOne('/api/topics').flush(null, { status: 401, statusText: 'Unauthorized' });
+    await fixture.whenStable();
+
+    expect(show).not.toHaveBeenCalled();
+  });
+
   it('reports a failed topic list through the notification service', async () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
