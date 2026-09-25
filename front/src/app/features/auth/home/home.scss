@@ -4,7 +4,9 @@
   align-items: center;
   justify-content: center;
   gap: 48px;
-  min-height: calc(100dvh - 32px);
+  // The height left by the shell once the footer is placed, not the viewport's: with
+  // `100dvh`, the page body overflowed by the footer's height and scrolled.
+  min-height: 100%;
 }
 
 // The page heading stays in the accessibility tree; the logo is what the eye sees.
