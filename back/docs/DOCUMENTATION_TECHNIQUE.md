@@ -15,7 +15,7 @@ Tout ce qui suit a été vérifié dans le code de `back/src/main/java/com/openc
 - L'identité de l'appelant vient toujours du jeton ; aucun endpoint ne prend d'id d'utilisateur en paramètre. Les ressources propres à l'utilisateur sont sous `/api/user/…`.
 - Il n'y a ni rôles ni autorisations différenciées : un jeton valide donne accès à toutes les routes protégées ; **aucun 403 n'est émis**.
 - Dates : `createdAt` en ISO-8601 sans fuseau (`LocalDateTime`, ex. `2026-09-19T09:53:09.847`) ; `timestamp` des erreurs en ISO-8601 UTC (`Instant`, suffixe `Z`).
-- CORS : le front appelle l'API par le chemin relatif `/api`. En développement, le proxy d'Angular (`front/src/proxy.conf.json`) transmet ces appels au back de serveur à serveur : le navigateur ne voit qu'une origine. En production, un reverse proxy qui sert le front et l'API sur la même origine rend CORS inutile. `MDD_CORS_ALLOWED_ORIGINS` reste la configuration de réserve pour un déploiement sur deux domaines : origines séparées par des virgules, espaces autour retirés et entrées vides ignorées (défaut `http://localhost:4200`), méthodes `GET, POST, PUT, DELETE, OPTIONS`, en-têtes `Authorization` et `Content-Type`.
+- CORS : le front appelle l'API par le chemin relatif `/api`. En développement, le proxy d'Angular (`front/src/proxy.conf.json`) transmet ces appels au back de serveur à serveur : le navigateur ne voit qu'une origine. En production, un reverse proxy qui sert le front et l'API sur la même origine rend CORS inutile. `MDD_CORS_ALLOWED_ORIGINS` reste la configuration de réserve pour un déploiement sur deux domaines : origines séparées par des virgules, espaces autour retirés et entrées vides ignorées (défaut `http://localhost:4200`), méthodes `GET, POST, PATCH, DELETE, OPTIONS`, en-têtes `Authorization` et `Content-Type`.
 
 ## 2. Endpoints de l'API
 
@@ -56,7 +56,7 @@ Tout ce qui suit a été vérifié dans le code de `back/src/main/java/com/openc
 | | |
 |---|---|
 | **`PATCH /api/user`** | JWT |
-| Corps | `UpdateProfileRequest` : `username` (obligatoire, mêmes règles qu'à l'inscription : 3 à 50, `^[A-Za-z0-9._-]+$`), `email` (obligatoire, format e-mail, ≤ 255), `password` (**optionnel** : absent ou `null` = inchangé ; vide ou blanc = **400** ; sinon mêmes règles qu'à l'inscription). `username` et `email` sont envoyés à chaque fois : c'est un remplacement, pas un `PATCH`. Le front omet la clé `password` quand le champ est vide |
+| Corps | `UpdateProfileRequest` : `username` (obligatoire, mêmes règles qu'à l'inscription : 3 à 50, `^[A-Za-z0-9._-]+$`), `email` (obligatoire, format e-mail, ≤ 255), `password` (**optionnel** : absent ou `null` = inchangé ; vide ou blanc = **400** ; sinon mêmes règles qu'à l'inscription). `username` et `email` sont envoyés à chaque fois, mais un `password` absent laisse le mot de passe inchangé : la ressource n'est pas remplacée en entier, d'où `PATCH` et non `PUT`. Le front omet la clé `password` quand le champ est vide |
 | Succès | **200** `UserResponse` `{ "id", "email", "username" }`. Le jeton reste valide après changement d'email ou de nom (il ne porte que l'id) |
 | Erreurs | **400** + `fieldErrors` · **401** · **404** compte disparu · **409** « Cet email est déjà utilisé » / « Ce nom d'utilisateur est déjà utilisé » si la valeur appartient à un **autre** compte (renvoyer sa propre valeur ne produit pas de conflit) |
 
