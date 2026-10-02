@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -100,7 +100,7 @@ class SecurityIT extends AbstractContainerIT {
         String hashAvant = user.getPasswordHash();
         String token = jwtService.generateToken(user.getId().toString());
 
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + EMAIL + "\",\"username\":\"security-it-2\"}"))
@@ -115,7 +115,7 @@ class SecurityIT extends AbstractContainerIT {
     void getProfile_jetonValide_retourne200() throws Exception {
         String token = jwtService.generateToken(user.getId().toString());
 
-        mockMvc.perform(get("/api/users/me").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/user").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
     }
 
@@ -128,7 +128,7 @@ class SecurityIT extends AbstractContainerIT {
         String token = encode(autreEncodeur, now, now.plus(1, ChronoUnit.HOURS));
 
         // "invalid_token" : le jeton a été lu puis refusé, ce n'est pas le 401 "jeton absent".
-        mockMvc.perform(get("/api/users/me").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/user").header("Authorization", "Bearer " + token))
                 .andExpect(status().isUnauthorized())
                 .andExpect(header().string("WWW-Authenticate", containsString("invalid_token")));
     }
@@ -140,7 +140,7 @@ class SecurityIT extends AbstractContainerIT {
         Instant now = Instant.now();
         String token = encode(jwtEncoder, now.minus(2, ChronoUnit.HOURS), now.minus(1, ChronoUnit.HOURS));
 
-        mockMvc.perform(get("/api/users/me").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/user").header("Authorization", "Bearer " + token))
                 .andExpect(status().isUnauthorized())
                 .andExpect(header().string("WWW-Authenticate", containsString("invalid_token")));
     }

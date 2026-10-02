@@ -34,7 +34,7 @@ E2e: Cypress (`cypress/e2e/`), against the real back on 8080 and the front on 42
 
 ## Backend architecture decisions
 
-- Identity comes only from the JWT `sub` (= numeric user id) via `@AuthenticationPrincipal Jwt`. No user id ever appears in a URL or body; user-relative resources live under `/api/users/me/...` (profile, subscriptions, feed). `GET /api/auth/me` was removed deliberately (#13).
+- Identity comes only from the JWT `sub` (= numeric user id) via `@AuthenticationPrincipal Jwt`. No user id ever appears in a URL or body; user-relative resources live under `/api/user` (profile `GET`/`PATCH /api/user`, `/api/user/subscriptions/{topicId}`, `/api/user/feed`); no `/me` segment anywhere (decision of 02/10/2026). `GET /api/auth/me` was removed deliberately (#13).
 - JWT: Spring Security's native `JwtEncoder`/`JwtDecoder` (Nimbus), HS256 set explicitly, claims `iss`/`iat`/`exp`/`sub` only, 24 h, no refresh, no logout endpoint, no roles. The decoder validates signature and `exp` only (no issuer validator).
 - Errors: one `@RestControllerAdvice` (`GlobalExceptionHandler`) → `ErrorResponse`; validation errors carry `fieldErrors`. Two cases are **intentionally** outside that format and pinned by tests: 401 (empty body + `WWW-Authenticate`, from `BearerTokenAuthenticationEntryPoint`) and malformed JSON (Spring default). Don't add a catch-all `Exception` handler (it would turn 401s into 500s).
 - Layered monolith, packages by layer, concrete services without interfaces, one DTO per action (`*Request`/`*Response`, Lombok `@Data`), manual inline mapping, no MapStruct. Entities are immutable except `User`; associations are unidirectional `@ManyToOne LAZY` with `@EntityGraph` where needed; no `cascade`, no `@OneToMany`.
