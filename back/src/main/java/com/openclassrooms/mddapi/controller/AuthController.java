@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * Les deux seules routes publiques de l'API ({@code SecurityConfig}). Pas de
  * {@code /logout} (jeton stateless, supprimé côté client) ni de {@code /me}
- * (retiré au profit de {@code GET /api/users/me}).
+ * (retiré au profit de {@code GET /api/user}).
  */
 @RestController
 @RequestMapping("/api/auth")

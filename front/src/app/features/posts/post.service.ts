@@ -15,9 +15,9 @@ import {
 export class PostService {
   private readonly http = inject(HttpClient);
 
-  /** `GET /api/users/me/feed?sort=` — posts of the subscribed topics, not paginated. */
+  /** `GET /api/user/feed?sort=` — posts of the subscribed topics, not paginated. */
   getFeed(sort: FeedSort = 'desc'): Observable<PostSummaryResponse[]> {
-    return this.http.get<PostSummaryResponse[]>('/api/users/me/feed', { params: { sort } });
+    return this.http.get<PostSummaryResponse[]>('/api/user/feed', { params: { sort } });
   }
 
   /** `POST /api/posts` — 201 without body (the new post's URL is in `Location`). */

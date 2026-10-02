@@ -31,4 +31,13 @@ class SecurityConfigTest {
 
         assertThat(configuration.getAllowedOrigins()).containsExactly("http://a.test");
     }
+
+    @Test
+    void corsConfigurationSource_methodesAutorisees_exactementCellesDesRoutes() {
+        // PATCH pour le profil depuis la PR #33 ; plus aucune route n'utilise PUT.
+        CorsConfiguration configuration = corsConfiguration("http://a.test");
+
+        assertThat(configuration.getAllowedMethods())
+                .containsExactlyInAnyOrder("GET", "POST", "PATCH", "DELETE", "OPTIONS");
+    }
 }

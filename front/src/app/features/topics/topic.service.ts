@@ -14,13 +14,13 @@ export class TopicService {
     return this.http.get<TopicResponse[]>('/api/topics');
   }
 
-  /** `POST /api/users/me/subscriptions/{topicId}` — 200 without body, 409 if already subscribed. */
+  /** `POST /api/user/subscriptions/{topicId}` — 201 without body, 409 if already subscribed. */
   subscribe(topicId: number): Observable<void> {
-    return this.http.post<void>(`/api/users/me/subscriptions/${topicId}`, null);
+    return this.http.post<void>(`/api/user/subscriptions/${topicId}`, null);
   }
 
-  /** `DELETE /api/users/me/subscriptions/{topicId}` — 204, idempotent. */
+  /** `DELETE /api/user/subscriptions/{topicId}` — 204, idempotent. */
   unsubscribe(topicId: number): Observable<void> {
-    return this.http.delete<void>(`/api/users/me/subscriptions/${topicId}`);
+    return this.http.delete<void>(`/api/user/subscriptions/${topicId}`);
   }
 }

@@ -39,7 +39,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -67,7 +67,7 @@ class UserControllerIT {
         ));
         when(userService.getProfile(1L)).thenReturn(profile);
 
-        mockMvc.perform(get("/api/users/me").with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(get("/api/user").with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.email").value("alice@mail.com"))
@@ -86,7 +86,7 @@ class UserControllerIT {
     void getProfile_avecJwtValideSansAbonnement_retourne200EtListeVide() throws Exception {
         when(userService.getProfile(1L)).thenReturn(new UserProfileResponse(1L, "alice@mail.com", "alice", List.of()));
 
-        mockMvc.perform(get("/api/users/me").with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(get("/api/user").with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.subscriptions", org.hamcrest.Matchers.hasSize(0)));
@@ -96,14 +96,14 @@ class UserControllerIT {
     void getProfile_userNotFoundException_retourne404() throws Exception {
         when(userService.getProfile(99L)).thenThrow(new UserNotFoundException("Cet utilisateur n'existe pas"));
 
-        mockMvc.perform(get("/api/users/me").with(jwt().jwt(jwt -> jwt.subject("99"))))
+        mockMvc.perform(get("/api/user").with(jwt().jwt(jwt -> jwt.subject("99"))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Cet utilisateur n'existe pas"));
     }
 
     @Test
     void getProfile_sansJwt_retourne401() throws Exception {
-        mockMvc.perform(get("/api/users/me"))
+        mockMvc.perform(get("/api/user"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -114,7 +114,7 @@ class UserControllerIT {
         request.setUsername("alice2");
         when(userService.updateProfile(1L, request)).thenReturn(new UserResponse(1L, "alice2@mail.com", "alice2"));
 
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"alice2@mail.com\",\"username\":\"alice2\"}"))
@@ -137,7 +137,7 @@ class UserControllerIT {
         request.setPassword("NewPass1!");
         when(userService.updateProfile(1L, request)).thenReturn(new UserResponse(1L, "alice@mail.com", "alice"));
 
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"alice@mail.com\",\"username\":\"alice\",\"password\":\"NewPass1!\"}"))
@@ -152,7 +152,7 @@ class UserControllerIT {
         when(userService.updateProfile(anyLong(), any(UpdateProfileRequest.class)))
                 .thenThrow(new EmailAlreadyUsedException("Cet email est déjà utilisé"));
 
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"bob@mail.com\",\"username\":\"alice\"}"))
@@ -166,7 +166,7 @@ class UserControllerIT {
         when(userService.updateProfile(anyLong(), any(UpdateProfileRequest.class)))
                 .thenThrow(new UsernameAlreadyUsedException("Ce nom d'utilisateur est déjà utilisé"));
 
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"alice@mail.com\",\"username\":\"bob\"}"))
@@ -177,7 +177,7 @@ class UserControllerIT {
 
     @Test
     void updateProfile_motDePasseNonConformeAuPattern_retourne400() throws Exception {
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"alice@mail.com\",\"username\":\"alice\",\"password\":\"password\"}"))
@@ -188,7 +188,7 @@ class UserControllerIT {
 
     @Test
     void updateProfile_motDePasseTropCourt_retourne400() throws Exception {
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"alice@mail.com\",\"username\":\"alice\",\"password\":\"Ab1!\"}"))
@@ -202,7 +202,7 @@ class UserControllerIT {
         // 42 caractères mais 74 octets UTF-8 : BCrypt refuserait ce mot de passe (500).
         String password = "Password1!" + "\u00e9".repeat(32);
 
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"alice@mail.com\",\"username\":\"alice\",\"password\":\"" + password + "\"}"))
@@ -215,7 +215,7 @@ class UserControllerIT {
     @Test
     void updateProfile_motDePasseVide_retourne400EtServiceJamaisAppele() throws Exception {
         // Contrat : absent ou null = inchangé ; vide ou blanc = 400 (pas "inchangé").
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"alice@mail.com\",\"username\":\"alice\",\"password\":\"\"}"))
@@ -227,7 +227,7 @@ class UserControllerIT {
 
     @Test
     void updateProfile_motDePasseBlanc_retourne400EtServiceJamaisAppele() throws Exception {
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"alice@mail.com\",\"username\":\"alice\",\"password\":\"        \"}"))
@@ -239,7 +239,7 @@ class UserControllerIT {
 
     @Test
     void updateProfile_emailInvalide_retourne400() throws Exception {
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"pas-un-email\",\"username\":\"alice\"}"))
@@ -256,7 +256,7 @@ class UserControllerIT {
 
     @Test
     void updateProfile_usernameTropCourt_retourne400() throws Exception {
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"alice@mail.com\",\"username\":\"al\"}"))
@@ -267,7 +267,7 @@ class UserControllerIT {
 
     @Test
     void updateProfile_usernameAuFormatEmail_retourne400EtServiceJamaisAppele() throws Exception {
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"alice@mail.com\",\"username\":\"a@b.fr\"}"))
@@ -282,7 +282,7 @@ class UserControllerIT {
         when(userService.updateProfile(anyLong(), any(UpdateProfileRequest.class)))
                 .thenReturn(new UserResponse(1L, "alice@mail.com", "demo_user-1.x"));
 
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"alice@mail.com\",\"username\":\"demo_user-1.x\"}"))
@@ -293,7 +293,7 @@ class UserControllerIT {
 
     @Test
     void updateProfile_emailAbsent_retourne400() throws Exception {
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"alice\"}"))
@@ -304,7 +304,7 @@ class UserControllerIT {
 
     @Test
     void updateProfile_usernameAbsent_retourne400EtServiceJamaisAppele() throws Exception {
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .with(jwt().jwt(jwt -> jwt.subject("1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"alice@mail.com\"}"))
@@ -317,19 +317,19 @@ class UserControllerIT {
 
     @Test
     void updateProfile_sansJwt_retourne401() throws Exception {
-        mockMvc.perform(put("/api/users/me")
+        mockMvc.perform(patch("/api/user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"alice@mail.com\",\"username\":\"alice\"}"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void subscribe_avecJwtValideEtSucces_retourne200() throws Exception {
+    void subscribe_avecJwtValideEtSucces_retourne201() throws Exception {
         // Ids distincts : une inversion (topicId, userId) dans le controller doit être détectée.
         doNothing().when(userService).subscribe(42L, 7L);
 
-        mockMvc.perform(post("/api/users/me/subscriptions/{topicId}", 7L).with(jwt().jwt(jwt -> jwt.subject("42"))))
-                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/user/subscriptions/{topicId}", 7L).with(jwt().jwt(jwt -> jwt.subject("42"))))
+                .andExpect(status().isCreated());
 
         verify(userService).subscribe(42L, 7L);
     }
@@ -339,7 +339,7 @@ class UserControllerIT {
         doThrow(new TopicNotFoundException("Ce topic n'existe pas"))
                 .when(userService).subscribe(1L, 99L);
 
-        mockMvc.perform(post("/api/users/me/subscriptions/{topicId}", 99L).with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(post("/api/user/subscriptions/{topicId}", 99L).with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("Ce topic n'existe pas"));
@@ -350,7 +350,7 @@ class UserControllerIT {
         doThrow(new AlreadySubscribedException("Vous êtes déjà abonné à ce topic"))
                 .when(userService).subscribe(1L, 1L);
 
-        mockMvc.perform(post("/api/users/me/subscriptions/{topicId}", 1L).with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(post("/api/user/subscriptions/{topicId}", 1L).with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.message").value("Vous êtes déjà abonné à ce topic"));
@@ -361,7 +361,7 @@ class UserControllerIT {
         doThrow(new DataIntegrityViolationException("Duplicate entry"))
                 .when(userService).subscribe(1L, 1L);
 
-        mockMvc.perform(post("/api/users/me/subscriptions/{topicId}", 1L).with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(post("/api/user/subscriptions/{topicId}", 1L).with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.message").value("La ressource entre en conflit avec une contrainte existante"));
@@ -369,13 +369,13 @@ class UserControllerIT {
 
     @Test
     void subscribe_sansJwt_retourne401() throws Exception {
-        mockMvc.perform(post("/api/users/me/subscriptions/{topicId}", 1L))
+        mockMvc.perform(post("/api/user/subscriptions/{topicId}", 1L))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void subscribe_topicIdNonNumeriqueDansUrl_retourne400() throws Exception {
-        mockMvc.perform(post("/api/users/me/subscriptions/{topicId}", "abc").with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(post("/api/user/subscriptions/{topicId}", "abc").with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value("Le paramètre fourni est invalide"));
@@ -388,7 +388,7 @@ class UserControllerIT {
         // Ids distincts : une inversion (topicId, userId) dans le controller doit être détectée.
         doNothing().when(userService).unsubscribe(42L, 7L);
 
-        mockMvc.perform(delete("/api/users/me/subscriptions/{topicId}", 7L).with(jwt().jwt(jwt -> jwt.subject("42"))))
+        mockMvc.perform(delete("/api/user/subscriptions/{topicId}", 7L).with(jwt().jwt(jwt -> jwt.subject("42"))))
                 .andExpect(status().isNoContent());
 
         verify(userService).unsubscribe(42L, 7L);
@@ -399,7 +399,7 @@ class UserControllerIT {
         doThrow(new TopicNotFoundException("Ce topic n'existe pas"))
                 .when(userService).unsubscribe(1L, 99L);
 
-        mockMvc.perform(delete("/api/users/me/subscriptions/{topicId}", 99L).with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(delete("/api/user/subscriptions/{topicId}", 99L).with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("Ce topic n'existe pas"));
@@ -407,7 +407,7 @@ class UserControllerIT {
 
     @Test
     void unsubscribe_topicIdNonNumeriqueDansUrl_retourne400() throws Exception {
-        mockMvc.perform(delete("/api/users/me/subscriptions/{topicId}", "abc").with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(delete("/api/user/subscriptions/{topicId}", "abc").with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value("Le paramètre fourni est invalide"));
@@ -417,7 +417,7 @@ class UserControllerIT {
 
     @Test
     void unsubscribe_sansJwt_retourne401() throws Exception {
-        mockMvc.perform(delete("/api/users/me/subscriptions/{topicId}", 1L))
+        mockMvc.perform(delete("/api/user/subscriptions/{topicId}", 1L))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -429,7 +429,7 @@ class UserControllerIT {
         );
         when(postService.findFeed(1L, Sort.Direction.DESC)).thenReturn(feed);
 
-        mockMvc.perform(get("/api/users/me/feed").with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(get("/api/user/feed").with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(2)))
                 .andExpect(jsonPath("$[0].id").value(2))
@@ -447,7 +447,7 @@ class UserControllerIT {
         );
         when(postService.findFeed(1L, Sort.Direction.ASC)).thenReturn(feed);
 
-        mockMvc.perform(get("/api/users/me/feed").param("sort", "asc").with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(get("/api/user/feed").param("sort", "asc").with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)))
                 .andExpect(jsonPath("$[0].id").value(1));
@@ -459,7 +459,7 @@ class UserControllerIT {
     void findFeed_sortDesc_retourne200EtAppelleLeServiceAvecDesc() throws Exception {
         when(postService.findFeed(1L, Sort.Direction.DESC)).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/users/me/feed").param("sort", "desc").with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(get("/api/user/feed").param("sort", "desc").with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(0)));
 
@@ -468,7 +468,7 @@ class UserControllerIT {
 
     @Test
     void findFeed_sortInvalide_retourne400() throws Exception {
-        mockMvc.perform(get("/api/users/me/feed").param("sort", "random").with(jwt().jwt(jwt -> jwt.subject("1"))))
+        mockMvc.perform(get("/api/user/feed").param("sort", "random").with(jwt().jwt(jwt -> jwt.subject("1"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
 
@@ -477,7 +477,7 @@ class UserControllerIT {
 
     @Test
     void findFeed_sansJwt_retourne401() throws Exception {
-        mockMvc.perform(get("/api/users/me/feed"))
+        mockMvc.perform(get("/api/user/feed"))
                 .andExpect(status().isUnauthorized());
     }
 }

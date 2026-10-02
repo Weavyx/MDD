@@ -21,7 +21,7 @@ public class TopicController {
 
     /**
      * 200 avec tous les topics, chacun portant {@code subscribed} pour l'appelant. Reste sous
-     * {@code /api/topics} et non {@code /users/me} : la liste est la même pour tout le monde,
+     * {@code /api/topics} et non {@code /api/user} : la liste est la même pour tout le monde,
      * seul l'attribut est personnalisé (ressource « décorée »). Aucun cas d'erreur métier ;
      * pas de création ni de modification de topic par l'API.
      */
