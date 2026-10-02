@@ -31,24 +31,24 @@ describe('TopicService', () => {
     expect(response).toEqual(topics);
   });
 
-  it('subscribes with POST /api/users/me/subscriptions/{topicId}', () => {
+  it('subscribes with POST /api/user/subscriptions/{topicId}', () => {
     let done = false;
 
     service.subscribe(3).subscribe(() => (done = true));
 
-    const req = httpTesting.expectOne({ method: 'POST', url: '/api/users/me/subscriptions/3' });
+    const req = httpTesting.expectOne({ method: 'POST', url: '/api/user/subscriptions/3' });
     expect(req.request.body).toBeNull();
     req.flush(null);
     expect(done).toBe(true);
   });
 
-  it('unsubscribes with DELETE /api/users/me/subscriptions/{topicId}', () => {
+  it('unsubscribes with DELETE /api/user/subscriptions/{topicId}', () => {
     let done = false;
 
     service.unsubscribe(3).subscribe(() => (done = true));
 
     httpTesting
-      .expectOne({ method: 'DELETE', url: '/api/users/me/subscriptions/3' })
+      .expectOne({ method: 'DELETE', url: '/api/user/subscriptions/3' })
       .flush(null, { status: 204, statusText: 'No Content' });
     expect(done).toBe(true);
   });

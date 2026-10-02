@@ -77,7 +77,7 @@ describe('TopicList', () => {
     button(element, 'Angular').click();
     await fixture.whenStable();
     expect(button(element, 'Angular').disabled).toBe(true);
-    httpTesting.expectOne({ method: 'POST', url: '/api/users/me/subscriptions/1' }).flush(null);
+    httpTesting.expectOne({ method: 'POST', url: '/api/user/subscriptions/1' }).flush(null);
     await fixture.whenStable();
 
     expect(button(element, 'Angular').textContent?.trim()).toBe('Déjà abonné');
@@ -94,7 +94,7 @@ describe('TopicList', () => {
     button(element, 'Angular').click();
     await fixture.whenStable();
 
-    httpTesting.expectOne({ method: 'POST', url: '/api/users/me/subscriptions/1' }).flush(null);
+    httpTesting.expectOne({ method: 'POST', url: '/api/user/subscriptions/1' }).flush(null);
     await fixture.whenStable();
     expect(button(element, 'Angular').textContent?.trim()).toBe('Déjà abonné');
   });
@@ -105,7 +105,7 @@ describe('TopicList', () => {
 
     button(element, 'Angular').click();
     httpTesting
-      .expectOne({ method: 'POST', url: '/api/users/me/subscriptions/1' })
+      .expectOne({ method: 'POST', url: '/api/user/subscriptions/1' })
       .flush(
         { status: 409, message: 'Vous êtes déjà abonné à ce topic', fieldErrors: null },
         { status: 409, statusText: 'Conflict' },
@@ -123,7 +123,7 @@ describe('TopicList', () => {
 
     button(element, 'Angular').click();
     httpTesting
-      .expectOne({ method: 'POST', url: '/api/users/me/subscriptions/1' })
+      .expectOne({ method: 'POST', url: '/api/user/subscriptions/1' })
       .flush(
         { status: 404, message: "Ce topic n'existe pas", fieldErrors: null },
         { status: 404, statusText: 'Not Found' },
@@ -141,7 +141,7 @@ describe('TopicList', () => {
 
     button(element, 'Angular').click();
     httpTesting
-      .expectOne('/api/users/me/subscriptions/1')
+      .expectOne('/api/user/subscriptions/1')
       .error(new ProgressEvent('error'), { status: 0 });
     await fixture.whenStable();
 
@@ -154,7 +154,7 @@ describe('TopicList', () => {
 
     button(element, 'Angular').click();
     httpTesting
-      .expectOne('/api/users/me/subscriptions/1')
+      .expectOne('/api/user/subscriptions/1')
       .flush(null, { status: 401, statusText: 'Unauthorized' });
     await fixture.whenStable();
 

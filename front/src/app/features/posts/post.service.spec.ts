@@ -20,7 +20,7 @@ describe('PostService', () => {
   afterEach(() => httpTesting.verify());
 
   it.each(['asc', 'desc'] as const)(
-    'reads the feed with GET /api/users/me/feed?sort=%s',
+    'reads the feed with GET /api/user/feed?sort=%s',
     (sort) => {
       const feed: PostSummaryResponse[] = [
         {
@@ -36,7 +36,7 @@ describe('PostService', () => {
 
       service.getFeed(sort).subscribe((r) => (response = r));
 
-      httpTesting.expectOne({ method: 'GET', url: `/api/users/me/feed?sort=${sort}` }).flush(feed);
+      httpTesting.expectOne({ method: 'GET', url: `/api/user/feed?sort=${sort}` }).flush(feed);
       expect(response).toEqual(feed);
     },
   );
@@ -44,7 +44,7 @@ describe('PostService', () => {
   it('sorts the feed newest first by default', () => {
     service.getFeed().subscribe();
 
-    httpTesting.expectOne({ method: 'GET', url: '/api/users/me/feed?sort=desc' }).flush([]);
+    httpTesting.expectOne({ method: 'GET', url: '/api/user/feed?sort=desc' }).flush([]);
   });
 
   it('creates a post with POST /api/posts', () => {

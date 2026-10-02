@@ -19,7 +19,7 @@ describe('UserService', () => {
 
   afterEach(() => httpTesting.verify());
 
-  it('reads the profile with GET /api/users/me', () => {
+  it('reads the profile with GET /api/user', () => {
     const profile: UserProfileResponse = {
       id: 1,
       email: 'alice@mdd.fr',
@@ -30,17 +30,17 @@ describe('UserService', () => {
 
     service.getProfile().subscribe((r) => (response = r));
 
-    httpTesting.expectOne({ method: 'GET', url: '/api/users/me' }).flush(profile);
+    httpTesting.expectOne({ method: 'GET', url: '/api/user' }).flush(profile);
     expect(response).toEqual(profile);
   });
 
-  it('updates the profile with PUT /api/users/me', () => {
+  it('updates the profile with PATCH /api/user', () => {
     const body = { username: 'alice2', email: 'alice2@mdd.fr', password: null };
     let response: UserResponse | undefined;
 
     service.updateProfile(body).subscribe((r) => (response = r));
 
-    const req = httpTesting.expectOne({ method: 'PUT', url: '/api/users/me' });
+    const req = httpTesting.expectOne({ method: 'PATCH', url: '/api/user' });
     expect(req.request.body).toEqual(body);
     req.flush({ id: 1, email: 'alice2@mdd.fr', username: 'alice2' });
     expect(response).toEqual({ id: 1, email: 'alice2@mdd.fr', username: 'alice2' });

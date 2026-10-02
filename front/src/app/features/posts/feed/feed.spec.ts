@@ -58,7 +58,7 @@ describe('Feed', () => {
   const el = (): HTMLElement => fixture.nativeElement;
 
   async function flushFeed(sort: 'asc' | 'desc', body: PostSummaryResponse[]): Promise<void> {
-    httpTesting.expectOne({ method: 'GET', url: `/api/users/me/feed?sort=${sort}` }).flush(body);
+    httpTesting.expectOne({ method: 'GET', url: `/api/user/feed?sort=${sort}` }).flush(body);
     await fixture.whenStable();
   }
 
@@ -118,7 +118,7 @@ describe('Feed', () => {
 
   it('reports a failed load through the notification service', async () => {
     httpTesting
-      .expectOne('/api/users/me/feed?sort=desc')
+      .expectOne('/api/user/feed?sort=desc')
       .flush(null, { status: 500, statusText: 'Server Error' });
     await fixture.whenStable();
 
@@ -127,7 +127,7 @@ describe('Feed', () => {
 
   it('leaves a 401 to the interceptor and notifies nothing', async () => {
     httpTesting
-      .expectOne('/api/users/me/feed?sort=desc')
+      .expectOne('/api/user/feed?sort=desc')
       .flush(null, { status: 401, statusText: 'Unauthorized' });
     await fixture.whenStable();
 

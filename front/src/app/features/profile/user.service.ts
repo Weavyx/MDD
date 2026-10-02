@@ -9,13 +9,13 @@ import { UpdateProfileRequest, UserProfileResponse, UserResponse } from './user.
 export class UserService {
   private readonly http = inject(HttpClient);
 
-  /** `GET /api/users/me` — profile with its subscriptions. */
+  /** `GET /api/user` — profile with its subscriptions. */
   getProfile(): Observable<UserProfileResponse> {
-    return this.http.get<UserProfileResponse>('/api/users/me');
+    return this.http.get<UserProfileResponse>('/api/user');
   }
 
-  /** `PUT /api/users/me` — full replacement of username and email; password optional. */
+  /** `PATCH /api/user` — partial update: username and email; password optional (absent = unchanged). */
   updateProfile(request: UpdateProfileRequest): Observable<UserResponse> {
-    return this.http.put<UserResponse>('/api/users/me', request);
+    return this.http.patch<UserResponse>('/api/user', request);
   }
 }

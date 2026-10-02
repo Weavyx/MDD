@@ -20,7 +20,7 @@ describe('Profile', () => {
     ],
   };
 
-  /** Creates the page; the GET /api/users/me it sends is left pending. */
+  /** Creates the page; the GET /api/user it sends is left pending. */
   function create(): ComponentFixture<Profile> {
     TestBed.configureTestingModule({
       imports: [Profile],
@@ -36,7 +36,7 @@ describe('Profile', () => {
 
   async function render(loaded: UserProfileResponse = profile) {
     const fixture = create();
-    httpTesting.expectOne({ method: 'GET', url: '/api/users/me' }).flush(loaded);
+    httpTesting.expectOne({ method: 'GET', url: '/api/user' }).flush(loaded);
     await fixture.whenStable();
     return fixture;
   }
@@ -70,7 +70,7 @@ describe('Profile', () => {
     show.mockReset();
   });
 
-  it('shows the title and pre-fills the form from GET /api/users/me', async () => {
+  it('shows the title and pre-fills the form from GET /api/user', async () => {
     const element = (await render()).nativeElement as HTMLElement;
 
     expect(element.querySelector('h1')?.textContent?.trim()).toBe('Profil utilisateur');
@@ -85,7 +85,7 @@ describe('Profile', () => {
   ])('notifies a failed load with %s and leaves the form empty', async (_, body, expected) => {
     const fixture = create();
     httpTesting
-      .expectOne({ method: 'GET', url: '/api/users/me' })
+      .expectOne({ method: 'GET', url: '/api/user' })
       .flush(body, { status: 500, statusText: 'Internal Server Error' });
     await fixture.whenStable();
 
@@ -97,7 +97,7 @@ describe('Profile', () => {
   it('leaves a 401 on load to the interceptor', async () => {
     const fixture = create();
     httpTesting
-      .expectOne({ method: 'GET', url: '/api/users/me' })
+      .expectOne({ method: 'GET', url: '/api/user' })
       .flush(null, { status: 401, statusText: 'Unauthorized' });
     await fixture.whenStable();
 
@@ -110,7 +110,7 @@ describe('Profile', () => {
 
     await submit(fixture);
 
-    const req = httpTesting.expectOne({ method: 'PUT', url: '/api/users/me' });
+    const req = httpTesting.expectOne({ method: 'PATCH', url: '/api/user' });
     expect(req.request.body).toStrictEqual({ username: 'alice2', email: 'alice@mdd.fr' });
     expect(Object.keys(req.request.body)).not.toContain('password');
     req.flush({ id: 1, email: 'alice@mdd.fr', username: 'alice2' });
@@ -123,7 +123,7 @@ describe('Profile', () => {
 
     await submit(fixture);
 
-    httpTesting.expectNone({ method: 'PUT' });
+    httpTesting.expectNone({ method: 'PATCH' });
     expect(fieldError(element, 'password')).toBe(
       'au moins 8 caractères, dont une majuscule, une minuscule, un chiffre et un caractère spécial',
     );
@@ -165,7 +165,7 @@ describe('Profile', () => {
 
     await submit(fixture);
 
-    httpTesting.expectNone({ method: 'PUT' });
+    httpTesting.expectNone({ method: 'PATCH' });
     expect(fieldError(fixture.nativeElement, name)).toBe(message);
   });
 
@@ -175,7 +175,7 @@ describe('Profile', () => {
     await type(fixture, 'password', 'Password1!');
 
     await submit(fixture);
-    const req = httpTesting.expectOne({ method: 'PUT', url: '/api/users/me' });
+    const req = httpTesting.expectOne({ method: 'PATCH', url: '/api/user' });
     expect(req.request.body).toEqual({
       username: 'alice',
       email: 'alice@mdd.fr',
@@ -199,7 +199,7 @@ describe('Profile', () => {
     await submit(fixture);
 
     httpTesting
-      .expectOne({ method: 'PUT', url: '/api/users/me' })
+      .expectOne({ method: 'PATCH', url: '/api/user' })
       .flush({ id: 1, email: 'alice@mdd.fr', username: 'alice' });
     await fixture.whenStable();
     expect(save.disabled).toBe(false);
@@ -211,7 +211,7 @@ describe('Profile', () => {
 
     await submit(fixture);
     httpTesting
-      .expectOne({ method: 'PUT', url: '/api/users/me' })
+      .expectOne({ method: 'PATCH', url: '/api/user' })
       .flush(
         { status: 409, message: 'Cet email est déjà utilisé', fieldErrors: null },
         { status: 409, statusText: 'Conflict' },
@@ -227,7 +227,7 @@ describe('Profile', () => {
     const element = fixture.nativeElement as HTMLElement;
 
     await submit(fixture);
-    httpTesting.expectOne({ method: 'PUT', url: '/api/users/me' }).flush(
+    httpTesting.expectOne({ method: 'PATCH', url: '/api/user' }).flush(
       {
         status: 400,
         message: 'Requête invalide',
@@ -247,7 +247,7 @@ describe('Profile', () => {
     const element = fixture.nativeElement as HTMLElement;
 
     await submit(fixture);
-    httpTesting.expectOne({ method: 'PUT', url: '/api/users/me' }).flush(
+    httpTesting.expectOne({ method: 'PATCH', url: '/api/user' }).flush(
       {
         status: 400,
         message: 'Requête invalide',
@@ -285,7 +285,7 @@ describe('Profile', () => {
 
     element.querySelector<HTMLButtonElement>('app-topic-card button')!.click();
     httpTesting
-      .expectOne({ method: 'DELETE', url: '/api/users/me/subscriptions/2' })
+      .expectOne({ method: 'DELETE', url: '/api/user/subscriptions/2' })
       .flush(null, { status: 204, statusText: 'No Content' });
     await fixture.whenStable();
 
@@ -306,7 +306,7 @@ describe('Profile', () => {
     await fixture.whenStable();
 
     httpTesting
-      .expectOne({ method: 'DELETE', url: '/api/users/me/subscriptions/2' })
+      .expectOne({ method: 'DELETE', url: '/api/user/subscriptions/2' })
       .flush(null, { status: 204, statusText: 'No Content' });
     await fixture.whenStable();
     expect(cardTitles(element)).toEqual(['Spring']);
@@ -318,7 +318,7 @@ describe('Profile', () => {
 
     element.querySelector<HTMLButtonElement>('app-topic-card button')!.click();
     httpTesting
-      .expectOne('/api/users/me/subscriptions/2')
+      .expectOne('/api/user/subscriptions/2')
       .flush(null, { status: 500, statusText: 'Internal Server Error' });
     await fixture.whenStable();
 
