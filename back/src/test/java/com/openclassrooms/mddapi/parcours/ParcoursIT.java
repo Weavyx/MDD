@@ -95,6 +95,26 @@ abstract class ParcoursIT extends AbstractContainerIT {
                 .andExpect(status().isCreated());
     }
 
+    /** Arrange : publie un article par la vraie route et renvoie son id, lu dans l'en-tête Location. */
+    protected Long creerArticle(String jeton, Long idTheme, String titre, String contenu) throws Exception {
+        String location = mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + jeton)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"topicId\":" + idTheme + ",\"title\":\"" + titre + "\",\"content\":\"" + contenu + "\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getHeader("Location");
+        return Long.valueOf(location.substring(location.lastIndexOf('/') + 1));
+    }
+
+    /** Arrange : commente l'article {@code idArticle} par la vraie route. */
+    protected void commenter(String jeton, Long idArticle, String contenu) throws Exception {
+        mockMvc.perform(post("/api/posts/{id}/comments", idArticle)
+                        .header("Authorization", "Bearer " + jeton)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"" + contenu + "\"}"))
+                .andExpect(status().isCreated());
+    }
+
     /** Corps JSON de {@code POST /api/auth/register}. */
     protected static String corpsInscription(String username, String email, String password) {
         return "{\"username\":\"" + username + "\",\"email\":\"" + email + "\",\"password\":\"" + password + "\"}";
