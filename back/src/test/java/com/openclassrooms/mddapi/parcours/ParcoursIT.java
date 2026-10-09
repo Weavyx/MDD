@@ -2,6 +2,7 @@ package com.openclassrooms.mddapi.parcours;
 
 import com.jayway.jsonpath.JsonPath;
 import com.openclassrooms.mddapi.AbstractContainerIT;
+import com.openclassrooms.mddapi.repository.TopicRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +46,9 @@ abstract class ParcoursIT extends AbstractContainerIT {
     @PersistenceContext
     protected EntityManager entityManager;
 
+    @Autowired
+    protected TopicRepository topicRepository;
+
     /** Écrit en base les modifications en attente, puis vide le cache d'Hibernate. */
     protected void viderLeCache() {
         entityManager.flush();
@@ -73,6 +77,22 @@ abstract class ParcoursIT extends AbstractContainerIT {
     protected String inscrireEtConnecter(String username) throws Exception {
         inscrire(username);
         return connecter(username + "@mail.com");
+    }
+
+    /** Arrange : id d'un thème de référence (migration Flyway V2) d'après son nom. */
+    protected Long idDuTheme(String nom) {
+        return topicRepository.findAll().stream()
+                .filter(theme -> theme.getName().equals(nom))
+                .findFirst()
+                .orElseThrow()
+                .getId();
+    }
+
+    /** Arrange : abonne le porteur de {@code jeton} au thème {@code idTheme} par la vraie route. */
+    protected void abonner(String jeton, Long idTheme) throws Exception {
+        mockMvc.perform(post("/api/user/subscriptions/{id}", idTheme)
+                        .header("Authorization", "Bearer " + jeton))
+                .andExpect(status().isCreated());
     }
 
     /** Corps JSON de {@code POST /api/auth/register}. */
