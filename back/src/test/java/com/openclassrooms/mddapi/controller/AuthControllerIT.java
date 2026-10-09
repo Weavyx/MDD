@@ -230,19 +230,6 @@ class AuthControllerIT {
     }
 
     @Test
-    void register_corpsJsonMalforme_retourne400() throws Exception {
-        // Forme figée : HttpMessageNotReadableException n'a pas de handler dédié, Spring MVC
-        // répond par défaut (sendError 400) — corps vide sous MockMvc, pas d'ErrorResponse.
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"alice@mail.com\",\"username\":"))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string(""));
-
-        verify(authService, never()).register(any());
-    }
-
-    @Test
     void login_identifiantAbsent_retourne400EtServiceJamaisAppele() throws Exception {
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

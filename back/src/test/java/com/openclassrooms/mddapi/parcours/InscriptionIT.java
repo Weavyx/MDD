@@ -187,4 +187,17 @@ class InscriptionIT extends ParcoursIT {
         reponse.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors.%s", champ).exists());
     }
+
+    @Test
+    void inscription_corpsJsonMalforme_retourne400() throws Exception {
+        // Arrange : corps JSON tronqué
+        String corps = "{";
+
+        // Act
+        ResultActions reponse = envoyerInscription(corps);
+
+        // Assert
+        reponse.andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Le corps de la requête est illisible"));
+    }
 }
