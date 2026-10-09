@@ -4,6 +4,7 @@ import com.openclassrooms.mddapi.dto.ErrorResponse;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -102,6 +103,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
         return buildResponse(HttpStatus.BAD_REQUEST, "Le paramètre fourni est invalide");
+    }
+
+    /**
+     * 400 pour un corps de requête illisible (JSON mal formé). Traité ici plutôt que par le
+     * {@code DefaultHandlerExceptionResolver} de Spring, qui délègue à la page d'erreur du
+     * conteneur : cette réexpédition est soumise à Spring Security et renvoyait 401 sur les
+     * routes publiques. Le message ne reprend pas l'erreur d'analyse.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "Le corps de la requête est illisible");
     }
 
     /**
