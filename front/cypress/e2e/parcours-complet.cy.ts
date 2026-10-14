@@ -1,12 +1,27 @@
 import { newUser, submitLogin } from '../support/users';
 
+/** Creates an article in « Java » from the navigation bar and comes back to the feed. */
+function createJavaArticle(title: string, content: string): void {
+  cy.contains('nav a', 'Articles').click();
+  cy.contains('a', 'Créer un article').click();
+  cy.location('pathname').should('eq', '/posts/new');
+  cy.get('mat-select[formcontrolname="topicId"]').click();
+  cy.contains('mat-option', /^\s*Java\s*$/).click();
+  cy.get('input[formcontrolname="title"]').type(title);
+  cy.get('textarea[formcontrolname="content"]').type(content);
+  cy.contains('button', 'Créer').click();
+  cy.location('pathname').should('eq', '/feed');
+}
+
 /** The whole user journey on a desktop screen, through the real API and database. */
 describe('Parcours complet (1280 px)', () => {
-  it('inscription, abonnement, article, commentaire, profil, déconnexion et reconnexion', () => {
+  it('inscription, abonnement, articles et tri, commentaire, profil, reconnexion par nom et par e-mail', () => {
     const user = newUser();
     const newUsername = `${user.username}_bis`;
     const title = `Article e2e ${user.username}`;
     const content = `Contenu de l'article créé par ${user.username}.`;
+    const newerTitle = `Article récent ${user.username}`;
+    const newerContent = `Contenu de l'article récent de ${user.username}.`;
     const comment = `Commentaire de ${user.username}.`;
 
     // Inscription → fil d'actualité
@@ -31,18 +46,18 @@ describe('Parcours complet (1280 px)', () => {
       });
 
     // Création d'un article dans « Java » → en tête du fil
-    cy.contains('nav a', 'Articles').click();
-    cy.contains('a', 'Créer un article').click();
-    cy.location('pathname').should('eq', '/posts/new');
-    cy.get('mat-select[formcontrolname="topicId"]').click();
-    cy.contains('mat-option', /^\s*Java\s*$/).click();
-    cy.get('input[formcontrolname="title"]').type(title);
-    cy.get('textarea[formcontrolname="content"]').type(content);
-    cy.contains('button', 'Créer').click();
-    cy.location('pathname').should('eq', '/feed');
+    createJavaArticle(title, content);
     cy.get('main li').first().should('contain', title).and('contain', user.username);
 
-    // Ouverture de l'article, ajout d'un commentaire → affiché avec le nom de l'utilisateur
+    // Un second article, plus récent → en tête du fil (ordre par défaut : du plus récent au plus ancien)
+    createJavaArticle(newerTitle, newerContent);
+    cy.get('main li').first().should('contain', newerTitle);
+
+    // Tri inversé (du plus ancien au plus récent) → l'article le plus récent passe en dernier
+    cy.contains('button', 'Trier par').click();
+    cy.get('main li').last().should('contain', newerTitle);
+
+    // Ouverture du premier article, ajout d'un commentaire → affiché avec le nom de l'utilisateur
     cy.contains('main li', title).click();
     cy.location('pathname').should('match', /^\/posts\/\d+$/);
     cy.contains('h1', title);
@@ -76,6 +91,14 @@ describe('Parcours complet (1280 px)', () => {
     cy.contains('a', 'Se connecter').click();
     cy.location('pathname').should('eq', '/login');
     submitLogin(newUsername, user.password);
+    cy.location('pathname').should('eq', '/feed');
+
+    // Reconnexion avec l'e-mail → fil d'actualité
+    cy.contains('nav button', 'Se déconnecter').click();
+    cy.location('pathname').should('eq', '/');
+    cy.contains('a', 'Se connecter').click();
+    cy.location('pathname').should('eq', '/login');
+    submitLogin(user.email, user.password);
     cy.location('pathname').should('eq', '/feed');
 
     // Mauvais mot de passe → « Identifiants incorrects », pas de connexion
