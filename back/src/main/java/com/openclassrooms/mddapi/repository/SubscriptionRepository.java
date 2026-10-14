@@ -33,7 +33,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
      * ignore pour rester idempotent. Requête {@code @Modifying} : doit s'exécuter dans une
      * transaction (fournie par {@code UserService.unsubscribe}) et n'invalide pas le contexte
      * de persistance. La condition sur {@code user_id} est ce qui empêche de désabonner tous
-     * les utilisateurs du topic — vérifié par {@code SubscriptionRepositoryIT}.
+     * les utilisateurs du topic — vérifié par {@code DesabonnementIT.desabonnement_nAffectePasLesAutresComptes}.
      */
     @Modifying
     @Query("DELETE FROM Subscription s WHERE s.user.id = :userId AND s.topic.id = :topicId")

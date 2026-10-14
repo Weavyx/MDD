@@ -31,11 +31,4 @@ class NfcPasswordEncoderTest {
 
         assertThat(encoder.matches(NFD, hash)).isTrue();
     }
-
-    @Test
-    void matches_autreMotDePasse_false() {
-        String hash = encoder.encode(NFC);
-
-        assertThat(encoder.matches("Mot-de-passe-ete1!", hash)).isFalse();
-    }
 }

@@ -82,7 +82,7 @@ public class AuthService {
      * {@code BadCredentialsException} (identifiant inconnu ou mot de passe faux, sans
      * distinction) qui remonte jusqu'à Spring Security et devient un 401 à corps vide,
      * hors du format {@code ErrorResponse} — comportement volontairement non redéfini,
-     * figé par {@code AuthControllerIT.login_identifiantsInvalides_retourne401}.
+     * figé par {@code ConnexionIT.connexion_motDePasseIncorrect_retourne401SansCorps}.
      */
     public AuthResponse login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
