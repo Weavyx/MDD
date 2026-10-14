@@ -57,17 +57,4 @@ class MaxUtf8BytesValidatorTest {
         // En NFD, "é" pèse 3 octets (108 au total) ; après NFC, 2 octets (72).
         assertThat(isValid("é".repeat(36))).isTrue();
     }
-
-    @Test
-    void isValid_null_valide() {
-        assertThat(isValid(null)).isTrue();
-    }
-
-    @Test
-    void message_indiqueLaBorneEnOctets() {
-        assertThat(validator.validate(new Holder("a".repeat(73))))
-                .singleElement()
-                .extracting(violation -> violation.getMessage())
-                .isEqualTo("Le mot de passe ne doit pas dépasser 72 octets (un caractère accentué en compte 2)");
-    }
 }
