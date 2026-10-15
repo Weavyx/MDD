@@ -7,14 +7,14 @@ MDD ("Monde de Dév"), OpenClassrooms P5 option B. Mono-repo: `back/` Spring Boo
 ### Backend (`back/`)
 
 ```bash
-./mvnw test            # Surefire only: *Test classes (pure Mockito), no Docker needed
+./mvnw test            # Surefire only: *Test classes (unit: JUnit, Mockito), no Docker needed
 ./mvnw verify          # + Failsafe: *IT classes — Docker REQUIRED (Testcontainers mysql:8.4)
 ./mvnw test -Dtest=ClassName
 ./mvnw spring-boot:run # needs MYSQL_* and JWT_SECRET in the environment (see below)
 ```
 
-- JaCoCo report is produced by `verify` in `target/site/jacoco/` (one agent for both Surefire and Failsafe; no threshold, no excludes on purpose).
-- Maven does **not** read the root `.env`: `mise.toml` loads it into the shell (`mise trust` once), otherwise export its variables before `verify` or `spring-boot:run` (`mise exec -- ./mvnw verify` outside an activated shell). `application-local.properties` (gitignored) holds only `spring.datasource.password=${MYSQL_PASSWORD}` and `mdd.jwt.secret=${JWT_SECRET}`; `MddApiApplicationIT` fails with `Could not resolve placeholder 'JWT_SECRET'` if the variable is missing. `./mvnw test` alone needs nothing.
+- JaCoCo report is produced by `verify` in `target/site/jacoco/` (one agent for both Surefire and Failsafe; no threshold, no excludes on purpose). Measure coverage with `./mvnw clean verify`: without `clean`, `target/jacoco.exec` accumulates previous runs and reports lines that no current test executes.
+- Maven does **not** read the root `.env`: `mise.toml` loads it into the shell (`mise trust` once), otherwise export its variables before `verify` or `spring-boot:run` (`mise exec -- ./mvnw verify` outside an activated shell). `application-local.properties` (gitignored) holds only `spring.datasource.password=${MYSQL_PASSWORD}` and `mdd.jwt.secret=${JWT_SECRET}`; every `*IT` fails at context load with `Could not resolve placeholder 'JWT_SECRET'` if the variable is missing. `./mvnw test` alone needs nothing.
 - `docker compose up -d` at the root starts `mdd-mysql` from the same `.env`.
 
 ### Frontend (`front/`)
@@ -25,11 +25,16 @@ E2e: Cypress (`cypress/e2e/`), against the real back on 8080 and the front on 42
 
 ## Backend conventions that differ from defaults
 
-- **Test naming decides the runner**: `*Test` → Surefire (unit, `@ExtendWith(MockitoExtension)`); `*IT` → Failsafe (`@WebMvcTest`, `@DataJpaTest`, `@SpringBootTest`). Spring Boot 4 / Framework 7: use `@MockitoBean`, not `@MockBean`.
+- **Test naming decides the runner**: `*Test` → Surefire (unit: JUnit, Mockito); `*IT` → Failsafe (`@SpringBootTest`, `@DataJpaTest`). Spring Boot 4 / Framework 7: use `@MockitoBean`, not `@MockBean`.
 - DB-backed ITs extend `AbstractContainerIT`, which starts one shared MySQL container in a `static {}` block. Do **not** add `@Testcontainers`/`@Container`: the JUnit extension would stop the inherited static container after the first test class.
-- Repository ITs assert eager loading with `Hibernate.isInitialized(...)` before any access (project pattern); `entityManager.detach` does not work for this.
-- Controller ITs authenticate with `jwt().jwt(j -> j.subject("<userId>"))`; their `JwtDecoder` is a `@MockitoBean` that is never stubbed. Invalid and expired tokens are covered only by `SecurityIT` (`@SpringBootTest`, real decoder: token signed with another key → 401, expired token → 401). The invalid-signature case has no mutation of its own (the Nimbus decoder always checks the signature).
-- Test quality was checked by **manual mutation** (break `src/main`, expect red, restore); `git diff src/main/java` must be empty after any such check. No PIT.
+- **Test strategy (decided 08/10/2026, PR #35 to #39)**: each observable behaviour is checked at one level only (see `back/docs/RAPPORT_DE_TESTS.md`).
+  - Integration: package `parcours`, one file per action of the functional spec, plus `AuthentificationIT` for the cross-cutting 401s; each extends `ParcoursIT` (`@SpringBootTest` + `@AutoConfigureMockMvc` + `@Transactional`, real MySQL). Arrange goes through the real HTTP routes (`inscrire`, `connecter`, `abonner`, `creerArticle`, `commenter`); only the reference topics come from Flyway V2. One Act per test, `// Arrange` / `// Act` / `// Assert` comments.
+  - `viderLeCache()` (`flush` + `clear`) goes after the HTTP assertions and right before any database re-read: placed earlier, a constraint error at flush breaks the shared transaction and masks the targeted assertion.
+  - Unit tests only for rules the integration tests cannot pin precisely (excerpt bound, JWT claims, NFC, 72-byte bound, CORS parsing). No `@WebMvcTest`.
+  - `@DataJpaTest` only for the three eager-loading proofs (`PostRepositoryIT`, `CommentRepositoryIT`, `SubscriptionRepositoryIT`, one method each), asserting `Hibernate.isInitialized(...)` before any access; `entityManager.detach` does not work for this.
+  - E2e (Cypress) for what needs a browser and the real server: rendering, routing, guards, interceptor, real commits.
+- Invalid and expired tokens are covered by `AuthentificationIT` (token signed with another key → 401, expired token → 401). The invalid-signature case has no mutation of its own (the Nimbus decoder always checks the signature).
+- Every added or modified test is proven by **manual mutation** (break `src/main`, expect red, restore); `git diff src/main/java` must be empty after any such check. No PIT. A mutation counts as detected only if an expected test fails in its Act or Assert block — not in the Arrange, not on `viderLeCache()`, not with Hibernate's `AssertionFailure`.
 - Mutation procedure (back and front): back up the file with `cp` to a session-specific path (e.g. `/tmp/mutation-<branch>.bak`), mutate, run the test, restore from that backup. Never `git checkout --`, `git restore` nor `git show … >` on a mutated file. `git diff` must be empty after the restore.
 
 ## Backend architecture decisions
