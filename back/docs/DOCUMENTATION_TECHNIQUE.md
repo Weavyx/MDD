@@ -33,7 +33,7 @@ Tout ce qui suit a été vérifié dans le code de `back/src/main/java/com/openc
 | **`POST /api/auth/login`** | Public |
 | Corps | `LoginRequest` : `identifier` (obligatoire, ≤ 255 : **email ou nom d'utilisateur**, un seul champ), `password` (obligatoire, ≤ 255) |
 | Succès | **200** `AuthResponse` `{ "token": "<jwt>" }` |
-| Erreurs | **400** `ErrorResponse` + `fieldErrors` (champ manquant ou de plus de 255 caractères) · **401 à corps vide** avec en-tête `WWW-Authenticate: Bearer …` si l'identifiant est inconnu **ou** le mot de passe faux — les deux cas sont indistinguables, par choix ; c'est au front de produire le message « identifiants incorrects ». La connexion n'a pas de borne de 72 octets : un mot de passe plus long ne peut correspondre à aucun compte et donne 401 |
+| Erreurs | **400** `ErrorResponse` + `fieldErrors` (champ manquant ou de plus de 255 caractères) · **401 à corps vide** avec en-tête `WWW-Authenticate: Bearer` si l'identifiant est inconnu **ou** le mot de passe faux — les deux cas sont indistinguables, par choix ; c'est au front de produire le message « identifiants incorrects ». La connexion n'a pas de borne de 72 octets : un mot de passe plus long ne peut correspondre à aucun compte et donne 401 |
 
 ### 2.2 Topics — `TopicController`
 
@@ -134,9 +134,9 @@ Trois formes coexistent ; le front doit gérer les trois.
 | 409 | « Cet email est déjà utilisé » / « Ce nom d'utilisateur est déjà utilisé » / « Vous êtes déjà abonné à ce topic » | `EmailAlreadyUsedException`, `UsernameAlreadyUsedException`, `AlreadySubscribedException` |
 | 409 | « La ressource entre en conflit avec une contrainte existante » | violation d'une contrainte en base (`DataIntegrityViolationException`), message fixe sans détail SQL |
 
-**3. Hors format `ErrorResponse`** (comportement Spring par défaut, volontairement non redéfini) :
+**3. Hors format `ErrorResponse`** :
 
-- **401** — jeton absent, invalide ou expiré sur une route protégée, et identifiants faux au login : **corps vide**, en-tête `WWW-Authenticate` commençant par `Bearer` (figé par `ConnexionIT.connexion_motDePasseIncorrect_retourne401SansCorps`). Le front doit dériver son message du seul statut.
+- **401** — jeton absent, invalide ou expiré sur une route protégée, et identifiants faux au login : **corps vide**, en-tête `WWW-Authenticate: Bearer`, rendu par le point d'entrée déclaré dans `SecurityConfig` (figé par `ConnexionIT.connexion_motDePasseIncorrect_retourne401SansCorps` et `AuthentificationIT`). Le front doit dériver son message du seul statut.
 - **500** — aucun handler générique ; réponse Spring Boot par défaut, sans trace ni message applicatif. Aucun cas connu ne le produit.
 
 ## 4. Schémas de données
@@ -165,7 +165,7 @@ Chargement : les lectures composites utilisent `@EntityGraph` (`Post` avec `user
 |---|---|
 | `spring-boot-starter-web` (Boot 4.1.0, Java 21) | API REST, Tomcat embarqué |
 | `spring-boot-starter-data-jpa` + `mysql-connector-j` (runtime) | Persistance JPA/Hibernate sur MySQL |
-| `spring-boot-starter-security` + `spring-boot-starter-oauth2-resource-server` | Chaîne de filtres, validation du JWT (`NimbusJwtDecoder`), émission (`NimbusJwtEncoder`) — aucune bibliothèque JWT tierce |
+| `spring-boot-starter-security` + `jjwt-api` 0.13.0 (`jjwt-impl` et `jjwt-jackson` au runtime) | Chaîne de filtres et filtre maison `JwtAuthenticationFilter` ; émission et validation du JWT par `JwtService` (jjwt). `jjwt-jackson` apporte Jackson 2, à côté du Jackson 3 de Spring Boot : jjwt ne gère pas encore Jackson 3 |
 | `spring-boot-starter-validation` | Bean Validation sur les DTO d'entrée |
 | `spring-boot-starter-flyway` + `flyway-mysql` | Migrations du schéma et des thèmes de référence au démarrage |
 | `lombok` (provided) | Getters/setters/constructeurs des DTO et entités |
