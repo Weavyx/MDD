@@ -19,27 +19,24 @@ describe('PostService', () => {
 
   afterEach(() => httpTesting.verify());
 
-  it.each(['asc', 'desc'] as const)(
-    'reads the feed with GET /api/user/feed?sort=%s',
-    (sort) => {
-      const feed: PostSummaryResponse[] = [
-        {
-          id: 1,
-          title: 'Titre',
-          excerpt: 'Extrait',
-          createdAt: '2026-09-19T09:53:09.847',
-          topicName: 'Angular',
-          author: 'alice',
-        },
-      ];
-      let response: PostSummaryResponse[] | undefined;
+  it.each(['asc', 'desc'] as const)('reads the feed with GET /api/user/feed?sort=%s', (sort) => {
+    const feed: PostSummaryResponse[] = [
+      {
+        id: 1,
+        title: 'Titre',
+        excerpt: 'Extrait',
+        createdAt: '2026-09-19T09:53:09.847',
+        topicName: 'Angular',
+        author: 'alice',
+      },
+    ];
+    let response: PostSummaryResponse[] | undefined;
 
-      service.getFeed(sort).subscribe((r) => (response = r));
+    service.getFeed(sort).subscribe((r) => (response = r));
 
-      httpTesting.expectOne({ method: 'GET', url: `/api/user/feed?sort=${sort}` }).flush(feed);
-      expect(response).toEqual(feed);
-    },
-  );
+    httpTesting.expectOne({ method: 'GET', url: `/api/user/feed?sort=${sort}` }).flush(feed);
+    expect(response).toEqual(feed);
+  });
 
   it('sorts the feed newest first by default', () => {
     service.getFeed().subscribe();
