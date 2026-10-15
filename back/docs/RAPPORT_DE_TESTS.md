@@ -17,12 +17,12 @@ La stratégie a été simplifiée le 8 octobre 2026, avec une règle : **chaque 
 | Niveau | Outil | Vérifie | Ne vérifie pas | Tests [mesuré] |
 |---|---|---|---|---|
 | **Intégration back** | `@SpringBootTest` + MockMvc + MySQL 8.4 (Testcontainers) | Chaque action de la spécification de bout en bout côté API : contrat HTTP, règles métier, sécurité, état réel en base | Le conteneur de servlets (pages d'erreur) ; les commits réels (transaction annulée après chaque test) ; le rendu | 83 |
-| **Unitaire back** | JUnit 5, Mockito, AssertJ | Les règles fines que l'intégration ne peut pas épingler précisément : bornes, normalisation, claims du jeton, découpage CORS | Le câblage avec le reste de l'application | 14 |
+| **Unitaire back** | JUnit 5, Mockito, AssertJ | Les règles fines que l'intégration ne peut pas épingler précisément : bornes, normalisation, claims du jeton, longueur minimale de la clé, découpage CORS | Le câblage avec le reste de l'application | 15 |
 | **Persistance** | `@DataJpaTest` + MySQL 8.4 | Le chargement anticipé (`@EntityGraph`), invisible depuis l'API | Services et contrôleurs | 3 |
 | **Unitaire front** | Vitest + jsdom | Composants, services, gardes, intercepteur, validateurs, avec l'API simulée (`HttpTestingController`) | Le vrai serveur | 269 |
 | **End-to-end** | Cypress (Firefox) | Le parcours utilisateur complet dans un vrai navigateur, contre le vrai back et sa base : rendu, routage, gardes, intercepteur, commits réels | Les cas d'erreur fins (laissés aux niveaux inférieurs) | 7 |
 
-Back : **100 tests** = 14 Surefire + 86 Failsafe, 0 échec [mesuré le 14 octobre 2026]. Avant la refonte : 158 tests (57 + 101), dont 67 `@WebMvcTest` et 23 `@DataJpaTest` [mesuré le 8 octobre 2026] ; un même observable y était souvent vérifié deux ou trois fois (service mocké, contrôleur mocké, contexte complet).
+Back : **101 tests** = 15 Surefire + 86 Failsafe, 0 échec [mesuré le 15 octobre 2026, après le passage à jjwt]. Avant la refonte : 158 tests (57 + 101), dont 67 `@WebMvcTest` et 23 `@DataJpaTest` [mesuré le 8 octobre 2026] ; un même observable y était souvent vérifié deux ou trois fois (service mocké, contrôleur mocké, contexte complet).
 
 ## 3. Tests d'intégration back : un fichier par action de la spécification
 
@@ -60,7 +60,7 @@ Conventions communes [code] :
 | `PostServiceTest` | 2 | Borne exacte de l'extrait du fil : 200 caractères conservés, 201 et plus tronqués à 200 suivis de « … ». Un cas limite précis, coûteux à reproduire par l'API |
 | `MaxUtf8BytesValidatorTest` | 5 | Borne de 72 octets UTF-8 sur la forme NFC (BCrypt refuse au-delà) : 72 octets ASCII acceptés, 73 refusés, 36 « é » précomposés (72 octets) acceptés, 37 refusés, 36 « é » en NFD comptés sous leur forme NFC. L'intégration vérifie seulement que la règle est branchée (74 octets → 400) |
 | `NfcPasswordEncoderTest` | 2 | Un mot de passe encodé en NFD correspond au même en NFC, et inversement : la normalisation avant BCrypt |
-| `JwtServiceTest` | 2 | Claims du jeton (`iss`, `sub`, `iat`) et expiration égale à la durée configurée, lus sur l'argument passé à l'encodeur |
+| `JwtServiceTest` | 3 | Aller-retour émission puis lecture (`sub` relu comme id), en-tête `HS256`, claims `iss` et `iat`, expiration égale à la durée configurée, et refus au démarrage d'une clé de moins de 256 bits. Sans Spring ni mock : une clé aléatoire par test |
 | `SecurityConfigTest` | 3 | Découpage de la liste des origines CORS (espaces, entrées vides) et méthodes autorisées |
 
 ## 5. Tests de persistance : la preuve du chargement anticipé
@@ -93,7 +93,7 @@ Isolement : chaque test crée un utilisateur au nom unique (horodatage et partie
 |---|---|
 | Mot de passe haché, jamais stocké ni renvoyé en clair | `InscriptionIT` (relecture en base : hash différent du mot de passe, `matches` vrai ; aucun mot de passe dans la réponse) |
 | Identité tirée du jeton, jamais du corps ni de l'URL | `InscriptionIT` et `ConnexionIT` (`sub` du jeton = id du compte) ; `CreationArticleIT` (auteur et date imposés dans le corps ignorés) |
-| Accès refusé sans jeton valide | `AuthentificationIT` : 401 sans jeton sur les 9 routes protégées, jeton signé avec une autre clé, jeton expiré |
+| Accès refusé sans jeton valide | `AuthentificationIT` : 401 avec `WWW-Authenticate: Bearer` sans jeton sur les 9 routes protégées, avec un jeton signé avec une autre clé, avec un jeton expiré ; le refus du jeton est prouvé par mutation de `JwtAuthenticationFilter` et de `JwtService` (§9) |
 | Unicité de l'e-mail et du nom d'utilisateur | `InscriptionIT` et `ModificationProfilIT` (409, message exact ; à l'inscription, aucun second compte créé) |
 | Borne de 72 octets et normalisation NFC | `MaxUtf8BytesValidatorTest`, `NfcPasswordEncoderTest` ; branchement vérifié par `InscriptionIT`, `ModificationProfilIT` et `ConnexionIT` |
 | Double abonnement refusé | `AbonnementIT.abonnement_dejaAbonne_retourne409` (message applicatif, distinct du 409 générique de la contrainte `UNIQUE`) |
@@ -109,16 +109,16 @@ Isolement : chaque test crée un utilisateur au nom unique (horodatage et partie
 
 ## 8. Couverture
 
-### 8.1 Back-end (mesure du 14 octobre 2026)
+### 8.1 Back-end (mesure du 15 octobre 2026)
 
 `./mvnw clean verify`, JaCoCo, 24 classes analysées [mesuré] :
 
 | Métrique | Couvert / total |
 |---|---|
-| Lignes | 264 / 269 = **98,1 %** |
-| Branches | 27 / 28 = **96,4 %** |
+| Lignes | 277 / 282 = **98,2 %** |
+| Branches | 30 / 32 = **93,8 %** |
 
-Avant les suppressions de la PR #39, sur `main` à la PR #38 : 266 / 269 lignes, 27 / 28 branches [mesuré le 14 octobre 2026, même commande]. Le seuil de 70 % du texte de mission est dépassé.
+Avant le passage à jjwt, sur `main` après la PR #40 : 264 / 269 lignes, 27 / 28 branches, 24 classes [mesuré le 15 octobre 2026, même commande]. Avant les suppressions de la PR #39, sur `main` à la PR #38 : 266 / 269 lignes, 27 / 28 branches [mesuré le 14 octobre 2026, même commande]. Le seuil de 70 % du texte de mission est dépassé.
 
 Lignes non couvertes, et pourquoi :
 
@@ -155,10 +155,11 @@ Une couverture élevée dit qu'un test exécute une ligne ; elle ne dit pas qu'i
 | PR #37 | `ConnexionIT`, `ConsultationProfilIT`, `ModificationProfilIT` | 25 |
 | PR #38 | Les neuf autres fichiers d'action et `AuthentificationIT` | 37 |
 | PR #39 | `PostServiceTest`, les trois preuves `@EntityGraph`, deux étapes end-to-end (tri côté front, connexion par e-mail côté back) | 6 |
+| Passage à jjwt | `AuthentificationIT`, `ConnexionIT`, `InscriptionIT`, `JwtServiceTest` | 10 |
 
 Exemple de mutation non prouvée puis remplacée : dans `ModificationProfilIT`, forcer la branche « nouveau mot de passe » enregistrait un hash nul. Le test échouait, mais au `flush` de `viderLeCache()` (contrainte `NOT NULL`), alors que l'assertion HTTP avait vu un 200 et que l'assertion sur le hash n'était jamais atteinte. La mutation a été remplacée par une autre qui change le hash sans enfreindre la contrainte, et qui fait échouer l'assertion visée. Ce cas illustre aussi la limite de `@Transactional` (§12).
 
-Exception assumée : le rejet d'un jeton signé avec une autre clé n'a pas de mutation propre, le décodeur vérifiant toujours la signature.
+Passage à jjwt (15 octobre 2026) : un jeton refusé reçoit la même réponse qu'un jeton absent, sans `invalid_token`. Le refus est prouvé par deux mutations : un jeton refusé authentifié malgré tout dans `JwtAuthenticationFilter`, qui fait échouer les tests du jeton signé avec une autre clé et du jeton expiré ; une tolérance d'horloge de deux heures dans `JwtService`, qui ne fait échouer que le test du jeton expiré. La vérification de signature elle-même n'a pas de mutation propre : jjwt l'effectue toujours.
 
 ## 10. Anomalie détectée et corrigée : le JSON malformé
 
@@ -168,11 +169,11 @@ Le test de JSON malformé passait sous MockMvc (400). Vérifié avec `curl` sur 
 
 | Mesure | Commande | Résultat |
 |---|---|---|
-| Back | `cd back && mise exec -- ./mvnw clean verify` ; couverture dans `target/site/jacoco/jacoco.csv` | 14 + 86 = 100 tests, 0 échec ; lignes 98,1 %, branches 96,4 % (14 octobre 2026) |
+| Back | `cd back && mise exec -- ./mvnw clean verify` ; couverture dans `target/site/jacoco/jacoco.csv` | 15 + 86 = 101 tests, 0 échec ; lignes 98,2 %, branches 93,8 % (15 octobre 2026) |
 | Front | `cd front && npx ng test --watch=false --coverage` | 25 fichiers, 269 tests ; 99,15 % / 98,48 % / 99,31 % / 99,45 % (8 octobre 2026) |
 | End-to-end | `npx ng serve --port 4201` ; `npm run e2e:firefox -- --config baseUrl=http://localhost:4201` (back démarré sur 8080) | 5 specs, 7 tests, 7 verts (9 octobre 2026) |
 
-Prérequis du back : Docker démarré et `JWT_SECRET` dans l'environnement (le fichier non versionné `application-local.properties` la référence).
+Prérequis du back : Docker démarré et `JWT_SECRET` dans l'environnement, en Base64 et d'au moins 32 octets une fois décodé, sinon le contexte ne démarre pas (le fichier non versionné `application-local.properties` la référence).
 
 ## 12. Limites assumées et axes d'amélioration
 
@@ -188,3 +189,5 @@ Prérequis du back : Docker démarré et `JWT_SECRET` dans l'environnement (le f
 | **Pas de mutation testing outillé** (PIT) ni de seuil de couverture bloquant | La preuve par mutation n'est pas rejouable automatiquement ; une baisse de couverture ne casse pas le build | Choix assumé ; à reconsidérer si la suite grossit |
 
 Mesure du 14 octobre 2026 : `mise exec -- ./mvnw clean verify` depuis `back/` sur la branche de la PR #39, comparée ligne à ligne à la même mesure sur `main` à la PR #38 ; front et end-to-end : mesures des 8 et 9 octobre 2026, le front n'ayant pas changé depuis.
+
+Mesure du 15 octobre 2026 (back seulement) : `mise exec -- ./mvnw clean verify` depuis `back/` sur la branche `refactor/securite-jjwt`, après le passage à jjwt ; chiffres de couverture tirés de `target/site/jacoco/jacoco.csv` et comparés à la même mesure sur `main` après la PR #40.
