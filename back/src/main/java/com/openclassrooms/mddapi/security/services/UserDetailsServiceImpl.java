@@ -19,9 +19,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     /**
      * Résout un compte par email <em>ou</em> nom d'utilisateur : le paramètre est
      * l'{@code identifier} unique du formulaire de connexion, comparé aux deux colonnes
-     * en une seule requête. Les deux colonnes étant {@code UNIQUE}, au plus une ligne
-     * correspond — sauf si un nom d'utilisateur est égal à l'email d'un autre compte,
-     * cas non interdit par le modèle qui ferait échouer la requête.
+     * en une seule requête. Au plus une ligne correspond : les deux colonnes sont
+     * {@code UNIQUE} et la validation de l'API interdit qu'un nom d'utilisateur égale
+     * l'email d'un autre compte (voir {@link UserRepository#findByEmailOrUsername}).
      *
      * @throws UsernameNotFoundException si aucun compte ne correspond ; convertie par
      *         Spring Security en {@code BadCredentialsException}, donc indistinguable d'un

@@ -152,11 +152,13 @@ Une couverture élevée dit qu'un test exécute une ligne ; elle ne dit pas qu'i
 
 | Lot | Tests concernés | Mutations détectées |
 |---|---|---|
-| PR #35 | `InscriptionIT` | 14 |
+| PR #35 et #36 | `InscriptionIT` | 14 (13 à la PR #35 ; 1 à la PR #36, sur le gestionnaire du JSON malformé) |
 | PR #37 | `ConnexionIT`, `ConsultationProfilIT`, `ModificationProfilIT` | 25 |
 | PR #38 | Les neuf autres fichiers d'action et `AuthentificationIT` | 37 |
 | PR #39 | `PostServiceTest`, les trois preuves `@EntityGraph`, deux étapes end-to-end (tri côté front, connexion par e-mail côté back) | 6 |
 | Passage à jjwt | `AuthentificationIT`, `ConnexionIT`, `InscriptionIT`, `JwtServiceTest` | 10 |
+
+Les quatorze mutations d'`InscriptionIT`, faites le 9 octobre 2026 avant que ce critère soit formalisé, ont été rejouées le 15 octobre sous ce critère : toutes sont détectées, treize par l'assertion visée et une (`@MaxUtf8Bytes` retiré) par l'exception de BCrypt levée dans l'Act, avant l'assertion sur le message.
 
 Exemple de mutation non prouvée puis remplacée : dans `ModificationProfilIT`, forcer la branche « nouveau mot de passe » enregistrait un hash nul. Le test échouait, mais au `flush` de `viderLeCache()` (contrainte `NOT NULL`), alors que l'assertion HTTP avait vu un 200 et que l'assertion sur le hash n'était jamais atteinte. La mutation a été remplacée par une autre qui change le hash sans enfreindre la contrainte, et qui fait échouer l'assertion visée. Ce cas illustre aussi la limite de `@Transactional` (§12).
 
