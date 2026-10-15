@@ -8,7 +8,6 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -30,8 +29,7 @@ public class PostController {
      * ils viennent du jeton et de la base.
      */
     @PostMapping
-    public ResponseEntity<Void> create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CreatePostRequest request) {
-        Long userId = Long.valueOf(jwt.getSubject());
+    public ResponseEntity<Void> create(@AuthenticationPrincipal Long userId, @Valid @RequestBody CreatePostRequest request) {
         Long postId = postService.create(userId, request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(postId).toUri();
         return ResponseEntity.created(location).build();
@@ -52,8 +50,7 @@ public class PostController {
      * se relisent via {@code GET /api/posts/{id}}) ; 400 {@code fieldErrors} ; 404 article inconnu.
      */
     @PostMapping("/{id}/comments")
-    public ResponseEntity<Void> addComment(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id, @Valid @RequestBody CreateCommentRequest request) {
-        Long userId = Long.valueOf(jwt.getSubject());
+    public ResponseEntity<Void> addComment(@AuthenticationPrincipal Long userId, @PathVariable Long id, @Valid @RequestBody CreateCommentRequest request) {
         postService.addComment(userId, id, request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }

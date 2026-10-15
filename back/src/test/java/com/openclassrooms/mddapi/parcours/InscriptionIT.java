@@ -3,6 +3,7 @@ package com.openclassrooms.mddapi.parcours;
 import com.jayway.jsonpath.JsonPath;
 import com.openclassrooms.mddapi.model.User;
 import com.openclassrooms.mddapi.repository.UserRepository;
+import com.openclassrooms.mddapi.security.jwt.JwtService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -11,7 +12,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.nio.charset.StandardCharsets;
@@ -38,7 +38,7 @@ class InscriptionIT extends ParcoursIT {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private JwtDecoder jwtDecoder;
+    private JwtService jwtService;
 
     /** Act commun : envoie {@code corps} à la route d'inscription. */
     private ResultActions envoyerInscription(String corps) throws Exception {
@@ -66,7 +66,7 @@ class InscriptionIT extends ParcoursIT {
         assertThat(compte.getPasswordHash()).isNotEqualTo(MOT_DE_PASSE);
         assertThat(passwordEncoder.matches(MOT_DE_PASSE, compte.getPasswordHash())).isTrue();
         String jeton = JsonPath.read(reponse.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), "$.token");
-        assertThat(jwtDecoder.decode(jeton).getSubject()).isEqualTo(String.valueOf(compte.getId()));
+        assertThat(jwtService.extractUserId(jeton)).isEqualTo(compte.getId());
     }
 
     @Test

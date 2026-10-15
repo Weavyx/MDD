@@ -12,7 +12,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,7 +20,7 @@ import java.util.List;
  * Ressources de l'utilisateur connecté, toutes sous {@code /api/user} : profil,
  * abonnements et fil. {@code /api/user} est une ressource unique déterminée par le
  * jeton : aucune route ne prend d'id d'utilisateur et aucune n'utilise de segment
- * {@code /me} ; l'identité est toujours {@code Long.valueOf(jwt.getSubject())}. Le fil
+ * {@code /me} ; l'identité est toujours l'id porté par le {@code sub} du jeton, reçu par {@code @AuthenticationPrincipal Long userId}. Le fil
  * est ici et non sous {@code /api/posts} parce que son jeu de résultats dépend de
  * l'appelant (ressource « filtrée »), d'où la dépendance de ce contrôleur à
  * {@code PostService}.
@@ -40,8 +39,7 @@ public class UserController {
 
     /** 200 profil avec abonnements ; 404 si le compte du jeton n'existe plus (pas 401). */
     @GetMapping
-    public ResponseEntity<UserProfileResponse> getProfile(@AuthenticationPrincipal Jwt jwt) {
-        Long userId = Long.valueOf(jwt.getSubject());
+    public ResponseEntity<UserProfileResponse> getProfile(@AuthenticationPrincipal Long userId) {
         return ResponseEntity.ok(userService.getProfile(userId));
     }
 
@@ -53,8 +51,7 @@ public class UserController {
      * porte que l'id.
      */
     @PatchMapping
-    public ResponseEntity<UserResponse> updateProfile(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody UpdateProfileRequest request) {
-        Long userId = Long.valueOf(jwt.getSubject());
+    public ResponseEntity<UserResponse> updateProfile(@AuthenticationPrincipal Long userId, @Valid @RequestBody UpdateProfileRequest request) {
         return ResponseEntity.ok(userService.updateProfile(userId, request));
     }
 
@@ -63,16 +60,14 @@ public class UserController {
      * requête elle-même ; 404 topic inconnu ; 409 déjà abonné ; 400 topicId non numérique.
      */
     @PostMapping("/subscriptions/{topicId}")
-    public ResponseEntity<Void> subscribe(@AuthenticationPrincipal Jwt jwt, @PathVariable Long topicId) {
-        Long userId = Long.valueOf(jwt.getSubject());
+    public ResponseEntity<Void> subscribe(@AuthenticationPrincipal Long userId, @PathVariable Long topicId) {
         userService.subscribe(userId, topicId);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     /** 204 même sans abonnement préalable (idempotent) ; 404 seulement si le topic n'existe pas ; 400 topicId non numérique. */
     @DeleteMapping("/subscriptions/{topicId}")
-    public ResponseEntity<Void> unsubscribe(@AuthenticationPrincipal Jwt jwt, @PathVariable Long topicId) {
-        Long userId = Long.valueOf(jwt.getSubject());
+    public ResponseEntity<Void> unsubscribe(@AuthenticationPrincipal Long userId, @PathVariable Long topicId) {
         userService.unsubscribe(userId, topicId);
         return ResponseEntity.noContent().build();
     }
@@ -84,9 +79,8 @@ public class UserController {
      */
     @GetMapping("/feed")
     public ResponseEntity<List<PostSummaryResponse>> findFeed(
-            @AuthenticationPrincipal Jwt jwt,
+            @AuthenticationPrincipal Long userId,
             @RequestParam(defaultValue = "desc") @Pattern(regexp = "asc|desc") String sort) {
-        Long userId = Long.valueOf(jwt.getSubject());
         return ResponseEntity.ok(postService.findFeed(userId, Sort.Direction.fromString(sort)));
     }
 }

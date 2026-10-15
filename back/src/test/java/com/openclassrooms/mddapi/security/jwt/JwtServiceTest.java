@@ -1,71 +1,73 @@
 package com.openclassrooms.mddapi.security.jwt;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.io.Encoders;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.WeakKeyException;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
 
-@ExtendWith(MockitoExtension.class)
+/**
+ * Tests unitaires de {@link JwtService}, sans Spring ni mock : une clé HS256 aléatoire est
+ * générée pour chaque test, et les jetons émis sont relus avec la même clé.
+ */
 class JwtServiceTest {
 
     private static final String ISSUER = "mdd-api";
     private static final long EXPIRATION_MINUTES = 60L;
 
-    @Mock
-    private JwtEncoder jwtEncoder;
+    private final String secret = Encoders.BASE64.encode(Jwts.SIG.HS256.key().build().getEncoded());
+    private final JwtService jwtService = new JwtService(secret, ISSUER, EXPIRATION_MINUTES);
 
-    @InjectMocks
-    private JwtService jwtService;
+    @Test
+    void generateToken_puisExtractUserId_retrouveLId() {
+        // Arrange
+        String jeton = jwtService.generateToken("42");
 
-    private void injectConfig() {
-        ReflectionTestUtils.setField(jwtService, "jwtIssuer", ISSUER);
-        ReflectionTestUtils.setField(jwtService, "jwtExpirationMinutes", EXPIRATION_MINUTES);
+        // Act
+        Long userId = jwtService.extractUserId(jeton);
+
+        // Assert
+        assertThat(userId).isEqualTo(42L);
     }
 
     @Test
-    void generateToken_construitLesClaimsAvecIssuerEtSubjectCorrects() {
-        injectConfig();
-        Jwt fakeJwt = Jwt.withTokenValue("fake-token").header("alg", "HS256").claim("sub", "42").build();
-        when(jwtEncoder.encode(any())).thenReturn(fakeJwt);
-        ArgumentCaptor<JwtEncoderParameters> captor = ArgumentCaptor.forClass(JwtEncoderParameters.class);
+    void generateToken_porteEmetteurDatesEtAlgorithmeHS256() {
+        // Arrange
+        Instant avant = Instant.now();
 
-        jwtService.generateToken("42");
+        // Act
+        String jeton = jwtService.generateToken("42");
 
-        org.mockito.Mockito.verify(jwtEncoder).encode(captor.capture());
-        JwtClaimsSet claims = captor.getValue().getClaims();
-        assertThat((String) claims.getClaim("iss")).isEqualTo(ISSUER);
-        assertThat(claims.getSubject()).isEqualTo("42");
+        // Assert
+        Jws<Claims> jws = Jwts.parser()
+                .verifyWith(Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret)))
+                .build()
+                .parseSignedClaims(jeton);
+        Claims claims = jws.getPayload();
+        assertThat(jws.getHeader().getAlgorithm()).isEqualTo("HS256");
+        assertThat(claims.getIssuer()).isEqualTo(ISSUER);
         assertThat(claims.getIssuedAt()).isNotNull();
+        assertThat(claims.getExpiration().toInstant())
+                .isCloseTo(avant.plus(EXPIRATION_MINUTES, ChronoUnit.MINUTES), within(2, ChronoUnit.SECONDS));
     }
 
     @Test
-    void generateToken_expirationCorrespondALaDureeConfiguree() {
-        injectConfig();
-        Jwt fakeJwt = Jwt.withTokenValue("fake-token").header("alg", "HS256").claim("sub", "42").build();
-        when(jwtEncoder.encode(any())).thenReturn(fakeJwt);
-        ArgumentCaptor<JwtEncoderParameters> captor = ArgumentCaptor.forClass(JwtEncoderParameters.class);
-        Instant before = Instant.now();
+    void constructeur_cleDeMoinsDe256Bits_refusee() {
+        // Arrange
+        String cleDe128Bits = Encoders.BASE64.encode(new byte[16]);
 
-        jwtService.generateToken("42");
-
-        org.mockito.Mockito.verify(jwtEncoder).encode(captor.capture());
-        JwtClaimsSet claims = captor.getValue().getClaims();
-        Instant expectedExpiry = before.plus(EXPIRATION_MINUTES, ChronoUnit.MINUTES);
-        assertThat(claims.getExpiresAt())
-                .isCloseTo(expectedExpiry, org.assertj.core.api.Assertions.within(2, ChronoUnit.SECONDS));
+        // Act + Assert
+        assertThatThrownBy(() -> new JwtService(cleDe128Bits, ISSUER, EXPIRATION_MINUTES))
+                .isInstanceOf(WeakKeyException.class);
     }
 }

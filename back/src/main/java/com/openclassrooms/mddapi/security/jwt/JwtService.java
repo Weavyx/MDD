@@ -1,56 +1,77 @@
 package com.openclassrooms.mddapi.security.jwt;
 
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.JwsHeader;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.SecretKey;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Date;
 
 /**
- * Émission des jetons d'accès ; la validation est entièrement déléguée au
- * {@code JwtDecoder} de {@link JwtConfig} et au filtre Bearer de Spring Security.
+ * Émission et validation des jetons d'accès, avec la bibliothèque jjwt et une clé HMAC unique.
+ * <p>
+ * La clé est {@code mdd.jwt.secret}, attendue en Base64 ; elle n'est pas définie dans
+ * {@code application.properties} mais dans le profil {@code local} (fichier gitignoré) via
+ * la variable d'environnement {@code JWT_SECRET}. {@code Keys.hmacShaKeyFor} refuse une clé
+ * décodée de moins de 256 bits : l'application ne démarre pas avec une clé trop courte pour HS256.
+ * <p>
+ * La validation vérifie la signature et l'expiration ({@code exp}) : le claim {@code iss}
+ * n'est pas contrôlé, et aucune révocation n'existe — un jeton reste valable jusqu'à son
+ * {@code exp}.
  */
 @Service
 public class JwtService {
 
-    private final JwtEncoder jwtEncoder;
+    private final SecretKey signingKey;
+    private final String jwtIssuer;
+    private final long jwtExpirationMinutes;
 
-    @Value("${mdd.jwt.issuer}")
-    private String jwtIssuer;
-
-    @Value("${mdd.jwt.expiration-minutes}")
-    private long jwtExpirationMinutes;
-
-    public JwtService(JwtEncoder jwtEncoder) {
-        this.jwtEncoder = jwtEncoder;
+    public JwtService(@Value("${mdd.jwt.secret}") String jwtSecret,
+                      @Value("${mdd.jwt.issuer}") String jwtIssuer,
+                      @Value("${mdd.jwt.expiration-minutes}") long jwtExpirationMinutes) {
+        this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+        this.jwtIssuer = jwtIssuer;
+        this.jwtExpirationMinutes = jwtExpirationMinutes;
     }
 
     /**
-     * Signe un jeton HS256 dont les seuls claims sont {@code iss} ({@code mdd.jwt.issuer},
-     * chaîne simple non-URL, valide au sens de la RFC 7519), {@code iat}, {@code exp}
-     * ({@code iat} + {@code mdd.jwt.expiration-minutes}) et {@code sub}.
+     * Signe un jeton HS256 dont les seuls claims sont {@code iss} ({@code mdd.jwt.issuer}),
+     * {@code iat}, {@code exp} ({@code iat} + {@code mdd.jwt.expiration-minutes}) et {@code sub}.
      * <p>
-     * {@code sub} doit être l'id numérique de l'utilisateur sous forme de chaîne : les
-     * contrôleurs le reconvertissent par {@code Long.valueOf(jwt.getSubject())} ; toute
-     * autre valeur produirait une {@code NumberFormatException} à la première requête
-     * authentifiée. Ni email, ni nom d'utilisateur, ni rôle ne sont embarqués. Le paramètre
-     * n'est pas vérifié : ce service ne consulte jamais la base.
+     * {@code sub} doit être l'id numérique de l'utilisateur sous forme de chaîne :
+     * {@link #extractUserId} le reconvertit en {@code Long}. Ni email, ni nom d'utilisateur,
+     * ni rôle ne sont embarqués. Le paramètre n'est pas vérifié : ce service ne consulte
+     * jamais la base.
      */
     public String generateToken(String userId) {
-        JwtClaimsSet claims = JwtClaimsSet.builder()
+        Instant now = Instant.now();
+        return Jwts.builder()
                 .issuer(jwtIssuer)
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plus(jwtExpirationMinutes, ChronoUnit.MINUTES))
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plus(jwtExpirationMinutes, ChronoUnit.MINUTES)))
                 .subject(userId)
-                .build();
+                .signWith(signingKey, Jwts.SIG.HS256)
+                .compact();
+    }
 
-        JwsHeader jwsHeader = JwsHeader.with(MacAlgorithm.HS256).build();
-
-        return jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader, claims)).getTokenValue();
+    /**
+     * Vérifie la signature et l'expiration du jeton, puis renvoie l'id porté par {@code sub}.
+     *
+     * @throws JwtException             si le jeton est mal formé, mal signé ou expiré
+     * @throws IllegalArgumentException si le jeton est vide, ou si {@code sub} n'est pas un nombre
+     */
+    public Long extractUserId(String token) {
+        String subject = Jwts.parser()
+                .verifyWith(signingKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getSubject();
+        return Long.valueOf(subject);
     }
 }
