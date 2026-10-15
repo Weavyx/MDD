@@ -2,12 +2,12 @@ package com.openclassrooms.mddapi.parcours;
 
 import com.jayway.jsonpath.JsonPath;
 import com.openclassrooms.mddapi.repository.UserRepository;
+import com.openclassrooms.mddapi.security.jwt.JwtService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.nio.charset.StandardCharsets;
@@ -33,7 +33,7 @@ class ConnexionIT extends ParcoursIT {
     private UserRepository userRepository;
 
     @Autowired
-    private JwtDecoder jwtDecoder;
+    private JwtService jwtService;
 
     /** Act commun : envoie {@code corps} à la route de connexion. */
     private ResultActions envoyerConnexion(String corps) throws Exception {
@@ -51,7 +51,7 @@ class ConnexionIT extends ParcoursIT {
     private void verifierJetonDuCompte(ResultActions reponse, String username) throws Exception {
         String jeton = JsonPath.read(reponse.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), "$.token");
         Long id = userRepository.findByEmailOrUsername(username).orElseThrow().getId();
-        assertThat(jwtDecoder.decode(jeton).getSubject()).isEqualTo(String.valueOf(id));
+        assertThat(jwtService.extractUserId(jeton)).isEqualTo(id);
     }
 
     @Test

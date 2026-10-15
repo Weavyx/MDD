@@ -1,24 +1,20 @@
 package com.openclassrooms.mddapi.parcours;
 
-import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.JwsHeader;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
-import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.test.web.servlet.ResultActions;
 
-import java.security.SecureRandom;
+import javax.crypto.SecretKey;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Date;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
@@ -29,12 +25,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Transversal : toutes les routes hors inscription et connexion exigent un JWT valide.
  * Testé une fois ici plutôt que dans chaque fichier d'action, puisque c'est le même filtre
  * de sécurité pour toutes les routes.
+ * <p>
+ * Un jeton refusé reçoit la même réponse qu'un jeton absent (401, {@code WWW-Authenticate: Bearer}) :
+ * ce qui prouve que le jeton est lu puis refusé, et non ignoré, ce sont les mutations du filtre
+ * et de {@code JwtService} (voir {@code RAPPORT_DE_TESTS.md}, §9).
  */
 class AuthentificationIT extends ParcoursIT {
 
-    /** Encodeur de l'application : même clé que le décodeur testé. */
-    @Autowired
-    private JwtEncoder jwtEncoder;
+    /** Clé de l'application, pour signer un jeton authentique mais expiré. */
+    @Value("${mdd.jwt.secret}")
+    private String secretDeLApplication;
 
     @ParameterizedTest(name = "{0} {1} sans jeton")
     @CsvSource({
@@ -62,26 +62,9 @@ class AuthentificationIT extends ParcoursIT {
     @Test
     void routeProtegee_jetonSigneAvecUneAutreCle_retourne401() throws Exception {
         // Arrange : jeton bien formé et non expiré, mais signé avec une clé inconnue de l'API
-        byte[] autreCle = new byte[32];
-        new SecureRandom().nextBytes(autreCle);
-        JwtEncoder autreEncodeur = new NimbusJwtEncoder(new ImmutableSecret<>(autreCle));
+        SecretKey autreCle = Jwts.SIG.HS256.key().build();
         Instant maintenant = Instant.now();
-        String jeton = encoder(autreEncodeur, maintenant, maintenant.plus(1, ChronoUnit.HOURS));
-
-        // Act
-        ResultActions reponse = mockMvc.perform(get("/api/user")
-                .header("Authorization", "Bearer " + jeton));
-
-        // Assert : « invalid_token » signifie que le jeton a été lu puis refusé, et non qu'il manque
-        reponse.andExpect(status().isUnauthorized())
-                .andExpect(header().string("WWW-Authenticate", containsString("invalid_token")));
-    }
-
-    @Test
-    void routeProtegee_jetonExpire_retourne401() throws Exception {
-        // Arrange : bonne clé, expiration une heure dans le passé (au-delà de la tolérance de 60 s)
-        Instant maintenant = Instant.now();
-        String jeton = encoder(jwtEncoder, maintenant.minus(2, ChronoUnit.HOURS), maintenant.minus(1, ChronoUnit.HOURS));
+        String jeton = signer(autreCle, maintenant, maintenant.plus(1, ChronoUnit.HOURS));
 
         // Act
         ResultActions reponse = mockMvc.perform(get("/api/user")
@@ -89,18 +72,33 @@ class AuthentificationIT extends ParcoursIT {
 
         // Assert
         reponse.andExpect(status().isUnauthorized())
-                .andExpect(header().string("WWW-Authenticate", containsString("invalid_token")));
+                .andExpect(header().string("WWW-Authenticate", startsWith("Bearer")));
     }
 
-    /** Fabrique un JWT HS256 avec l'encodeur donné et les dates d'émission et d'expiration voulues. */
-    private String encoder(JwtEncoder encodeur, Instant emisLe, Instant expireLe) {
-        JwtClaimsSet claims = JwtClaimsSet.builder()
+    @Test
+    void routeProtegee_jetonExpire_retourne401() throws Exception {
+        // Arrange : clé de l'application, expiration une heure dans le passé
+        SecretKey cleDeLApplication = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretDeLApplication));
+        Instant maintenant = Instant.now();
+        String jeton = signer(cleDeLApplication, maintenant.minus(2, ChronoUnit.HOURS), maintenant.minus(1, ChronoUnit.HOURS));
+
+        // Act
+        ResultActions reponse = mockMvc.perform(get("/api/user")
+                .header("Authorization", "Bearer " + jeton));
+
+        // Assert
+        reponse.andExpect(status().isUnauthorized())
+                .andExpect(header().string("WWW-Authenticate", startsWith("Bearer")));
+    }
+
+    /** Fabrique un JWT HS256 signé avec {@code cle}, avec les dates d'émission et d'expiration voulues. */
+    private String signer(SecretKey cle, Instant emisLe, Instant expireLe) {
+        return Jwts.builder()
                 .issuer("mdd-api")
-                .issuedAt(emisLe)
-                .expiresAt(expireLe)
+                .issuedAt(Date.from(emisLe))
+                .expiration(Date.from(expireLe))
                 .subject("1")
-                .build();
-        JwsHeader entete = JwsHeader.with(MacAlgorithm.HS256).build();
-        return encodeur.encode(JwtEncoderParameters.from(entete, claims)).getTokenValue();
+                .signWith(cle, Jwts.SIG.HS256)
+                .compact();
     }
 }

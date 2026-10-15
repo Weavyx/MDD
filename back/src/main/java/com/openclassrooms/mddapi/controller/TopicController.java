@@ -4,7 +4,6 @@ import com.openclassrooms.mddapi.dto.TopicResponse;
 import com.openclassrooms.mddapi.service.TopicService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,8 +25,7 @@ public class TopicController {
      * pas de création ni de modification de topic par l'API.
      */
     @GetMapping
-    public ResponseEntity<List<TopicResponse>> findAll(@AuthenticationPrincipal Jwt jwt) {
-        Long userId = Long.valueOf(jwt.getSubject());
+    public ResponseEntity<List<TopicResponse>> findAll(@AuthenticationPrincipal Long userId) {
         return ResponseEntity.ok(topicService.findAllWithSubscriptionStatus(userId));
     }
 }
