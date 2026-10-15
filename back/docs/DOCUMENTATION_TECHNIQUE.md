@@ -135,8 +135,8 @@ Trois formes coexistent ; le front doit gérer les trois.
 
 **3. Hors format `ErrorResponse`** (comportement Spring par défaut, volontairement non redéfini) :
 
-- **401** — jeton absent, invalide ou expiré sur une route protégée, et identifiants faux au login : **corps vide**, en-tête `WWW-Authenticate` commençant par `Bearer` (figé par `AuthControllerIT.login_identifiantsInvalides_retourne401`). Le front doit dériver son message du seul statut.
-- **400 sur JSON malformé** (`HttpMessageNotReadableException`) : pas de handler applicatif ; corps vide sous MockMvc, vraisemblablement le JSON standard de `BasicErrorController` en conteneur réel — forme non figée par un test.
+- **401** — jeton absent, invalide ou expiré sur une route protégée, et identifiants faux au login : **corps vide**, en-tête `WWW-Authenticate` commençant par `Bearer` (figé par `ConnexionIT.connexion_motDePasseIncorrect_retourne401SansCorps`). Le front doit dériver son message du seul statut.
+- **400 sur JSON malformé** (`HttpMessageNotReadableException`) : handler dédié, `ErrorResponse` « Le corps de la requête est illisible » (PR #36 ; figé par `InscriptionIT.inscription_corpsJsonMalforme_retourne400`).
 - **500** — aucun handler générique ; réponse Spring Boot par défaut, sans trace ni message applicatif. Aucun cas connu ne le produit.
 
 ## 4. Schémas de données
@@ -208,11 +208,11 @@ Le schéma est créé au démarrage par les migrations Flyway de `back/src/main/
 ### 5.4 Lancer les tests
 
 ```bash
-./mvnw test      # 56 tests unitaires (*Test), aucun prérequis
-./mvnw verify    # + 97 tests d'intégration (*IT) : Docker démarré (Testcontainers mysql:8.4) et JWT_SECRET exporté
+./mvnw test      # 14 tests unitaires (*Test), aucun prérequis
+./mvnw verify    # + 86 tests d'intégration (*IT) : Docker démarré (Testcontainers mysql:8.4) et JWT_SECRET exporté
 ```
 
-`verify` produit le rapport JaCoCo dans `back/target/site/jacoco/index.html`. Sans `JWT_SECRET`, `MddApiApplicationIT` échoue au chargement du contexte (`Could not resolve placeholder 'JWT_SECRET'`) ; sans Docker, tous les `*IT` adossés à la base échouent au démarrage du conteneur. Détail de la stratégie et des chiffres dans `RAPPORT_DE_TESTS.md`.
+`verify` produit le rapport JaCoCo dans `back/target/site/jacoco/index.html` ; pour un chiffre de couverture, lancer `./mvnw clean verify` (sans `clean`, JaCoCo cumule les exécutions précédentes). Sans `JWT_SECRET`, les tests d'intégration échouent au chargement du contexte (`Could not resolve placeholder 'JWT_SECRET'`) ; sans Docker, ils échouent au démarrage du conteneur. Détail de la stratégie et des chiffres dans `RAPPORT_DE_TESTS.md`.
 
 ## 6. Front-end
 
@@ -330,3 +330,5 @@ npm run e2e:firefox -- --config baseUrl=http://localhost:4201   # front servi su
 `e2e:firefox` sert de repli sous Wayland, où Electron sans fenêtre ne termine pas les transitions CSS. Chiffres et détail des parcours : `RAPPORT_DE_TESTS.md` §7.
 
 Correction du 25 septembre 2026 (§5.4) : 45 et 82 tests remplacés par 56 et 97, mesurés par `mise exec -- ./mvnw -q verify` depuis `back/` sur `main` au commit `2a01fc9`, comptes relus dans les XML de `target/surefire-reports` et `target/failsafe-reports`.
+
+Correction du 14 octobre 2026 (§5.4 et formats d'erreur) : 56 et 97 tests remplacés par 14 et 86, mesurés par `mise exec -- ./mvnw clean verify` depuis `back/` sur la branche de la PR #39 ; renvoi du 401 vers `ConnexionIT` et description du JSON malformé mis à jour après les PR #36 et #39.

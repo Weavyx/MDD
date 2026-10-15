@@ -21,13 +21,11 @@ import java.util.Map;
  * exception → statut HTTP de l'application.
  * <p>
  * Périmètre volontairement borné : les erreurs de validation, les six exceptions métier,
- * les violations de contrainte en base et les paramètres d'URL invalides. Ne sont
+ * les violations de contrainte en base, les paramètres d'URL invalides et le JSON malformé. Ne sont
  * <em>pas</em> traités ici, et sortent donc du format {@code ErrorResponse} :
  * <ul>
  *   <li>les 401 (jeton absent, invalide, expiré, identifiants faux), rendus par le point
  *       d'entrée de Spring Security avec un corps vide ;</li>
- *   <li>le JSON malformé ({@code HttpMessageNotReadableException}), rendu par le
- *       mécanisme d'erreur par défaut de Spring MVC ;</li>
  *   <li>toute autre exception (500) : il n'y a pas de handler {@code Exception.class},
  *       par choix — un attrape-tout transformerait les 401 en 500.</li>
  * </ul>
