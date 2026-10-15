@@ -11,7 +11,9 @@ import java.util.Collections;
  * Adaptateur {@code UserDetails} par composition autour d'un {@code User}, utilisé
  * uniquement pendant le login (vérification du mot de passe par
  * {@code AuthenticationManager}). Il n'est jamais le principal d'une requête
- * authentifiée par JWT : là, le principal est le {@code Jwt} lui-même.
+ * authentifiée par JWT : là, le principal est l'id de l'utilisateur ({@code Long}),
+ * placé par {@code JwtAuthenticationFilter} après validation du jeton par
+ * {@code JwtService}, et reçu par {@code @AuthenticationPrincipal Long userId}.
  * <p>
  * Invariants : {@link #getUsername()} renvoie le nom d'utilisateur, pas l'email, même
  * si le login a été fait par email ; {@link #getPassword()} renvoie le hash BCrypt ;
