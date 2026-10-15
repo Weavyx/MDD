@@ -124,11 +124,12 @@ Trois formes coexistent ; le front doit gérer les trois.
 
 `fieldErrors` est indexé par nom de champ du DTO ; la valeur est le message de l'annotation violée, jamais la valeur saisie. **Une seule entrée par champ** : si deux contraintes échouent sur le même champ, une seule est renvoyée.
 
-**2. Erreur métier ou paramètre d'URL** — `ErrorResponse` avec `fieldErrors: null` (le champ est présent, à `null`) :
+**2. Erreur métier, paramètre d'URL ou corps illisible** — `ErrorResponse` avec `fieldErrors: null` (le champ est présent, à `null`) :
 
 | Statut | `message` | Origine |
 |---|---|---|
 | 400 | « Le paramètre fourni est invalide » | segment d'URL non numérique, ou `sort` hors `asc\|desc` |
+| 400 | « Le corps de la requête est illisible » | JSON malformé (`HttpMessageNotReadableException`), handler dédié (PR #36 ; figé par `InscriptionIT.inscription_corpsJsonMalforme_retourne400`) |
 | 404 | « Cet utilisateur n'existe pas » / « Ce topic n'existe pas » / « Cet article n'existe pas » | `UserNotFoundException`, `TopicNotFoundException`, `PostNotFoundException` |
 | 409 | « Cet email est déjà utilisé » / « Ce nom d'utilisateur est déjà utilisé » / « Vous êtes déjà abonné à ce topic » | `EmailAlreadyUsedException`, `UsernameAlreadyUsedException`, `AlreadySubscribedException` |
 | 409 | « La ressource entre en conflit avec une contrainte existante » | violation d'une contrainte en base (`DataIntegrityViolationException`), message fixe sans détail SQL |
@@ -136,7 +137,6 @@ Trois formes coexistent ; le front doit gérer les trois.
 **3. Hors format `ErrorResponse`** (comportement Spring par défaut, volontairement non redéfini) :
 
 - **401** — jeton absent, invalide ou expiré sur une route protégée, et identifiants faux au login : **corps vide**, en-tête `WWW-Authenticate` commençant par `Bearer` (figé par `ConnexionIT.connexion_motDePasseIncorrect_retourne401SansCorps`). Le front doit dériver son message du seul statut.
-- **400 sur JSON malformé** (`HttpMessageNotReadableException`) : handler dédié, `ErrorResponse` « Le corps de la requête est illisible » (PR #36 ; figé par `InscriptionIT.inscription_corpsJsonMalforme_retourne400`).
 - **500** — aucun handler générique ; réponse Spring Boot par défaut, sans trace ni message applicatif. Aucun cas connu ne le produit.
 
 ## 4. Schémas de données
@@ -327,7 +327,7 @@ npm run e2e:firefox                      # cypress run --browser firefox
 npm run e2e:firefox -- --config baseUrl=http://localhost:4201   # front servi sur un autre port
 ```
 
-`e2e:firefox` sert de repli sous Wayland, où Electron sans fenêtre ne termine pas les transitions CSS. Chiffres et détail des parcours : `RAPPORT_DE_TESTS.md` §7.
+`e2e:firefox` sert de repli sous Wayland, où Electron sans fenêtre ne termine pas les transitions CSS. Chiffres et détail des parcours : `RAPPORT_DE_TESTS.md` §6.2.
 
 Correction du 25 septembre 2026 (§5.4) : 45 et 82 tests remplacés par 56 et 97, mesurés par `mise exec -- ./mvnw -q verify` depuis `back/` sur `main` au commit `2a01fc9`, comptes relus dans les XML de `target/surefire-reports` et `target/failsafe-reports`.
 
