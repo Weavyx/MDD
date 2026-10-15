@@ -12,10 +12,14 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
     /**
      * L'utilisateur dont l'email <em>ou</em> le nom d'utilisateur vaut exactement
-     * {@code identifier} (comparaison selon la collation MySQL, insensible à la casse par
-     * défaut). Les deux colonnes étant uniques, le résultat est au plus une ligne — sauf
-     * si le nom d'un compte est égal à l'email d'un autre, cas que le modèle n'interdit pas
-     * et qui ferait échouer la requête avec plus d'un résultat.
+     * {@code identifier}, comparé selon la collation de la table
+     * ({@code utf8mb4_0900_ai_ci} : insensible à la casse et aux accents). Les deux
+     * colonnes étant uniques, le résultat est au plus une ligne : un nom d'utilisateur ne
+     * peut pas contenir {@code @} ({@code @Pattern} de {@code RegisterRequest} et de
+     * {@code UpdateProfileRequest}), alors qu'un email valide en contient un
+     * ({@code @Email}) ; aucun nom ne peut donc égaler l'email d'un autre compte. Seule une
+     * écriture directe en base, hors de l'API, créerait ce cas, et la requête échouerait
+     * alors avec plus d'un résultat.
      */
     @Query("SELECT u FROM User u WHERE u.email = :identifier OR u.username = :identifier")
     Optional<User> findByEmailOrUsername(@Param("identifier") String identifier);
