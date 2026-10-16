@@ -102,6 +102,6 @@ function readExpiry(token: string | null): number | null {
 }
 
 function decodeBase64Url(segment: string): string {
-  const base64 = segment.replace(/-/g, '+').replace(/_/g, '/');
+  const base64 = segment.replaceAll('-', '+').replaceAll('_', '/');
   return atob(base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '='));
 }

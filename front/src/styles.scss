@@ -60,7 +60,7 @@ body {
 // The class that `<mat-icon>` puts on its host by default. Google's icon stylesheet used to
 // define it next to the font; Fontsource only ships the `@font-face`.
 .material-icons {
-  font-family: 'Material Icons';
+  font-family: 'Material Icons', sans-serif;
   font-weight: normal;
   font-style: normal;
   font-size: 24px;

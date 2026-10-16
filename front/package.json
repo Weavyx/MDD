@@ -11,7 +11,8 @@
     "e2e:open": "cypress open",
     "e2e:firefox": "cypress run --browser firefox",
     "format": "prettier --write \"src/**/*.{ts,html,scss,css,json}\" \"cypress/**/*.ts\" cypress.config.ts",
-    "format:check": "prettier --check \"src/**/*.{ts,html,scss,css,json}\" \"cypress/**/*.ts\" cypress.config.ts"
+    "format:check": "prettier --check \"src/**/*.{ts,html,scss,css,json}\" \"cypress/**/*.ts\" cypress.config.ts",
+    "lint": "ng lint"
   },
   "private": true,
   "packageManager": "npm@11.6.3",
@@ -33,11 +34,15 @@
     "@angular/build": "^21.2.21",
     "@angular/cli": "^21.2.21",
     "@angular/compiler-cli": "^21.2.0",
+    "@eslint/js": "^10.0.1",
     "@vitest/coverage-v8": "^4.1.10",
+    "angular-eslint": "21.4.0",
     "cypress": "^16.1.0",
+    "eslint": "^10.3.0",
     "jsdom": "^28.0.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.3",
+    "typescript-eslint": "8.59.2",
     "vitest": "^4.0.8"
   }
 }

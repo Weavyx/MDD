@@ -41,7 +41,11 @@ describe('PostService', () => {
   it('sorts the feed newest first by default', () => {
     service.getFeed().subscribe();
 
-    httpTesting.expectOne({ method: 'GET', url: '/api/user/feed?sort=desc' }).flush([]);
+    const req = httpTesting.expectOne(
+      (r) => r.method === 'GET' && r.url.startsWith('/api/user/feed'),
+    );
+    expect(req.request.urlWithParams).toBe('/api/user/feed?sort=desc');
+    req.flush([]);
   });
 
   it('creates a post with POST /api/posts', () => {
