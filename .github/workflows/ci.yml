@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-et-tests:
+    name: Build et tests (back puis front)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Installer Java 21 (Temurin)
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: back/pom.xml
+
+      - name: Back — compilation, tests unitaires et d'intégration, couverture JaCoCo
+        working-directory: back
+        run: ./mvnw -B clean verify
+
+      - name: Installer Node 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: front/package-lock.json
+
+      - name: Front — installation des dépendances
+        working-directory: front
+        run: npm ci
+
+      - name: Front — lint
+        working-directory: front
+        run: npm run lint
+
+      - name: Front — formatage (Prettier)
+        working-directory: front
+        run: npm run format:check
+
+      - name: Front — tests unitaires
+        working-directory: front
+        run: npx ng test --watch=false
+
+      - name: Front — build de production
+        working-directory: front
+        run: npm run build
+
+      - name: Vérifier la présence des classes compilées et du rapport JaCoCo
+        run: ls -ld back/target/classes back/target/site/jacoco/jacoco.xml
