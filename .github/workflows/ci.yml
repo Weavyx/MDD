@@ -13,7 +13,7 @@ permissions:
 jobs:
   build-et-tests:
     name: Build et tests (back puis front)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Récupérer le code
@@ -42,7 +42,7 @@ jobs:
 
       - name: Front — installation des dépendances
         working-directory: front
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Front — lint
         working-directory: front
@@ -54,7 +54,7 @@ jobs:
 
       - name: Front — tests unitaires
         working-directory: front
-        run: npx ng test --watch=false
+        run: npm test -- --watch=false
 
       - name: Front — build de production
         working-directory: front
