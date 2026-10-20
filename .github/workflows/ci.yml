@@ -20,6 +20,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Installer Java 21 (Temurin)
         uses: actions/setup-java@v6
@@ -29,9 +30,9 @@ jobs:
           cache: maven
           cache-dependency-path: back/pom.xml
 
-      - name: Back — compilation, tests unitaires et d'intégration, couverture JaCoCo
+      - name: Back — compilation, tests unitaires et d'intégration, couverture JaCoCo, dépendances pour Sonar
         working-directory: back
-        run: ./mvnw -B clean verify
+        run: ./mvnw -B clean verify dependency:copy-dependencies
 
       - name: Installer Node 24
         uses: actions/setup-node@v7
@@ -52,13 +53,21 @@ jobs:
         working-directory: front
         run: npm run format:check
 
-      - name: Front — tests unitaires
+      - name: Front — tests unitaires et couverture
         working-directory: front
-        run: npm test -- --watch=false
+        run: npm test -- --watch=false --coverage --coverage-reporters=lcovonly
 
       - name: Front — build de production
         working-directory: front
         run: npm run build
 
-      - name: Vérifier la présence des classes compilées et du rapport JaCoCo
-        run: ls -ld back/target/classes back/target/site/jacoco/jacoco.xml
+      - name: Vérifier la présence des fichiers lus par Sonar
+        run: ls -ld back/target/classes back/target/test-classes back/target/dependency back/target/site/jacoco/jacoco.xml front/coverage/front/lcov.info
+
+      - name: Front — chemins du rapport de couverture relatifs à la racine du dépôt
+        run: sed -i 's#^SF:src/#SF:front/src/#' front/coverage/front/lcov.info
+
+      - name: Analyse SonarQube Cloud
+        uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
