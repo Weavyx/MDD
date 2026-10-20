@@ -38,7 +38,7 @@ public class RegisterRequest {
     @Size(min = 8, message = "Le mot de passe doit contenir au moins 8 caractères")
     @MaxUtf8Bytes(72)
     @Pattern(
-            regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*\\p{Punct}).{8,}$",
+            regexp = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*\\p{Punct}).{8,}$",
             message = "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial"
     )
     private String password;
