@@ -56,7 +56,7 @@ public class SecurityConfig {
      * servlets, ce qui le ferait aussi tourner en dehors de la chaîne de sécurité.
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService) {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
@@ -81,7 +81,7 @@ public class SecurityConfig {
      * {@code PasswordEncoder} BCrypt. Les requêtes porteuses d'un JWT ne passent pas par lui.
      */
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) {
         return config.getAuthenticationManager();
     }
 
