@@ -66,6 +66,12 @@ E2e: Cypress (`cypress/e2e/`), against the real back on 8080 and the front on 42
 - Security: never `innerHTML` nor `bypassSecurityTrust*`; post and comment content are rendered as text.
 - Tests: Vitest + jsdom. Security code (auth service, interceptor, guards, password validator) is proven by manual mutation; feature specs need at least one mutation per spec file.
 
+## Code quality (SonarQube Cloud)
+
+- Analysis runs in CI only (`.github/workflows/ci.yml`); its analysis parameters live only in `sonar-project.properties` at the repo root.
+- Front test helpers outside `*.spec.ts` live in a `testing/` folder or a `testing.ts` file under `front/src/` and are imported only by specs: Sonar classifies them as test code (`sonar.test.inclusions`).
+- Never add `NOSONAR`, `eslint-disable` or a Sonar exclusion without Maxime's explicit decision. Issue statuses (Accepted, False positive) and hotspot reviews are changed by Maxime only, in the Sonar UI.
+
 ## Evidence and reports
 
 - Every claim in a report cites its source: `file:line`, or the command run and the relevant output line, marked [lu] / [grep] / [exec] / [déduit]. Write "not verified" rather than guess.

@@ -1,5 +1,7 @@
 # MDD — Monde de Dév
 
+[![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=Weavyx_MDD&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Weavyx_MDD)
+
 MDD est un réseau social de développeurs, réalisé pour le projet 5 (option B) du parcours OpenClassrooms.
 Un utilisateur inscrit s'abonne à des thèmes de programmation, lit dans son fil les articles publiés sur ces thèmes, publie ses propres articles et les commente.
 Ce dépôt contient le MVP : une API REST Spring Boot et une application Angular.
