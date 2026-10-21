@@ -35,13 +35,17 @@ describe('Shell', () => {
   const toolbarText = (element: HTMLElement) =>
     element.querySelector('mat-toolbar')?.textContent?.replace(/\s+/g, ' ').trim();
 
+  const logoAlt = (element: HTMLElement) =>
+    element.querySelector('mat-toolbar a.shell-logo img')?.getAttribute('alt');
+
   afterEach(() => logout.mockReset());
 
   it('shows only the logo on public pages', async () => {
     const element = (await render({ isAuthenticated: false, isHandset: false }))
       .nativeElement as HTMLElement;
 
-    expect(toolbarText(element)).toBe('MDD');
+    expect(logoAlt(element)).toBe('MDD, accueil');
+    expect(toolbarText(element)).toBe('');
     expect(element.querySelector('[aria-label="Ouvrir le menu"]')).toBeNull();
   });
 
@@ -64,14 +68,23 @@ describe('Shell', () => {
     const fixture = TestBed.createComponent(Shell);
     await fixture.whenStable();
 
-    expect(toolbarText(fixture.nativeElement as HTMLElement)).toBe('MDD');
+    expect(logoAlt(fixture.nativeElement as HTMLElement)).toBe('MDD, accueil');
   });
 
   it.each(['/login', '/register'])('shows the toolbar on %s', async (url) => {
     const element = (await render({ isAuthenticated: false, isHandset: false, url }))
       .nativeElement as HTMLElement;
 
-    expect(toolbarText(element)).toBe('MDD');
+    expect(logoAlt(element)).toBe('MDD, accueil');
+  });
+
+  it('names the logo link after its destination once logged in', async () => {
+    const element = (await render({ isAuthenticated: true, isHandset: false }))
+      .nativeElement as HTMLElement;
+    const logo = element.querySelector('mat-toolbar a.shell-logo');
+
+    expect(logo?.getAttribute('href')).toBe('/feed');
+    expect(logo?.querySelector('img')?.getAttribute('alt')).toBe('MDD, articles');
   });
 
   it('shows the navigation links on desktop once logged in', async () => {

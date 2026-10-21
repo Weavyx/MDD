@@ -12,7 +12,10 @@ describe('Home', () => {
   }
 
   it('shows the MDD logo', async () => {
-    expect((await render()).querySelector('.home-logo')?.textContent?.trim()).toBe('MDD');
+    const logo = (await render()).querySelector('img.home-logo');
+
+    expect(logo?.getAttribute('alt')).toBe('MDD');
+    expect(logo?.getAttribute('src')).toBe('logo-mdd.png');
   });
 
   it('links to the login and register pages', async () => {

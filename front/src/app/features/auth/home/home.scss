@@ -20,14 +20,9 @@
 }
 
 .home-logo {
-  margin: 0;
-  padding: 24px 56px;
-  border-radius: 999px 999px 999px 32px;
-  background-color: var(--mat-sys-primary);
-  color: var(--mat-sys-on-primary);
-  font: var(--mat-sys-display-large);
-  font-weight: 700;
-  letter-spacing: 4px;
+  display: block;
+  width: 320px;
+  height: auto;
 }
 
 .home-actions {
@@ -43,9 +38,7 @@
 
 @media (max-width: 599.98px) {
   .home-logo {
-    padding: 16px 40px;
-    font: var(--mat-sys-display-medium);
-    font-weight: 700;
+    width: 200px;
   }
 
   .home-actions {

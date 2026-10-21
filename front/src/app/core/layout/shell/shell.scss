@@ -16,11 +16,17 @@
   border-bottom: 1px solid var(--mat-sys-outline-variant);
 }
 
+// The logo is the image taken from the mockups; the link is named by its alt text, which
+// says where it leads (W3C, functional images).
 .shell-logo {
-  font: var(--mat-sys-headline-small);
-  font-weight: 700;
-  color: var(--mat-sys-primary);
-  text-decoration: none;
+  display: flex;
+  align-items: center;
+
+  img {
+    display: block;
+    height: 40px;
+    width: auto;
+  }
 }
 
 .shell-spacer {
