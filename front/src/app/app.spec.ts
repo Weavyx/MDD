@@ -11,7 +11,9 @@ describe('App', () => {
     await fixture.whenStable();
 
     const element = fixture.nativeElement as HTMLElement;
-    expect(element.querySelector('app-shell mat-toolbar')?.textContent).toContain('MDD');
+    expect(element.querySelector('app-shell mat-toolbar img')?.getAttribute('alt')).toContain(
+      'MDD',
+    );
     expect(element.querySelector('app-shell router-outlet')).not.toBeNull();
   });
 });

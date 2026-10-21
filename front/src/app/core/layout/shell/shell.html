@@ -46,7 +46,14 @@
   <mat-sidenav-content class="shell-body">
     @if (!isHome()) {
       <mat-toolbar class="shell-toolbar">
-        <a class="shell-logo" [routerLink]="isAuthenticated() ? '/feed' : '/'">MDD</a>
+        <a class="shell-logo" [routerLink]="isAuthenticated() ? '/feed' : '/'">
+          <img
+            src="logo-mdd.png"
+            [alt]="isAuthenticated() ? 'MDD, articles' : 'MDD, accueil'"
+            width="69"
+            height="40"
+          />
+        </a>
         @if (isAuthenticated()) {
           <span class="shell-spacer"></span>
           @if (isHandset()) {
