@@ -4,9 +4,12 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -15,6 +18,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
@@ -30,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * ce qui prouve que le jeton est lu puis refusé, et non ignoré, ce sont les mutations du filtre
  * et de {@code JwtService} (voir {@code RAPPORT_DE_TESTS.md}, §9).
  */
+@ExtendWith(OutputCaptureExtension.class)
 class AuthentificationIT extends ParcoursIT {
 
     /** Clé de l'application, pour signer un jeton authentique mais expiré. */
@@ -89,6 +94,41 @@ class AuthentificationIT extends ParcoursIT {
         // Assert
         reponse.andExpect(status().isUnauthorized())
                 .andExpect(header().string("WWW-Authenticate", startsWith("Bearer")));
+    }
+
+    @Test
+    void requeteProtegee_jetonSigneAvecUneAutreCle_journaliseUnAvertissementSansLeJeton(CapturedOutput output) throws Exception {
+        // Arrange : jeton bien formé et non expiré, mais signé avec une clé inconnue de l'API
+        SecretKey autreCle = Jwts.SIG.HS256.key().build();
+        Instant maintenant = Instant.now();
+        String jeton = signer(autreCle, maintenant, maintenant.plus(1, ChronoUnit.HOURS));
+
+        // Act
+        ResultActions reponse = mockMvc.perform(get("/api/user")
+                .header("Authorization", "Bearer " + jeton));
+
+        // Assert
+        reponse.andExpect(status().isUnauthorized());
+        assertThat(output.getAll().lines().filter(ligne -> ligne.contains("Jeton JWT refusé : SignatureException")))
+                .singleElement().asString().contains(" WARN ");
+        assertThat(output.getAll()).doesNotContain(jeton);
+    }
+
+    @Test
+    void requeteProtegee_jetonExpire_journaliseUneInformation(CapturedOutput output) throws Exception {
+        // Arrange : clé de l'application, expiration une heure dans le passé
+        SecretKey cleDeLApplication = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretDeLApplication));
+        Instant maintenant = Instant.now();
+        String jeton = signer(cleDeLApplication, maintenant.minus(2, ChronoUnit.HOURS), maintenant.minus(1, ChronoUnit.HOURS));
+
+        // Act
+        ResultActions reponse = mockMvc.perform(get("/api/user")
+                .header("Authorization", "Bearer " + jeton));
+
+        // Assert
+        reponse.andExpect(status().isUnauthorized());
+        assertThat(output.getAll().lines().filter(ligne -> ligne.contains("Jeton JWT expiré")))
+                .singleElement().asString().contains(" INFO ");
     }
 
     /** Fabrique un JWT HS256 signé avec {@code cle}, avec les dates d'émission et d'expiration voulues. */

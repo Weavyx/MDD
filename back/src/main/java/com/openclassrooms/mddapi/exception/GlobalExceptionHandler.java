@@ -1,6 +1,8 @@
 package com.openclassrooms.mddapi.exception;
 
 import com.openclassrooms.mddapi.dto.ErrorResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +35,8 @@ import java.util.Map;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
      * 400 avec {@code fieldErrors} : clé = nom du champ du DTO, valeur = {@code message}
@@ -91,7 +95,15 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        LOGGER.warn("Violation de contrainte : {}", describeConstraint(ex));
         return buildResponse(HttpStatus.CONFLICT, "La ressource entre en conflit avec une contrainte existante");
+    }
+
+    private static String describeConstraint(DataIntegrityViolationException ex) {
+        if (ex.getCause() instanceof org.hibernate.exception.ConstraintViolationException violation) {
+            return violation.getConstraintName() + " (" + violation.getKind() + ")";
+        }
+        return "inconnue";
     }
 
     /**

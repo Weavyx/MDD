@@ -1,6 +1,7 @@
 package com.openclassrooms.mddapi.security.jwt;
 
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -54,8 +55,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(userId, null, List.of()));
                 SecurityContextHolder.setContext(context);
                 securityContextRepository.saveContext(context, request, response);
+            } catch (ExpiredJwtException e) {
+                logger.info("Jeton JWT expiré");
             } catch (JwtException | IllegalArgumentException e) {
-                logger.debug("Jeton JWT refusé : " + e.getMessage());
+                logger.warn("Jeton JWT refusé : " + e.getClass().getSimpleName());
             }
         }
         filterChain.doFilter(request, response);

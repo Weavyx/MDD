@@ -4,9 +4,12 @@ import com.jayway.jsonpath.JsonPath;
 import com.openclassrooms.mddapi.repository.UserRepository;
 import com.openclassrooms.mddapi.security.jwt.JwtService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -27,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * La persistance de la connexion entre les sessions relève du front (jeton en
  * {@code localStorage}) : elle est vérifiée par les tests e2e, pas ici.
  */
+@ExtendWith(OutputCaptureExtension.class)
 class ConnexionIT extends ParcoursIT {
 
     @Autowired
@@ -97,6 +101,22 @@ class ConnexionIT extends ParcoursIT {
         reponse.andExpect(status().isUnauthorized())
                 .andExpect(header().string("WWW-Authenticate", startsWith("Bearer")))
                 .andExpect(content().string(""));
+    }
+
+    @Test
+    void connexion_motDePasseIncorrect_journaliseUnEchecSansIdentifiant(CapturedOutput output) throws Exception {
+        // Arrange
+        inscrire("connexion-mdp-faux");
+        String corps = corpsConnexion("connexion-mdp-faux@mail.com", "Mauvais1!");
+
+        // Act
+        ResultActions reponse = envoyerConnexion(corps);
+
+        // Assert
+        reponse.andExpect(status().isUnauthorized());
+        assertThat(output.getAll().lines().filter(ligne -> ligne.contains("Échec de connexion")))
+                .singleElement().asString().contains(" WARN ");
+        assertThat(output.getAll()).doesNotContain("connexion-mdp-faux", "connexion-mdp-faux@mail.com");
     }
 
     @Test
