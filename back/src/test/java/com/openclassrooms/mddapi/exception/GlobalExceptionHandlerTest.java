@@ -37,6 +37,7 @@ class GlobalExceptionHandlerTest {
 
         // Assert
         assertThat(reponse.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(reponse.getBody()).extracting(ErrorResponse::getMessage).isEqualTo("La ressource entre en conflit avec une contrainte existante");
         assertThat(output.getAll().lines().filter(ligne -> ligne.contains("Violation de contrainte : users.uk_users_email (UNIQUE)")))
                 .singleElement().asString().contains(" WARN ");
         assertThat(output.getAll()).doesNotContain("doublon@example.com");

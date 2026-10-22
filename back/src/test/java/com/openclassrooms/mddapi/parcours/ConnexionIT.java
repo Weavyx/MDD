@@ -14,6 +14,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.nio.charset.StandardCharsets;
+import java.text.Normalizer;
+import java.time.Duration;
+import java.util.Base64;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
@@ -106,8 +109,8 @@ class ConnexionIT extends ParcoursIT {
     @Test
     void connexion_motDePasseIncorrect_journaliseUnEchecSansIdentifiant(CapturedOutput output) throws Exception {
         // Arrange
-        inscrire("connexion-mdp-faux");
-        String corps = corpsConnexion("connexion-mdp-faux@mail.com", "Mauvais1!");
+        inscrire("connexion-journal");
+        String corps = corpsConnexion("connexion-journal@mail.com", "Mauvais1!");
 
         // Act
         ResultActions reponse = envoyerConnexion(corps);
@@ -116,7 +119,7 @@ class ConnexionIT extends ParcoursIT {
         reponse.andExpect(status().isUnauthorized());
         assertThat(output.getAll().lines().filter(ligne -> ligne.contains("Échec de connexion")))
                 .singleElement().asString().contains(" WARN ");
-        assertThat(output.getAll()).doesNotContain("connexion-mdp-faux", "connexion-mdp-faux@mail.com");
+        assertThat(output.getAll()).doesNotContain("connexion-journal", "connexion-journal@mail.com");
     }
 
     @Test
@@ -144,6 +147,44 @@ class ConnexionIT extends ParcoursIT {
 
         // Assert
         reponse.andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void connexion_jetonRenvoye_valable1440MinutesApresSonEmission() throws Exception {
+        // Arrange
+        inscrire("connexion-duree");
+        String corps = corpsConnexion("connexion-duree@mail.com", MOT_DE_PASSE);
+
+        // Act
+        ResultActions reponse = envoyerConnexion(corps);
+
+        // Assert : charge utile lue sans vérifier la signature, comme le front lit exp
+        reponse.andExpect(status().isOk());
+        String jeton = JsonPath.read(reponse.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), "$.token");
+        String chargeUtile = new String(Base64.getUrlDecoder().decode(jeton.split("\\.")[1]), StandardCharsets.UTF_8);
+        long emisLe = ((Number) JsonPath.read(chargeUtile, "$.iat")).longValue();
+        long expireLe = ((Number) JsonPath.read(chargeUtile, "$.exp")).longValue();
+        assertThat(expireLe - emisLe).isEqualTo(Duration.ofMinutes(1440).toSeconds());
+    }
+
+    @Test
+    void connexion_motDePasseAccentueSaisiSousUneAutreFormeUnicode_retourne200() throws Exception {
+        // Arrange : inscription avec « é » en un seul caractère (NFC), connexion avec « e » suivi de l'accent combinant (NFD)
+        String motDePasseNfc = Normalizer.normalize("Mot2passé!", Normalizer.Form.NFC);
+        String motDePasseNfd = Normalizer.normalize(motDePasseNfc, Normalizer.Form.NFD);
+        assertThat(motDePasseNfd).isNotEqualTo(motDePasseNfc);
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(corpsInscription("connexion-nfc", "connexion-nfc@mail.com", motDePasseNfc)))
+                .andExpect(status().isCreated());
+        String corps = corpsConnexion("connexion-nfc@mail.com", motDePasseNfd);
+
+        // Act
+        ResultActions reponse = envoyerConnexion(corps);
+
+        // Assert
+        reponse.andExpect(status().isOk());
+        verifierJetonDuCompte(reponse, "connexion-nfc");
     }
 
     @ParameterizedTest(name = "champ absent : {0}")
