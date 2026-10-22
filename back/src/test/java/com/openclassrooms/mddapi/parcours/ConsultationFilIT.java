@@ -1,8 +1,15 @@
 package com.openclassrooms.mddapi.parcours;
 
+import com.jayway.jsonpath.JsonPath;
+import com.openclassrooms.mddapi.repository.PostRepository;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -16,6 +23,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 class ConsultationFilIT extends ParcoursIT {
 
+    @Autowired
+    private PostRepository postRepository;
+
     /** Act commun : lit le fil du porteur de {@code jeton}, sans paramètre de tri. */
     private ResultActions consulterFil(String jeton) throws Exception {
         return mockMvc.perform(get("/api/user/feed")
@@ -26,7 +36,7 @@ class ConsultationFilIT extends ParcoursIT {
     void fil_contientLesArticlesDesThemesSuivisEtPasLesAutres() throws Exception {
         // Arrange : un article en Java, un en Python ; le lecteur ne suit que Java
         String jetonAuteur = inscrireEtConnecter("fil-auteur");
-        creerArticle(jetonAuteur, idDuTheme("Java"), "Article Java", "Contenu Java");
+        Long idArticleJava = creerArticle(jetonAuteur, idDuTheme("Java"), "Article Java", "Contenu Java");
         creerArticle(jetonAuteur, idDuTheme("Python"), "Article Python", "Contenu Python");
         String jetonLecteur = inscrireEtConnecter("fil-lecteur");
         abonner(jetonLecteur, idDuTheme("Java"));
@@ -40,8 +50,10 @@ class ConsultationFilIT extends ParcoursIT {
                 .andExpect(jsonPath("$[0].title").value("Article Java"))
                 .andExpect(jsonPath("$[0].topicName").value("Java"))
                 .andExpect(jsonPath("$[0].author").value("fil-auteur"))
-                .andExpect(jsonPath("$[0].excerpt").value("Contenu Java"))
-                .andExpect(jsonPath("$[0].createdAt").exists());
+                .andExpect(jsonPath("$[0].excerpt").value("Contenu Java"));
+        String dateRenvoyee = JsonPath.read(reponse.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), "$[0].createdAt");
+        viderLeCache();
+        assertThat(LocalDateTime.parse(dateRenvoyee)).isEqualTo(postRepository.findById(idArticleJava).orElseThrow().getCreatedAt());
     }
 
     @Test

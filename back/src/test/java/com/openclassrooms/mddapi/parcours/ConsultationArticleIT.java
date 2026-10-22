@@ -1,8 +1,15 @@
 package com.openclassrooms.mddapi.parcours;
 
+import com.jayway.jsonpath.JsonPath;
+import com.openclassrooms.mddapi.repository.PostRepository;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -14,6 +21,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * contenu, commentaires) ». Route : {@code GET /api/posts/{id}}.
  */
 class ConsultationArticleIT extends ParcoursIT {
+
+    @Autowired
+    private PostRepository postRepository;
 
     /** Act commun : lit l'article désigné dans l'URL. */
     private ResultActions consulterArticle(String jeton, String idArticle) throws Exception {
@@ -39,10 +49,12 @@ class ConsultationArticleIT extends ParcoursIT {
                 .andExpect(jsonPath("$.content").value("Contenu lu"))
                 .andExpect(jsonPath("$.topicName").value("Spring"))
                 .andExpect(jsonPath("$.author").value("lecture-auteur"))
-                .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.comments", hasSize(2)))
                 .andExpect(jsonPath("$.comments[*].content", contains("Premier commentaire", "Second commentaire")))
                 .andExpect(jsonPath("$.comments[*].author", contains("lecture-lecteur", "lecture-auteur")));
+        String dateRenvoyee = JsonPath.read(reponse.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), "$.createdAt");
+        viderLeCache();
+        assertThat(LocalDateTime.parse(dateRenvoyee)).isEqualTo(postRepository.findById(idArticle).orElseThrow().getCreatedAt());
     }
 
     @Test
