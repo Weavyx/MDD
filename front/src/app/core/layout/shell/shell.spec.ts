@@ -141,6 +141,21 @@ describe('Shell', () => {
     expect(sidenav?.classList).not.toContain('mat-drawer-opened');
   });
 
+  it('groups the side menu entries in a labelled navigation', async () => {
+    const fixture = await render({ isAuthenticated: true, isHandset: true });
+    const element = fixture.nativeElement as HTMLElement;
+
+    element.querySelector<HTMLButtonElement>('[aria-label="Ouvrir le menu"]')?.click();
+    await fixture.whenStable();
+
+    const nav = element.querySelector('mat-sidenav nav[aria-label="Menu principal"]');
+    expect(Array.from(nav?.children ?? [], (child) => child.textContent?.trim())).toEqual([
+      'Se déconnecter',
+      'Articles',
+      'Thèmes',
+    ]);
+  });
+
   it.each(['/feed', '/topics', '/profile'])(
     'closes the side menu when its %s link is followed',
     async (href) => {

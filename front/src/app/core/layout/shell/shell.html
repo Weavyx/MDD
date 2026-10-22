@@ -9,12 +9,12 @@
     [opened]="menuOpen()"
     (closedStart)="closeMenu()"
   >
-    <mat-nav-list aria-label="Menu principal">
-      <button mat-list-item type="button" class="shell-logout" (click)="logout()">
+    <nav class="shell-menu-nav" aria-label="Menu principal">
+      <button matButton type="button" class="shell-logout" (click)="logout()">
         <span class="shell-label">Se déconnecter</span>
       </button>
       <a
-        mat-list-item
+        matButton
         routerLink="/feed"
         routerLinkActive="shell-active"
         ariaCurrentWhenActive="page"
@@ -22,14 +22,14 @@
         ><span class="shell-label">Articles</span></a
       >
       <a
-        mat-list-item
+        matButton
         routerLink="/topics"
         routerLinkActive="shell-active"
         ariaCurrentWhenActive="page"
         (click)="closeMenu()"
         ><span class="shell-label">Thèmes</span></a
       >
-    </mat-nav-list>
+    </nav>
     <a
       matIconButton
       class="shell-menu-profile"

@@ -53,11 +53,14 @@
 .shell-menu {
   width: 220px;
   text-align: end;
+}
 
-  // A <button> list item would otherwise keep the user-agent `text-align: center`.
-  [mat-list-item] {
-    text-align: inherit;
-  }
+// One entry per line, right-aligned as in the mobile mockup.
+.shell-menu-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 8px;
 }
 
 .shell-menu-profile {
