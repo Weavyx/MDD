@@ -3,7 +3,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
-import { MatListItem, MatNavList } from '@angular/material/list';
 import { MatSidenav, MatSidenavContainer, MatSidenavContent } from '@angular/material/sidenav';
 import { MatToolbar } from '@angular/material/toolbar';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet, isActive } from '@angular/router';
@@ -30,8 +29,6 @@ import { AuthService } from '../../auth/auth.service';
     MatSidenavContainer,
     MatSidenav,
     MatSidenavContent,
-    MatNavList,
-    MatListItem,
   ],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
