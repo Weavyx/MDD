@@ -10,7 +10,7 @@ Réponse : sur la page d'accueil, cliquez sur « S'inscrire ». Remplissez les t
 
 - « Nom d'utilisateur » : entre 3 et 50 caractères, uniquement des lettres non accentuées, des chiffres, le point, le tiret et le tiret bas (pas d'espace ni d'`@`) ;
 - « Adresse e-mail » : une adresse valide, 255 caractères au plus ;
-- « Mot de passe » : il doit respecter la règle « Le mot de passe doit contenir au moins 8 caractères, dont une majuscule, une minuscule, un chiffre et un caractère spécial ». Le caractère spécial est un signe de ponctuation ou un symbole du clavier (par exemple `! ? @ # $ % & * - _ .`). Les espaces et les lettres accentuées ne comptent pas comme caractères spéciaux. Le mot de passe est aussi limité en taille : « Le mot de passe ne doit pas dépasser 72 octets (un caractère accentué en compte 2) ». Sans accent, la limite est donc de 72 lettres, chiffres ou symboles ; chaque lettre accentuée la réduit d'une unité.
+- « Mot de passe » : il doit respecter la règle « Le mot de passe doit contenir au moins 8 caractères, dont une majuscule, une minuscule, un chiffre et un caractère spécial ». Le caractère spécial est l'un des signes suivants : ``! " # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ ` { | } ~``. Les espaces, les lettres accentuées et les symboles comme « € » ou « § » ne comptent pas. Le mot de passe est aussi limité en taille : « Le mot de passe ne doit pas dépasser 72 octets (un caractère accentué en compte 2) ». Sans accent, la limite est donc de 72 lettres, chiffres ou symboles ; chaque lettre accentuée la réduit d'une unité.
 
 Cliquez ensuite sur « S'inscrire ». Vous êtes connecté immédiatement et arrivez sur votre fil d'articles.
 
@@ -28,7 +28,7 @@ Réponse : cliquez sur « Se déconnecter » dans la barre du haut. Sur téléph
 
 **Question : j'ai oublié mon mot de passe, que faire ?**
 
-Réponse : cette version de MDD ne propose pas de réinitialisation du mot de passe. Contactez l'administrateur de la plateforme.
+Réponse : cette version de MDD ne propose pas de réinitialisation du mot de passe. Contactez l'administrateur de la plateforme. Si vous êtes encore connecté, vous pouvez aussi en choisir un nouveau depuis votre profil.
 
 ## Thèmes et fil d'actualité
 
@@ -84,4 +84,4 @@ Réponse : votre session a expiré (24 heures après la connexion). L'applicatio
 
 **Question : que signifie « Article introuvable » ?**
 
-Réponse : l'article demandé n'existe pas, par exemple parce que le lien est erroné. La page affiche « Cet article n’existe pas ou a été supprimé. » ; le bouton « Retour au fil d’actualité » vous ramène à votre fil.
+Réponse : l'article demandé n'existe pas, par exemple parce que le lien est erroné. La page « Article introuvable » propose le bouton « Retour au fil d’actualité », qui vous ramène à votre fil.
