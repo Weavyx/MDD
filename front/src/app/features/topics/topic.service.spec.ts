@@ -34,7 +34,7 @@ describe('TopicService', () => {
   it('subscribes with POST /api/user/subscriptions/{topicId}', () => {
     let done = false;
 
-    service.subscribe(3).subscribe(() => (done = true));
+    service.subscribeTo(3).subscribe(() => (done = true));
 
     const req = httpTesting.expectOne({ method: 'POST', url: '/api/user/subscriptions/3' });
     expect(req.request.body).toBeNull();

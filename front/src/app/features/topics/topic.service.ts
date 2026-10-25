@@ -15,7 +15,7 @@ export class TopicService {
   }
 
   /** `POST /api/user/subscriptions/{topicId}` — 201 without body, 409 if already subscribed. */
-  subscribe(topicId: number): Observable<void> {
+  subscribeTo(topicId: number): Observable<void> {
     return this.http.post<void>(`/api/user/subscriptions/${topicId}`, null);
   }
 
