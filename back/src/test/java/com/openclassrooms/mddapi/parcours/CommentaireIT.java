@@ -1,11 +1,11 @@
 package com.openclassrooms.mddapi.parcours;
 
 import com.openclassrooms.mddapi.model.Comment;
-import com.openclassrooms.mddapi.repository.CommentRepository;
+import com.openclassrooms.mddapi.model.Post;
+import com.openclassrooms.mddapi.model.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -23,15 +23,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * « Lors de l'ajout d'un commentaire, l'auteur et la date sont définis automatiquement ».
  * Route : {@code POST /api/posts/{id}/comments}.
  */
-class CommentaireIT extends ParcoursIT {
+class CommentaireIT extends ActionIT {
 
-    @Autowired
-    private CommentRepository commentRepository;
-
-    /** Act commun : envoie {@code corps} comme commentaire de l'article désigné dans l'URL. */
-    private ResultActions commenterArticle(String jeton, String idArticle, String corps) throws Exception {
+    /** Act commun : envoie {@code corps} comme commentaire de l'article désigné dans l'URL, au nom de l'utilisateur connecté. */
+    private ResultActions commenterArticle(String idArticle, String corps) throws Exception {
         return mockMvc.perform(post("/api/posts/" + idArticle + "/comments")
-                .header("Authorization", "Bearer " + jeton)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(corps));
     }
@@ -39,18 +35,18 @@ class CommentaireIT extends ParcoursIT {
     @Test
     void commentaire_valide_retourne201EtEnregistreAvecAuteurEtDate() throws Exception {
         // Arrange
-        String jetonAuteur = inscrireEtConnecter("comm-auteur");
-        Long idArticle = creerArticle(jetonAuteur, idDuTheme("Java"), "Article commente", "Contenu");
-        String jetonCommentateur = inscrireEtConnecter("comm-lecteur");
+        User auteur = creerUtilisateur("comm-auteur");
+        Post article = creerArticle(auteur, idDuTheme("Java"), "Article commente", "Contenu");
+        connecterEnTantQue(creerUtilisateur("comm-lecteur"));
         LocalDateTime avant = LocalDateTime.now().minusSeconds(5);
 
         // Act
-        ResultActions reponse = commenterArticle(jetonCommentateur, idArticle.toString(), "{\"content\":\"Bel article\"}");
+        ResultActions reponse = commenterArticle(article.getId().toString(), "{\"content\":\"Bel article\"}");
 
         // Assert
         reponse.andExpect(status().isCreated());
         viderLeCache();
-        List<Comment> commentaires = commentRepository.findByPostIdOrderByCreatedAtAsc(idArticle);
+        List<Comment> commentaires = commentRepository.findByPostIdOrderByCreatedAtAsc(article.getId());
         assertThat(commentaires).hasSize(1);
         Comment commentaire = commentaires.get(0);
         assertThat(commentaire.getContent()).isEqualTo("Bel article");
@@ -61,10 +57,10 @@ class CommentaireIT extends ParcoursIT {
     @Test
     void commentaire_articleInexistant_retourne404() throws Exception {
         // Arrange
-        String jeton = inscrireEtConnecter("comm-inexistant");
+        connecterEnTantQue(creerUtilisateur("comm-inexistant"));
 
         // Act
-        ResultActions reponse = commenterArticle(jeton, "999999", "{\"content\":\"Bel article\"}");
+        ResultActions reponse = commenterArticle("999999", "{\"content\":\"Bel article\"}");
 
         // Assert
         reponse.andExpect(status().isNotFound())
@@ -79,11 +75,12 @@ class CommentaireIT extends ParcoursIT {
     @MethodSource("contenusInvalides")
     void commentaire_contenuInvalide_retourne400(String contenu) throws Exception {
         // Arrange : contenu vide ou de 1001 caractères
-        String jetonAuteur = inscrireEtConnecter("comm-invalide");
-        Long idArticle = creerArticle(jetonAuteur, idDuTheme("Java"), "Article", "Contenu");
+        User auteur = creerUtilisateur("comm-invalide");
+        Post article = creerArticle(auteur, idDuTheme("Java"), "Article", "Contenu");
+        connecterEnTantQue(auteur);
 
         // Act
-        ResultActions reponse = commenterArticle(jetonAuteur, idArticle.toString(), "{\"content\":\"" + contenu + "\"}");
+        ResultActions reponse = commenterArticle(article.getId().toString(), "{\"content\":\"" + contenu + "\"}");
 
         // Assert
         reponse.andExpect(status().isBadRequest())

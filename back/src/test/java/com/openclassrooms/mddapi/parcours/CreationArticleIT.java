@@ -1,11 +1,9 @@
 package com.openclassrooms.mddapi.parcours;
 
 import com.openclassrooms.mddapi.model.Post;
-import com.openclassrooms.mddapi.repository.PostRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -23,15 +21,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * titre et le contenu) » ; « Lors de l'ajout d'un article, l'auteur et la date sont définis
  * automatiquement ». Route : {@code POST /api/posts}.
  */
-class CreationArticleIT extends ParcoursIT {
+class CreationArticleIT extends ActionIT {
 
-    @Autowired
-    private PostRepository postRepository;
-
-    /** Act commun : publie {@code corps} pour le porteur de {@code jeton}. */
-    private ResultActions publier(String jeton, String corps) throws Exception {
+    /** Act commun : publie {@code corps} au nom de l'utilisateur connecté. */
+    private ResultActions publier(String corps) throws Exception {
         return mockMvc.perform(post("/api/posts")
-                .header("Authorization", "Bearer " + jeton)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(corps));
     }
@@ -50,11 +44,11 @@ class CreationArticleIT extends ParcoursIT {
     @Test
     void creation_donneesValides_retourne201EtEnregistreLArticle() throws Exception {
         // Arrange
-        String jeton = inscrireEtConnecter("article-auteur");
+        connecterEnTantQue(creerUtilisateur("article-auteur"));
         String corps = corpsArticle(idDuTheme("Java"), "Mon titre", "Mon contenu");
 
         // Act
-        ResultActions reponse = publier(jeton, corps);
+        ResultActions reponse = publier(corps);
 
         // Assert
         reponse.andExpect(status().isCreated())
@@ -70,13 +64,13 @@ class CreationArticleIT extends ParcoursIT {
     @Test
     void creation_auteurEtDateDefinisParLeServeur() throws Exception {
         // Arrange : le corps tente d'imposer un auteur et une date ; ils doivent être ignorés
-        String jeton = inscrireEtConnecter("article-vrai-auteur");
+        connecterEnTantQue(creerUtilisateur("article-vrai-auteur"));
         String corps = "{\"topicId\":" + idDuTheme("Java") + ",\"title\":\"Titre\",\"content\":\"Contenu\","
                 + "\"author\":\"pirate\",\"createdAt\":\"2000-01-01T00:00:00\"}";
         LocalDateTime avant = LocalDateTime.now().minusSeconds(5);
 
         // Act
-        ResultActions reponse = publier(jeton, corps);
+        ResultActions reponse = publier(corps);
 
         // Assert
         reponse.andExpect(status().isCreated());
@@ -89,11 +83,11 @@ class CreationArticleIT extends ParcoursIT {
     @Test
     void creation_themeInexistant_retourne404() throws Exception {
         // Arrange
-        String jeton = inscrireEtConnecter("article-sans-theme");
+        connecterEnTantQue(creerUtilisateur("article-sans-theme"));
         String corps = corpsArticle(999999L, "Titre", "Contenu");
 
         // Act
-        ResultActions reponse = publier(jeton, corps);
+        ResultActions reponse = publier(corps);
 
         // Assert
         reponse.andExpect(status().isNotFound())
@@ -108,10 +102,10 @@ class CreationArticleIT extends ParcoursIT {
             """)
     void creation_champInvalide_retourne400(String champ, String corps) throws Exception {
         // Arrange : corps fourni par @CsvSource, un champ vide ou absent par cas
-        String jeton = inscrireEtConnecter("article-invalide");
+        connecterEnTantQue(creerUtilisateur("article-invalide"));
 
         // Act
-        ResultActions reponse = publier(jeton, corps);
+        ResultActions reponse = publier(corps);
 
         // Assert
         reponse.andExpect(status().isBadRequest())

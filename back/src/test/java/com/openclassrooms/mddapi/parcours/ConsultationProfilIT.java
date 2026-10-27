@@ -1,8 +1,7 @@
 package com.openclassrooms.mddapi.parcours;
 
-import com.openclassrooms.mddapi.security.jwt.JwtService;
+import com.openclassrooms.mddapi.model.User;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.ResultActions;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -17,24 +16,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Action de la spécification : « Consulter son profil (e-mail, nom d'utilisateur et
  * abonnements) via la page de profil ». Route : {@code GET /api/user}.
  */
-class ConsultationProfilIT extends ParcoursIT {
+class ConsultationProfilIT extends ActionIT {
 
-    @Autowired
-    private JwtService jwtService;
-
-    /** Act commun : lit le profil du porteur de {@code jeton}. */
-    private ResultActions consulterProfil(String jeton) throws Exception {
-        return mockMvc.perform(get("/api/user")
-                .header("Authorization", "Bearer " + jeton));
+    /** Act commun : lit le profil de l'utilisateur connecté. */
+    private ResultActions consulterProfil() throws Exception {
+        return mockMvc.perform(get("/api/user"));
     }
 
     @Test
     void consultation_compteSansAbonnement_retourneEmailNomEtListeVide() throws Exception {
         // Arrange
-        String jeton = inscrireEtConnecter("profil-vide");
+        connecterEnTantQue(creerUtilisateur("profil-vide"));
 
         // Act
-        ResultActions reponse = consulterProfil(jeton);
+        ResultActions reponse = consulterProfil();
 
         // Assert
         reponse.andExpect(status().isOk())
@@ -48,12 +43,13 @@ class ConsultationProfilIT extends ParcoursIT {
     @Test
     void consultation_compteAbonne_retourneLesThemesSuivis() throws Exception {
         // Arrange
-        String jeton = inscrireEtConnecter("profil-abonne");
-        abonner(jeton, idDuTheme("Java"));
-        abonner(jeton, idDuTheme("Angular"));
+        User compte = creerUtilisateur("profil-abonne");
+        abonner(compte, idDuTheme("Java"));
+        abonner(compte, idDuTheme("Angular"));
+        connecterEnTantQue(compte);
 
         // Act
-        ResultActions reponse = consulterProfil(jeton);
+        ResultActions reponse = consulterProfil();
 
         // Assert
         reponse.andExpect(status().isOk())
@@ -64,11 +60,11 @@ class ConsultationProfilIT extends ParcoursIT {
 
     @Test
     void consultation_compteInexistant_retourne404() throws Exception {
-        // Arrange : jeton valide portant l'id d'un compte qui n'existe pas
-        String jeton = jwtService.generateToken("999999");
+        // Arrange : utilisateur connecté portant l'id d'un compte qui n'existe pas
+        connecterEnTantQue(999999L);
 
         // Act
-        ResultActions reponse = consulterProfil(jeton);
+        ResultActions reponse = consulterProfil();
 
         // Assert
         reponse.andExpect(status().isNotFound())

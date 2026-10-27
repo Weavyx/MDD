@@ -1,5 +1,6 @@
 package com.openclassrooms.mddapi.parcours;
 
+import com.openclassrooms.mddapi.model.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -14,21 +15,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Action de la spécification : « Consulter la liste de tous les thèmes (que l'utilisateur y
  * soit abonné ou non) via une page dédiée ». Route : {@code GET /api/topics}.
  */
-class ConsultationThemesIT extends ParcoursIT {
+class ConsultationThemesIT extends ActionIT {
 
-    /** Act commun : lit la liste des thèmes pour le porteur de {@code jeton}. */
-    private ResultActions consulterThemes(String jeton) throws Exception {
-        return mockMvc.perform(get("/api/topics")
-                .header("Authorization", "Bearer " + jeton));
+    /** Act commun : lit la liste des thèmes pour l'utilisateur connecté. */
+    private ResultActions consulterThemes() throws Exception {
+        return mockMvc.perform(get("/api/topics"));
     }
 
     @Test
     void themes_retourneLesHuitThemesDeReference() throws Exception {
         // Arrange
-        String jeton = inscrireEtConnecter("themes-liste");
+        connecterEnTantQue(creerUtilisateur("themes-liste"));
 
         // Act
-        ResultActions reponse = consulterThemes(jeton);
+        ResultActions reponse = consulterThemes();
 
         // Assert
         reponse.andExpect(status().isOk())
@@ -40,11 +40,12 @@ class ConsultationThemesIT extends ParcoursIT {
     @Test
     void themes_indiqueLesAbonnementsDuCompte() throws Exception {
         // Arrange
-        String jeton = inscrireEtConnecter("themes-abonne");
-        abonner(jeton, idDuTheme("Java"));
+        User compte = creerUtilisateur("themes-abonne");
+        abonner(compte, idDuTheme("Java"));
+        connecterEnTantQue(compte);
 
         // Act
-        ResultActions reponse = consulterThemes(jeton);
+        ResultActions reponse = consulterThemes();
 
         // Assert
         reponse.andExpect(status().isOk())
@@ -55,12 +56,11 @@ class ConsultationThemesIT extends ParcoursIT {
     @Test
     void themes_abonnementsDUnAutreCompte_nApparaissentPas() throws Exception {
         // Arrange : un autre compte suit Java, pas le compte qui consulte
-        String jetonAutre = inscrireEtConnecter("themes-autre");
-        abonner(jetonAutre, idDuTheme("Java"));
-        String jeton = inscrireEtConnecter("themes-moi");
+        abonner(creerUtilisateur("themes-autre"), idDuTheme("Java"));
+        connecterEnTantQue(creerUtilisateur("themes-moi"));
 
         // Act
-        ResultActions reponse = consulterThemes(jeton);
+        ResultActions reponse = consulterThemes();
 
         // Assert
         reponse.andExpect(status().isOk())
