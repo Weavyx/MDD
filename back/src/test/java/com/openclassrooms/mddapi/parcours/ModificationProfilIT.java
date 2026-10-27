@@ -43,15 +43,16 @@ class ModificationProfilIT extends ActionIT {
         return motDePasse == null ? debut + "}" : debut + ",\"password\":\"" + motDePasse + "\"}";
     }
 
-    /** Relecture en base d'un compte par e-mail ou nom d'utilisateur. */
-    private User compte(String identifiant) {
-        return userRepository.findByEmailOrUsername(identifiant).orElseThrow();
+    /** Relecture en base de {@code compte} par son identifiant, sans passer par la requête de connexion. */
+    private User relire(User compte) {
+        return userRepository.findById(compte.getId()).orElseThrow();
     }
 
     @Test
     void modification_emailEtNom_retourne200EtEnregistreLesNouvellesValeurs() throws Exception {
         // Arrange
-        connecterEnTantQue(creerUtilisateur("profil-avant"));
+        User compte = creerUtilisateur("profil-avant");
+        connecterEnTantQue(compte);
         String corps = corpsProfil("profil-apres", "profil-apres@mail.com", null);
 
         // Act
@@ -62,8 +63,9 @@ class ModificationProfilIT extends ActionIT {
                 .andExpect(jsonPath("$.username").value("profil-apres"))
                 .andExpect(jsonPath("$.email").value("profil-apres@mail.com"));
         viderLeCache();
-        assertThat(compte("profil-apres").getEmail()).isEqualTo("profil-apres@mail.com");
-        assertThat(userRepository.findByEmailOrUsername("profil-avant@mail.com")).isEmpty();
+        User relu = relire(compte);
+        assertThat(relu.getUsername()).isEqualTo("profil-apres");
+        assertThat(relu.getEmail()).isEqualTo("profil-apres@mail.com");
     }
 
     @Test
@@ -82,7 +84,7 @@ class ModificationProfilIT extends ActionIT {
                 .andExpect(jsonPath("$.password").doesNotExist())
                 .andExpect(jsonPath("$.passwordHash").doesNotExist());
         viderLeCache();
-        String hash = compte("profil-mdp").getPasswordHash();
+        String hash = relire(compte).getPasswordHash();
         assertThat(passwordEncoder.matches("NouveauMdp1!", hash)).isTrue();
         assertThat(passwordEncoder.matches(MOT_DE_PASSE, hash)).isFalse();
     }
@@ -101,14 +103,15 @@ class ModificationProfilIT extends ActionIT {
         // Assert
         reponse.andExpect(status().isOk());
         viderLeCache();
-        assertThat(compte("profil-garde-2").getPasswordHash()).isEqualTo(hashAvant);
+        assertThat(relire(compte).getPasswordHash()).isEqualTo(hashAvant);
     }
 
     @Test
     void modification_emailPrisParUnAutreCompte_retourne409() throws Exception {
         // Arrange
         creerUtilisateur("profil-autre");
-        connecterEnTantQue(creerUtilisateur("profil-moi"));
+        User moi = creerUtilisateur("profil-moi");
+        connecterEnTantQue(moi);
         String corps = corpsProfil("profil-moi", "profil-autre@mail.com", null);
 
         // Act
@@ -118,14 +121,15 @@ class ModificationProfilIT extends ActionIT {
         reponse.andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Cet email est déjà utilisé"));
         viderLeCache();
-        assertThat(compte("profil-moi").getEmail()).isEqualTo("profil-moi@mail.com");
+        assertThat(relire(moi).getEmail()).isEqualTo("profil-moi@mail.com");
     }
 
     @Test
     void modification_nomPrisParUnAutreCompte_retourne409() throws Exception {
         // Arrange
         creerUtilisateur("profil-autre-nom");
-        connecterEnTantQue(creerUtilisateur("profil-moi-nom"));
+        User moi = creerUtilisateur("profil-moi-nom");
+        connecterEnTantQue(moi);
         String corps = corpsProfil("profil-autre-nom", "profil-moi-nom@mail.com", null);
 
         // Act
@@ -135,7 +139,7 @@ class ModificationProfilIT extends ActionIT {
         reponse.andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Ce nom d'utilisateur est déjà utilisé"));
         viderLeCache();
-        assertThat(compte("profil-moi-nom@mail.com").getUsername()).isEqualTo("profil-moi-nom");
+        assertThat(relire(moi).getUsername()).isEqualTo("profil-moi-nom");
     }
 
     @Test

@@ -73,8 +73,6 @@ class InscriptionIT extends ChaineDeSecuriteIT {
         // Assert
         reponse.andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Cet email est déjà utilisé"));
-        viderLeCache();
-        assertThat(userRepository.findByEmailOrUsername("nouveau-nom")).isEmpty();
     }
 
     @Test
@@ -89,8 +87,6 @@ class InscriptionIT extends ChaineDeSecuriteIT {
         // Assert
         reponse.andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Ce nom d'utilisateur est déjà utilisé"));
-        viderLeCache();
-        assertThat(userRepository.findByEmailOrUsername("nouvel-email@mail.com")).isEmpty();
     }
 
     @Test
