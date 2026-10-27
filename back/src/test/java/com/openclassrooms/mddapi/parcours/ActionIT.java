@@ -1,8 +1,12 @@
 package com.openclassrooms.mddapi.parcours;
 
 import com.openclassrooms.mddapi.AbstractContainerIT;
+import com.openclassrooms.mddapi.model.Comment;
+import com.openclassrooms.mddapi.model.Post;
 import com.openclassrooms.mddapi.model.Subscription;
 import com.openclassrooms.mddapi.model.User;
+import com.openclassrooms.mddapi.repository.CommentRepository;
+import com.openclassrooms.mddapi.repository.PostRepository;
 import com.openclassrooms.mddapi.repository.SubscriptionRepository;
 import com.openclassrooms.mddapi.repository.TopicRepository;
 import com.openclassrooms.mddapi.repository.UserRepository;
@@ -58,6 +62,12 @@ abstract class ActionIT extends AbstractContainerIT {
     @Autowired
     protected SubscriptionRepository subscriptionRepository;
 
+    @Autowired
+    protected PostRepository postRepository;
+
+    @Autowired
+    protected CommentRepository commentRepository;
+
     /** Aucun test ne démarre avec l'utilisateur connecté d'un test précédent. */
     @BeforeEach
     void partirSansUtilisateurConnecte() {
@@ -90,8 +100,16 @@ abstract class ActionIT extends AbstractContainerIT {
      * {@code JwtAuthenticationFilter} pour un jeton valide. Aucune route de connexion n'est appelée.
      */
     protected void connecterEnTantQue(User user) {
+        connecterEnTantQue(user.getId());
+    }
+
+    /**
+     * Arrange : pose l'id {@code idUtilisateur} comme utilisateur connecté, même si aucun compte
+     * ne le porte (cas d'un jeton valide dont le compte n'existe plus).
+     */
+    protected void connecterEnTantQue(Long idUtilisateur) {
         SecurityContextHolder.getContext().setAuthentication(
-                UsernamePasswordAuthenticationToken.authenticated(user.getId(), null, List.of()));
+                UsernamePasswordAuthenticationToken.authenticated(idUtilisateur, null, List.of()));
     }
 
     /** Arrange : id d'un thème de référence (migration Flyway V2) d'après son nom. */
@@ -106,5 +124,15 @@ abstract class ActionIT extends AbstractContainerIT {
     /** Arrange : abonne {@code user} au thème {@code idTheme} par le repository. */
     protected void abonner(User user, Long idTheme) {
         subscriptionRepository.save(new Subscription(user, topicRepository.findById(idTheme).orElseThrow()));
+    }
+
+    /** Arrange : publie l'article de {@code auteur} dans le thème {@code idTheme} par le repository. */
+    protected Post creerArticle(User auteur, Long idTheme, String titre, String contenu) {
+        return postRepository.save(new Post(titre, contenu, auteur, topicRepository.findById(idTheme).orElseThrow()));
+    }
+
+    /** Arrange : enregistre le commentaire de {@code auteur} sur {@code article} par le repository. */
+    protected Comment commenter(User auteur, Post article, String contenu) {
+        return commentRepository.save(new Comment(auteur, article, contenu));
     }
 }
