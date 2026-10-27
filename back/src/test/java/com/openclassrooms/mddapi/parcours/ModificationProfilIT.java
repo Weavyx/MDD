@@ -1,7 +1,6 @@
 package com.openclassrooms.mddapi.parcours;
 
 import com.openclassrooms.mddapi.model.User;
-import com.openclassrooms.mddapi.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -23,18 +22,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>
  * Mot de passe : clé absente = inchangé ; vide, blanc ou non conforme = 400.
  */
-class ModificationProfilIT extends ParcoursIT {
+class ModificationProfilIT extends ActionIT {
 
-    @Autowired
-    private UserRepository userRepository;
+    /** Mot de passe conforme ; mot de passe actuel du compte dont le test vérifie le remplacement. */
+    private static final String MOT_DE_PASSE = "Password1!";
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    /** Act commun : envoie {@code corps} à la route de modification du profil. */
-    private ResultActions modifierProfil(String jeton, String corps) throws Exception {
+    /** Act commun : envoie {@code corps} à la route de modification du profil, au nom de l'utilisateur connecté. */
+    private ResultActions modifierProfil(String corps) throws Exception {
         return mockMvc.perform(patch("/api/user")
-                .header("Authorization", "Bearer " + jeton)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(corps));
     }
@@ -53,11 +51,11 @@ class ModificationProfilIT extends ParcoursIT {
     @Test
     void modification_emailEtNom_retourne200EtEnregistreLesNouvellesValeurs() throws Exception {
         // Arrange
-        String jeton = inscrireEtConnecter("profil-avant");
+        connecterEnTantQue(creerUtilisateur("profil-avant"));
         String corps = corpsProfil("profil-apres", "profil-apres@mail.com", null);
 
         // Act
-        ResultActions reponse = modifierProfil(jeton, corps);
+        ResultActions reponse = modifierProfil(corps);
 
         // Assert
         reponse.andExpect(status().isOk())
@@ -70,12 +68,14 @@ class ModificationProfilIT extends ParcoursIT {
 
     @Test
     void modification_nouveauMotDePasse_remplaceLeHash() throws Exception {
-        // Arrange
-        String jeton = inscrireEtConnecter("profil-mdp");
+        // Arrange : compte dont le mot de passe actuel, MOT_DE_PASSE, est réellement haché
+        User compte = creerUtilisateur("profil-mdp");
+        compte.setPasswordHash(passwordEncoder.encode(MOT_DE_PASSE));
+        connecterEnTantQue(compte);
         String corps = corpsProfil("profil-mdp", "profil-mdp@mail.com", "NouveauMdp1!");
 
         // Act
-        ResultActions reponse = modifierProfil(jeton, corps);
+        ResultActions reponse = modifierProfil(corps);
 
         // Assert
         reponse.andExpect(status().isOk())
@@ -90,12 +90,13 @@ class ModificationProfilIT extends ParcoursIT {
     @Test
     void modification_sansMotDePasse_conserveLeHash() throws Exception {
         // Arrange
-        String jeton = inscrireEtConnecter("profil-garde");
-        String hashAvant = compte("profil-garde").getPasswordHash();
+        User compte = creerUtilisateur("profil-garde");
+        String hashAvant = compte.getPasswordHash();
+        connecterEnTantQue(compte);
         String corps = corpsProfil("profil-garde-2", "profil-garde@mail.com", null);
 
         // Act
-        ResultActions reponse = modifierProfil(jeton, corps);
+        ResultActions reponse = modifierProfil(corps);
 
         // Assert
         reponse.andExpect(status().isOk());
@@ -106,12 +107,12 @@ class ModificationProfilIT extends ParcoursIT {
     @Test
     void modification_emailPrisParUnAutreCompte_retourne409() throws Exception {
         // Arrange
-        inscrire("profil-autre");
-        String jeton = inscrireEtConnecter("profil-moi");
+        creerUtilisateur("profil-autre");
+        connecterEnTantQue(creerUtilisateur("profil-moi"));
         String corps = corpsProfil("profil-moi", "profil-autre@mail.com", null);
 
         // Act
-        ResultActions reponse = modifierProfil(jeton, corps);
+        ResultActions reponse = modifierProfil(corps);
 
         // Assert
         reponse.andExpect(status().isConflict())
@@ -123,12 +124,12 @@ class ModificationProfilIT extends ParcoursIT {
     @Test
     void modification_nomPrisParUnAutreCompte_retourne409() throws Exception {
         // Arrange
-        inscrire("profil-autre-nom");
-        String jeton = inscrireEtConnecter("profil-moi-nom");
+        creerUtilisateur("profil-autre-nom");
+        connecterEnTantQue(creerUtilisateur("profil-moi-nom"));
         String corps = corpsProfil("profil-autre-nom", "profil-moi-nom@mail.com", null);
 
         // Act
-        ResultActions reponse = modifierProfil(jeton, corps);
+        ResultActions reponse = modifierProfil(corps);
 
         // Assert
         reponse.andExpect(status().isConflict())
@@ -141,11 +142,11 @@ class ModificationProfilIT extends ParcoursIT {
     void modification_casseDeSesPropresEmailEtNom_retourne200() throws Exception {
         // Arrange : la base compare sans tenir compte de la casse (utf8mb4_0900_ai_ci) ;
         // le compte ne doit pas entrer en conflit avec lui-même
-        String jeton = inscrireEtConnecter("profil-casse");
+        connecterEnTantQue(creerUtilisateur("profil-casse"));
         String corps = corpsProfil("Profil-Casse", "Profil-Casse@mail.com", null);
 
         // Act
-        ResultActions reponse = modifierProfil(jeton, corps);
+        ResultActions reponse = modifierProfil(corps);
 
         // Assert
         reponse.andExpect(status().isOk())
@@ -157,11 +158,11 @@ class ModificationProfilIT extends ParcoursIT {
     @ValueSource(strings = {"", "   ", "Password1"})
     void modification_motDePasseInvalide_retourne400(String motDePasse) throws Exception {
         // Arrange : clé présente mais vide, blanche ou sans caractère spécial
-        String jeton = inscrireEtConnecter("profil-mdp-invalide");
+        connecterEnTantQue(creerUtilisateur("profil-mdp-invalide"));
         String corps = corpsProfil("profil-mdp-invalide", "profil-mdp-invalide@mail.com", motDePasse);
 
         // Act
-        ResultActions reponse = modifierProfil(jeton, corps);
+        ResultActions reponse = modifierProfil(corps);
 
         // Assert
         reponse.andExpect(status().isBadRequest())
@@ -171,11 +172,11 @@ class ModificationProfilIT extends ParcoursIT {
     @Test
     void modification_motDePasseDe74Octets_retourne400() throws Exception {
         // Arrange : 10 caractères ASCII + 32 « é » de 2 octets = 74 octets, mais 42 caractères
-        String jeton = inscrireEtConnecter("profil-mdp-long");
+        connecterEnTantQue(creerUtilisateur("profil-mdp-long"));
         String corps = corpsProfil("profil-mdp-long", "profil-mdp-long@mail.com", MOT_DE_PASSE + "é".repeat(32));
 
         // Act
-        ResultActions reponse = modifierProfil(jeton, corps);
+        ResultActions reponse = modifierProfil(corps);
 
         // Assert
         reponse.andExpect(status().isBadRequest())
@@ -191,10 +192,10 @@ class ModificationProfilIT extends ParcoursIT {
             """)
     void modification_donneesInvalides_retourne400(String champ, String corps) throws Exception {
         // Arrange : corps fourni par @CsvSource, un champ invalide ou absent par cas
-        String jeton = inscrireEtConnecter("profil-invalide");
+        connecterEnTantQue(creerUtilisateur("profil-invalide"));
 
         // Act
-        ResultActions reponse = modifierProfil(jeton, corps);
+        ResultActions reponse = modifierProfil(corps);
 
         // Assert
         reponse.andExpect(status().isBadRequest())

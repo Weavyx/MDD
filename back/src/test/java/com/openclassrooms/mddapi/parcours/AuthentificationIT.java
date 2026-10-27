@@ -1,7 +1,6 @@
 package com.openclassrooms.mddapi.parcours;
 
 import com.openclassrooms.mddapi.model.User;
-import com.openclassrooms.mddapi.repository.UserRepository;
 import com.openclassrooms.mddapi.security.jwt.JwtService;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -41,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * et de {@code JwtService} (voir {@code RAPPORT_DE_TESTS.md}, §9).
  */
 @ExtendWith(OutputCaptureExtension.class)
-class AuthentificationIT extends ParcoursIT {
+class AuthentificationIT extends ChaineDeSecuriteIT {
 
     /** Clé de l'application, pour signer un jeton authentique mais expiré. */
     @Value("${mdd.jwt.secret}")
@@ -49,9 +48,6 @@ class AuthentificationIT extends ParcoursIT {
 
     @Autowired
     private JwtService jwtService;
-
-    @Autowired
-    private UserRepository userRepository;
 
     @ParameterizedTest(name = "{0} {1} sans jeton")
     @CsvSource({
@@ -111,7 +107,7 @@ class AuthentificationIT extends ParcoursIT {
     @Test
     void routeProtegee_jetonValide_retourne200PourLeBonUtilisateur() throws Exception {
         // Arrange : compte en base, jeton fabriqué par l'application pour son id
-        User compte = creerCompte("auth-jeton-valide");
+        User compte = creerCompte("auth-jeton-valide", MOT_DE_PASSE);
         String jeton = jwtService.generateToken(compte.getId().toString());
 
         // Act
@@ -127,7 +123,7 @@ class AuthentificationIT extends ParcoursIT {
     @Test
     void routeProtegee_jetonValideSansPrefixeBearer_retourne401() throws Exception {
         // Arrange : jeton authentique pour un compte existant, envoyé sans le préfixe « Bearer »
-        User compte = creerCompte("auth-sans-prefixe");
+        User compte = creerCompte("auth-sans-prefixe", MOT_DE_PASSE);
         String jeton = jwtService.generateToken(compte.getId().toString());
 
         // Act
@@ -172,15 +168,6 @@ class AuthentificationIT extends ParcoursIT {
         reponse.andExpect(status().isUnauthorized());
         assertThat(output.getAll().lines().filter(ligne -> ligne.contains("Jeton JWT expiré")))
                 .singleElement().asString().contains(" INFO ");
-    }
-
-    /** Arrange : enregistre un compte par le repository ; il ne se connecte jamais par la route. */
-    private User creerCompte(String username) {
-        User user = new User();
-        user.setUsername(username);
-        user.setEmail(username + "@mail.com");
-        user.setPasswordHash("non-utilise-sans-connexion");
-        return userRepository.save(user);
     }
 
     /** Fabrique un JWT HS256 signé avec {@code cle}, avec les dates d'émission et d'expiration voulues. */

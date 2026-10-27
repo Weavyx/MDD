@@ -1,7 +1,7 @@
 package com.openclassrooms.mddapi.parcours;
 
 import com.jayway.jsonpath.JsonPath;
-import com.openclassrooms.mddapi.repository.UserRepository;
+import com.openclassrooms.mddapi.model.User;
 import com.openclassrooms.mddapi.security.jwt.JwtService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,10 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * {@code localStorage}) : elle est vérifiée par les tests e2e, pas ici.
  */
 @ExtendWith(OutputCaptureExtension.class)
-class ConnexionIT extends ParcoursIT {
-
-    @Autowired
-    private UserRepository userRepository;
+class ConnexionIT extends ChaineDeSecuriteIT {
 
     @Autowired
     private JwtService jwtService;
@@ -54,17 +51,16 @@ class ConnexionIT extends ParcoursIT {
         return "{\"identifier\":\"" + identifiant + "\",\"password\":\"" + motDePasse + "\"}";
     }
 
-    /** Assert commun : le jeton renvoyé porte l'id du compte {@code username}. */
-    private void verifierJetonDuCompte(ResultActions reponse, String username) throws Exception {
+    /** Assert commun : le jeton renvoyé porte l'id de {@code compte}. */
+    private void verifierJetonDuCompte(ResultActions reponse, User compte) throws Exception {
         String jeton = JsonPath.read(reponse.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), "$.token");
-        Long id = userRepository.findByEmailOrUsername(username).orElseThrow().getId();
-        assertThat(jwtService.extractUserId(jeton)).isEqualTo(id);
+        assertThat(jwtService.extractUserId(jeton)).isEqualTo(compte.getId());
     }
 
     @Test
     void connexion_parEmail_retourne200EtUnJetonDuCompte() throws Exception {
         // Arrange
-        inscrire("connexion-email");
+        User compte = creerCompte("connexion-email", MOT_DE_PASSE);
         String corps = corpsConnexion("connexion-email@mail.com", MOT_DE_PASSE);
 
         // Act
@@ -73,13 +69,13 @@ class ConnexionIT extends ParcoursIT {
         // Assert
         reponse.andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isNotEmpty());
-        verifierJetonDuCompte(reponse, "connexion-email");
+        verifierJetonDuCompte(reponse, compte);
     }
 
     @Test
     void connexion_parNomDUtilisateur_retourne200EtUnJetonDuCompte() throws Exception {
         // Arrange
-        inscrire("connexion-nom");
+        User compte = creerCompte("connexion-nom", MOT_DE_PASSE);
         String corps = corpsConnexion("connexion-nom", MOT_DE_PASSE);
 
         // Act
@@ -88,13 +84,13 @@ class ConnexionIT extends ParcoursIT {
         // Assert
         reponse.andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isNotEmpty());
-        verifierJetonDuCompte(reponse, "connexion-nom");
+        verifierJetonDuCompte(reponse, compte);
     }
 
     @Test
     void connexion_motDePasseIncorrect_retourne401SansCorps() throws Exception {
         // Arrange
-        inscrire("connexion-mdp-faux");
+        creerCompte("connexion-mdp-faux", MOT_DE_PASSE);
         String corps = corpsConnexion("connexion-mdp-faux@mail.com", "Mauvais1!");
 
         // Act
@@ -109,7 +105,7 @@ class ConnexionIT extends ParcoursIT {
     @Test
     void connexion_motDePasseIncorrect_journaliseUnEchecSansIdentifiant(CapturedOutput output) throws Exception {
         // Arrange
-        inscrire("connexion-journal");
+        creerCompte("connexion-journal", MOT_DE_PASSE);
         String corps = corpsConnexion("connexion-journal@mail.com", "Mauvais1!");
 
         // Act
@@ -125,7 +121,7 @@ class ConnexionIT extends ParcoursIT {
     @Test
     void connexion_identifiantInconnu_retourne401SansOuvrirUnAutreCompte() throws Exception {
         // Arrange : un compte existe avec ce mot de passe, mais l'identifiant envoyé n'est pas le sien
-        inscrire("connexion-existant");
+        creerCompte("connexion-existant", MOT_DE_PASSE);
         String corps = corpsConnexion("inconnu@mail.com", MOT_DE_PASSE);
 
         // Act
@@ -139,7 +135,7 @@ class ConnexionIT extends ParcoursIT {
     @Test
     void connexion_motDePasseDePlusDe72Octets_retourne401() throws Exception {
         // Arrange : la connexion n'a pas de borne en octets ; au-delà de 72, aucun hash BCrypt ne correspond
-        inscrire("connexion-long");
+        creerCompte("connexion-long", MOT_DE_PASSE);
         String corps = corpsConnexion("connexion-long@mail.com", MOT_DE_PASSE + "é".repeat(32));
 
         // Act
@@ -152,7 +148,7 @@ class ConnexionIT extends ParcoursIT {
     @Test
     void connexion_jetonRenvoye_valable1440MinutesApresSonEmission() throws Exception {
         // Arrange
-        inscrire("connexion-duree");
+        creerCompte("connexion-duree", MOT_DE_PASSE);
         String corps = corpsConnexion("connexion-duree@mail.com", MOT_DE_PASSE);
 
         // Act
@@ -169,14 +165,11 @@ class ConnexionIT extends ParcoursIT {
 
     @Test
     void connexion_motDePasseAccentueSaisiSousUneAutreFormeUnicode_retourne200() throws Exception {
-        // Arrange : inscription avec « é » en un seul caractère (NFC), connexion avec « e » suivi de l'accent combinant (NFD)
+        // Arrange : compte créé avec « é » en un seul caractère (NFC), connexion avec « e » suivi de l'accent combinant (NFD)
         String motDePasseNfc = Normalizer.normalize("Mot2passé!", Normalizer.Form.NFC);
         String motDePasseNfd = Normalizer.normalize(motDePasseNfc, Normalizer.Form.NFD);
         assertThat(motDePasseNfd).isNotEqualTo(motDePasseNfc);
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(corpsInscription("connexion-nfc", "connexion-nfc@mail.com", motDePasseNfc)))
-                .andExpect(status().isCreated());
+        User compte = creerCompte("connexion-nfc", motDePasseNfc);
         String corps = corpsConnexion("connexion-nfc@mail.com", motDePasseNfd);
 
         // Act
@@ -184,7 +177,7 @@ class ConnexionIT extends ParcoursIT {
 
         // Assert
         reponse.andExpect(status().isOk());
-        verifierJetonDuCompte(reponse, "connexion-nfc");
+        verifierJetonDuCompte(reponse, compte);
     }
 
     @ParameterizedTest(name = "champ absent : {0}")
