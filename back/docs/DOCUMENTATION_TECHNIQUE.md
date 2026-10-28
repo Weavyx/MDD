@@ -277,8 +277,8 @@ Tous les services appellent des URL relatives et renvoient des `Observable` ; le
 | `POST /api/auth/register` | `AuthApiService.register` | `Register` |
 | `POST /api/auth/login` | `AuthApiService.login` | `Login` |
 | `GET /api/topics` | `TopicService.getTopics` | `TopicList`, `PostCreate` (liste des thèmes) |
-| `POST /api/user/subscriptions/{topicId}` | `TopicService.subscribe` | `TopicList` |
-| `DELETE /api/user/subscriptions/{topicId}` | `TopicService.unsubscribe` | `Profile` |
+| `POST /api/user/subscriptions/{topicId}` | `TopicService.subscribeTo` | `TopicList` |
+| `DELETE /api/user/subscriptions/{topicId}` | `TopicService.unsubscribeFrom` | `Profile` |
 | `GET /api/user` | `UserService.getProfile` | `Profile` |
 | `PATCH /api/user` | `UserService.updateProfile` | `Profile` (clé `password` omise quand le champ est vide) |
 | `GET /api/user/feed?sort=` | `PostService.getFeed` | `Feed` |
