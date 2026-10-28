@@ -20,7 +20,7 @@ export class TopicService {
   }
 
   /** `DELETE /api/user/subscriptions/{topicId}` — 204, idempotent. */
-  unsubscribe(topicId: number): Observable<void> {
+  unsubscribeFrom(topicId: number): Observable<void> {
     return this.http.delete<void>(`/api/user/subscriptions/${topicId}`);
   }
 }

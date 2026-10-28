@@ -45,7 +45,7 @@ describe('TopicService', () => {
   it('unsubscribes with DELETE /api/user/subscriptions/{topicId}', () => {
     let done = false;
 
-    service.unsubscribe(3).subscribe(() => (done = true));
+    service.unsubscribeFrom(3).subscribe(() => (done = true));
 
     httpTesting
       .expectOne({ method: 'DELETE', url: '/api/user/subscriptions/3' })

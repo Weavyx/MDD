@@ -114,13 +114,13 @@ export class Profile {
       });
   }
 
-  unsubscribe(topic: TopicResponse): void {
+  unsubscribeFrom(topic: TopicResponse): void {
     if (this.pending().has(topic.id)) {
       return;
     }
     this.setPending(topic.id, true);
     this.topicService
-      .unsubscribe(topic.id)
+      .unsubscribeFrom(topic.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
