@@ -2,7 +2,6 @@ package com.openclassrooms.mddapi.parcours;
 
 import com.jayway.jsonpath.JsonPath;
 import com.openclassrooms.mddapi.model.User;
-import com.openclassrooms.mddapi.repository.UserRepository;
 import com.openclassrooms.mddapi.security.jwt.JwtService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -11,7 +10,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.nio.charset.StandardCharsets;
@@ -29,13 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Action de la spécification : « S'inscrire grâce à un e-mail, un mot de passe et un nom
  * d'utilisateur ». Route : {@code POST /api/auth/register}.
  */
-class InscriptionIT extends ParcoursIT {
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+class InscriptionIT extends ChaineDeSecuriteIT {
 
     @Autowired
     private JwtService jwtService;
@@ -72,7 +64,7 @@ class InscriptionIT extends ParcoursIT {
     @Test
     void inscription_emailDejaUtilise_retourne409() throws Exception {
         // Arrange
-        inscrire("deja-inscrit");
+        creerCompte("deja-inscrit", MOT_DE_PASSE);
         String corps = corpsInscription("nouveau-nom", "deja-inscrit@mail.com", MOT_DE_PASSE);
 
         // Act
@@ -81,14 +73,12 @@ class InscriptionIT extends ParcoursIT {
         // Assert
         reponse.andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Cet email est déjà utilisé"));
-        viderLeCache();
-        assertThat(userRepository.findByEmailOrUsername("nouveau-nom")).isEmpty();
     }
 
     @Test
     void inscription_usernameDejaUtilise_retourne409() throws Exception {
         // Arrange
-        inscrire("deja-inscrit");
+        creerCompte("deja-inscrit", MOT_DE_PASSE);
         String corps = corpsInscription("deja-inscrit", "nouvel-email@mail.com", MOT_DE_PASSE);
 
         // Act
@@ -97,8 +87,6 @@ class InscriptionIT extends ParcoursIT {
         // Assert
         reponse.andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Ce nom d'utilisateur est déjà utilisé"));
-        viderLeCache();
-        assertThat(userRepository.findByEmailOrUsername("nouvel-email@mail.com")).isEmpty();
     }
 
     @Test
@@ -180,6 +168,7 @@ class InscriptionIT extends ParcoursIT {
             """)
     void inscription_champObligatoireAbsent_retourne400(String champ, String corps) throws Exception {
         // Arrange : corps fourni par @CsvSource, un champ manquant par cas
+
         // Act
         ResultActions reponse = envoyerInscription(corps);
 

@@ -1,13 +1,15 @@
 package com.openclassrooms.mddapi.parcours;
 
 import com.jayway.jsonpath.JsonPath;
-import com.openclassrooms.mddapi.repository.PostRepository;
+import com.openclassrooms.mddapi.model.Comment;
+import com.openclassrooms.mddapi.model.Post;
+import com.openclassrooms.mddapi.model.User;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -20,28 +22,25 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Action de la spécification : « Consulter un article (thème associé, titre, auteur, date,
  * contenu, commentaires) ». Route : {@code GET /api/posts/{id}}.
  */
-class ConsultationArticleIT extends ParcoursIT {
-
-    @Autowired
-    private PostRepository postRepository;
+class ConsultationArticleIT extends ActionIT {
 
     /** Act commun : lit l'article désigné dans l'URL. */
-    private ResultActions consulterArticle(String jeton, String idArticle) throws Exception {
-        return mockMvc.perform(get("/api/posts/" + idArticle)
-                .header("Authorization", "Bearer " + jeton));
+    private ResultActions consulterArticle(String idArticle) throws Exception {
+        return mockMvc.perform(get("/api/posts/" + idArticle));
     }
 
     @Test
     void consultation_articleAvecCommentaires_retourneToutesLesInformations() throws Exception {
         // Arrange : un article et deux commentaires publiés dans cet ordre
-        String jetonAuteur = inscrireEtConnecter("lecture-auteur");
-        Long idArticle = creerArticle(jetonAuteur, idDuTheme("Spring"), "Titre lu", "Contenu lu");
-        String jetonLecteur = inscrireEtConnecter("lecture-lecteur");
-        commenter(jetonLecteur, idArticle, "Premier commentaire");
-        commenter(jetonAuteur, idArticle, "Second commentaire");
+        User auteur = creerUtilisateur("lecture-auteur");
+        Post article = creerArticle(auteur, idDuTheme("Spring"), "Titre lu", "Contenu lu");
+        User lecteur = creerUtilisateur("lecture-lecteur");
+        commenter(lecteur, article, "Premier commentaire");
+        commenter(auteur, article, "Second commentaire");
+        connecterEnTantQue(lecteur);
 
         // Act
-        ResultActions reponse = consulterArticle(jetonLecteur, idArticle.toString());
+        ResultActions reponse = consulterArticle(article.getId().toString());
 
         // Assert
         reponse.andExpect(status().isOk())
@@ -52,18 +51,22 @@ class ConsultationArticleIT extends ParcoursIT {
                 .andExpect(jsonPath("$.comments", hasSize(2)))
                 .andExpect(jsonPath("$.comments[*].content", contains("Premier commentaire", "Second commentaire")))
                 .andExpect(jsonPath("$.comments[*].author", contains("lecture-lecteur", "lecture-auteur")));
-        String dateRenvoyee = JsonPath.read(reponse.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), "$.createdAt");
+        String corps = reponse.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        String dateRenvoyee = JsonPath.read(corps, "$.createdAt");
+        List<String> datesDesCommentaires = JsonPath.read(corps, "$.comments[*].createdAt");
         viderLeCache();
-        assertThat(LocalDateTime.parse(dateRenvoyee)).isEqualTo(postRepository.findById(idArticle).orElseThrow().getCreatedAt());
+        assertThat(LocalDateTime.parse(dateRenvoyee)).isEqualTo(postRepository.findById(article.getId()).orElseThrow().getCreatedAt());
+        assertThat(datesDesCommentaires.stream().map(LocalDateTime::parse).toList())
+                .isEqualTo(commentRepository.findByPostIdOrderByCreatedAtAsc(article.getId()).stream().map(Comment::getCreatedAt).toList());
     }
 
     @Test
     void consultation_articleInexistant_retourne404() throws Exception {
         // Arrange
-        String jeton = inscrireEtConnecter("lecture-inexistant");
+        connecterEnTantQue(creerUtilisateur("lecture-inexistant"));
 
         // Act
-        ResultActions reponse = consulterArticle(jeton, "999999");
+        ResultActions reponse = consulterArticle("999999");
 
         // Assert
         reponse.andExpect(status().isNotFound())
@@ -73,10 +76,10 @@ class ConsultationArticleIT extends ParcoursIT {
     @Test
     void consultation_identifiantNonNumerique_retourne400() throws Exception {
         // Arrange
-        String jeton = inscrireEtConnecter("lecture-abc");
+        connecterEnTantQue(creerUtilisateur("lecture-abc"));
 
         // Act
-        ResultActions reponse = consulterArticle(jeton, "abc");
+        ResultActions reponse = consulterArticle("abc");
 
         // Assert
         reponse.andExpect(status().isBadRequest())

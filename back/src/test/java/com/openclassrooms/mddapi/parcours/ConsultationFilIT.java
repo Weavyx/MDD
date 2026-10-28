@@ -1,9 +1,9 @@
 package com.openclassrooms.mddapi.parcours;
 
 import com.jayway.jsonpath.JsonPath;
-import com.openclassrooms.mddapi.repository.PostRepository;
+import com.openclassrooms.mddapi.model.Post;
+import com.openclassrooms.mddapi.model.User;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.nio.charset.StandardCharsets;
@@ -21,28 +21,25 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * chronologie (du plus récent au plus ancien) une fois connecté ».
  * Route : {@code GET /api/user/feed} (sans paramètre : ordre par défaut).
  */
-class ConsultationFilIT extends ParcoursIT {
+class ConsultationFilIT extends ActionIT {
 
-    @Autowired
-    private PostRepository postRepository;
-
-    /** Act commun : lit le fil du porteur de {@code jeton}, sans paramètre de tri. */
-    private ResultActions consulterFil(String jeton) throws Exception {
-        return mockMvc.perform(get("/api/user/feed")
-                .header("Authorization", "Bearer " + jeton));
+    /** Act commun : lit le fil de l'utilisateur connecté, sans paramètre de tri. */
+    private ResultActions consulterFil() throws Exception {
+        return mockMvc.perform(get("/api/user/feed"));
     }
 
     @Test
     void fil_contientLesArticlesDesThemesSuivisEtPasLesAutres() throws Exception {
         // Arrange : un article en Java, un en Python ; le lecteur ne suit que Java
-        String jetonAuteur = inscrireEtConnecter("fil-auteur");
-        Long idArticleJava = creerArticle(jetonAuteur, idDuTheme("Java"), "Article Java", "Contenu Java");
-        creerArticle(jetonAuteur, idDuTheme("Python"), "Article Python", "Contenu Python");
-        String jetonLecteur = inscrireEtConnecter("fil-lecteur");
-        abonner(jetonLecteur, idDuTheme("Java"));
+        User auteur = creerUtilisateur("fil-auteur");
+        Post articleJava = creerArticle(auteur, idDuTheme("Java"), "Article Java", "Contenu Java");
+        creerArticle(auteur, idDuTheme("Python"), "Article Python", "Contenu Python");
+        User lecteur = creerUtilisateur("fil-lecteur");
+        abonner(lecteur, idDuTheme("Java"));
+        connecterEnTantQue(lecteur);
 
         // Act
-        ResultActions reponse = consulterFil(jetonLecteur);
+        ResultActions reponse = consulterFil();
 
         // Assert
         reponse.andExpect(status().isOk())
@@ -53,22 +50,23 @@ class ConsultationFilIT extends ParcoursIT {
                 .andExpect(jsonPath("$[0].excerpt").value("Contenu Java"));
         String dateRenvoyee = JsonPath.read(reponse.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), "$[0].createdAt");
         viderLeCache();
-        assertThat(LocalDateTime.parse(dateRenvoyee)).isEqualTo(postRepository.findById(idArticleJava).orElseThrow().getCreatedAt());
+        assertThat(LocalDateTime.parse(dateRenvoyee)).isEqualTo(postRepository.findById(articleJava.getId()).orElseThrow().getCreatedAt());
     }
 
     @Test
     void fil_parDefaut_duPlusRecentAuPlusAncien() throws Exception {
         // Arrange : trois articles publiés dans l'ordre 1, 2, 3
-        String jetonAuteur = inscrireEtConnecter("fil-ordre-auteur");
+        User auteur = creerUtilisateur("fil-ordre-auteur");
         Long idJava = idDuTheme("Java");
-        creerArticle(jetonAuteur, idJava, "Article 1", "Premier");
-        creerArticle(jetonAuteur, idJava, "Article 2", "Deuxieme");
-        creerArticle(jetonAuteur, idJava, "Article 3", "Troisieme");
-        String jetonLecteur = inscrireEtConnecter("fil-ordre-lecteur");
-        abonner(jetonLecteur, idJava);
+        creerArticle(auteur, idJava, "Article 1", "Premier");
+        creerArticle(auteur, idJava, "Article 2", "Deuxieme");
+        creerArticle(auteur, idJava, "Article 3", "Troisieme");
+        User lecteur = creerUtilisateur("fil-ordre-lecteur");
+        abonner(lecteur, idJava);
+        connecterEnTantQue(lecteur);
 
         // Act
-        ResultActions reponse = consulterFil(jetonLecteur);
+        ResultActions reponse = consulterFil();
 
         // Assert
         reponse.andExpect(status().isOk())
@@ -78,12 +76,11 @@ class ConsultationFilIT extends ParcoursIT {
     @Test
     void fil_sansAbonnement_estVide() throws Exception {
         // Arrange : un article existe, mais le lecteur ne suit aucun thème
-        String jetonAuteur = inscrireEtConnecter("fil-vide-auteur");
-        creerArticle(jetonAuteur, idDuTheme("Java"), "Article seul", "Contenu");
-        String jetonLecteur = inscrireEtConnecter("fil-vide-lecteur");
+        creerArticle(creerUtilisateur("fil-vide-auteur"), idDuTheme("Java"), "Article seul", "Contenu");
+        connecterEnTantQue(creerUtilisateur("fil-vide-lecteur"));
 
         // Act
-        ResultActions reponse = consulterFil(jetonLecteur);
+        ResultActions reponse = consulterFil();
 
         // Assert
         reponse.andExpect(status().isOk())

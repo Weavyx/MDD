@@ -1,5 +1,7 @@
 package com.openclassrooms.mddapi.parcours;
 
+import com.openclassrooms.mddapi.model.Post;
+import com.openclassrooms.mddapi.model.User;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.Test;
@@ -18,7 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>
  * Classe à part, comme {@code AuthentificationIT} pour les 401 communs à toutes les routes :
  * la propriété vérifiée est commune aux lectures, et les statistiques d'Hibernate ne sont
- * activées que pour cette classe, sans changer la configuration des autres tests de parcours.
+ * activées que pour cette classe, sans changer la configuration des autres tests d'action.
  * <p>
  * Les tests de consultation ne peuvent pas voir ce chargement : dans leur transaction ouverte,
  * un chargement paresseux réussit aussi, avec une requête de plus par auteur, thème ou auteur
@@ -29,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * zéro : seules les requêtes de l'Act sont comptées, et aucune n'est servie par le cache.
  */
 @TestPropertySource(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
-class NombreDeRequetesIT extends ParcoursIT {
+class NombreDeRequetesIT extends ActionIT {
 
     /** Statistiques d'Hibernate de l'application. */
     private Statistics statistiques() {
@@ -42,26 +44,27 @@ class NombreDeRequetesIT extends ParcoursIT {
         statistiques().clear();
     }
 
-    /** Act commun : lecture authentifiée de {@code url}. */
-    private ResultActions lire(String jeton, String url) throws Exception {
-        return mockMvc.perform(get(url).header("Authorization", "Bearer " + jeton));
+    /** Act commun : lecture de {@code url} par l'utilisateur connecté. */
+    private ResultActions lire(String url) throws Exception {
+        return mockMvc.perform(get(url));
     }
 
     @Test
     void fil_chargeAuteursEtThemesEnUneRequete() throws Exception {
         // Arrange : trois articles de deux auteurs dans les deux thèmes suivis
-        String jetonLecteur = inscrireEtConnecter("requetes-fil-lecteur");
-        abonner(jetonLecteur, idDuTheme("Java"));
-        abonner(jetonLecteur, idDuTheme("Python"));
-        String jetonAuteur1 = inscrireEtConnecter("requetes-fil-auteur1");
-        String jetonAuteur2 = inscrireEtConnecter("requetes-fil-auteur2");
-        creerArticle(jetonAuteur1, idDuTheme("Java"), "Requetes Java 1", "Contenu");
-        creerArticle(jetonAuteur1, idDuTheme("Python"), "Requetes Python", "Contenu");
-        creerArticle(jetonAuteur2, idDuTheme("Java"), "Requetes Java 2", "Contenu");
+        User lecteur = creerUtilisateur("requetes-fil-lecteur");
+        abonner(lecteur, idDuTheme("Java"));
+        abonner(lecteur, idDuTheme("Python"));
+        User auteur1 = creerUtilisateur("requetes-fil-auteur1");
+        User auteur2 = creerUtilisateur("requetes-fil-auteur2");
+        creerArticle(auteur1, idDuTheme("Java"), "Requetes Java 1", "Contenu");
+        creerArticle(auteur1, idDuTheme("Python"), "Requetes Python", "Contenu");
+        creerArticle(auteur2, idDuTheme("Java"), "Requetes Java 2", "Contenu");
+        connecterEnTantQue(lecteur);
         demarrerLeComptage();
 
         // Act
-        ResultActions reponse = lire(jetonLecteur, "/api/user/feed");
+        ResultActions reponse = lire("/api/user/feed");
 
         // Assert : la taille garantit que le compte porte sur les trois articles
         reponse.andExpect(status().isOk())
@@ -72,15 +75,16 @@ class NombreDeRequetesIT extends ParcoursIT {
     @Test
     void detailDUnArticle_chargeArticleEtCommentairesEnDeuxRequetes() throws Exception {
         // Arrange : un article et trois commentaires de trois autres comptes
-        String jetonAuteur = inscrireEtConnecter("requetes-detail-auteur");
-        Long idArticle = creerArticle(jetonAuteur, idDuTheme("Java"), "Requetes detail", "Contenu");
-        commenter(inscrireEtConnecter("requetes-detail-c1"), idArticle, "Commentaire 1");
-        commenter(inscrireEtConnecter("requetes-detail-c2"), idArticle, "Commentaire 2");
-        commenter(inscrireEtConnecter("requetes-detail-c3"), idArticle, "Commentaire 3");
+        User auteur = creerUtilisateur("requetes-detail-auteur");
+        Post article = creerArticle(auteur, idDuTheme("Java"), "Requetes detail", "Contenu");
+        commenter(creerUtilisateur("requetes-detail-c1"), article, "Commentaire 1");
+        commenter(creerUtilisateur("requetes-detail-c2"), article, "Commentaire 2");
+        commenter(creerUtilisateur("requetes-detail-c3"), article, "Commentaire 3");
+        connecterEnTantQue(auteur);
         demarrerLeComptage();
 
         // Act
-        ResultActions reponse = lire(jetonAuteur, "/api/posts/" + idArticle);
+        ResultActions reponse = lire("/api/posts/" + article.getId());
 
         // Assert : article avec auteur et thème, puis commentaires avec leur auteur
         reponse.andExpect(status().isOk())
@@ -91,14 +95,15 @@ class NombreDeRequetesIT extends ParcoursIT {
     @Test
     void profil_chargeCompteEtAbonnementsEnDeuxRequetes() throws Exception {
         // Arrange : trois abonnements
-        String jeton = inscrireEtConnecter("requetes-profil");
-        abonner(jeton, idDuTheme("Java"));
-        abonner(jeton, idDuTheme("Python"));
-        abonner(jeton, idDuTheme("Angular"));
+        User compte = creerUtilisateur("requetes-profil");
+        abonner(compte, idDuTheme("Java"));
+        abonner(compte, idDuTheme("Python"));
+        abonner(compte, idDuTheme("Angular"));
+        connecterEnTantQue(compte);
         demarrerLeComptage();
 
         // Act
-        ResultActions reponse = lire(jeton, "/api/user");
+        ResultActions reponse = lire("/api/user");
 
         // Assert : compte, puis abonnements avec leur thème
         reponse.andExpect(status().isOk())

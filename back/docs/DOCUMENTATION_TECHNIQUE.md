@@ -169,7 +169,7 @@ Chargement : les lectures composites utilisent `@EntityGraph` (`Post` avec `user
 | `spring-boot-starter-validation` | Bean Validation sur les DTO d'entrée |
 | `spring-boot-starter-flyway` + `flyway-mysql` | Migrations du schéma et des thèmes de référence au démarrage |
 | `lombok` (provided) | Getters/setters/constructeurs des DTO et entités |
-| Test : `spring-boot-starter-test`, `-webmvc-test`, `-data-jpa-test`, `-security-test`, `spring-security-test`, Testcontainers 1.21.4 (`mysql`, `junit-jupiter`) | Voir `RAPPORT_DE_TESTS.md` |
+| Test : `spring-boot-starter-test`, `-webmvc-test`, Testcontainers 1.21.4 (`mysql`, `junit-jupiter`) | Voir `RAPPORT_DE_TESTS.md` |
 | Plugins : `spring-boot-maven-plugin`, `maven-failsafe-plugin`, `jacoco-maven-plugin` 0.8.15 | Exécutable, tests `*IT`, couverture |
 
 Absents, par choix ou par périmètre : springdoc-openapi, MapStruct, limiteur de débit, analyseur statique (voir `REVUE_TECHNIQUE.md` §3).
@@ -208,11 +208,11 @@ Le schéma est créé au démarrage par les migrations Flyway de `back/src/main/
 ### 5.4 Lancer les tests
 
 ```bash
-./mvnw test      # 14 tests unitaires (*Test), aucun prérequis
-./mvnw verify    # + 86 tests d'intégration (*IT) : Docker démarré (Testcontainers mysql:8.4) et JWT_SECRET exporté
+./mvnw test      # 17 tests unitaires (*Test), aucun prérequis
+./mvnw verify    # + 93 tests d'intégration (*IT) : Docker démarré (Testcontainers mysql:8.4)
 ```
 
-`verify` produit le rapport JaCoCo dans `back/target/site/jacoco/index.html` ; pour un chiffre de couverture, lancer `./mvnw clean verify` (sans `clean`, JaCoCo cumule les exécutions précédentes). Sans `JWT_SECRET`, les tests d'intégration échouent au chargement du contexte (`Could not resolve placeholder 'JWT_SECRET'`) ; sans Docker, ils échouent au démarrage du conteneur. Détail de la stratégie et des chiffres dans `RAPPORT_DE_TESTS.md`.
+`verify` produit le rapport JaCoCo dans `back/target/site/jacoco/index.html` ; pour un chiffre de couverture, lancer `./mvnw clean verify` (sans `clean`, JaCoCo cumule les exécutions précédentes). Les tests d'intégration fournissent leur propre clé de signature JWT (`AbstractContainerIT`) : `JWT_SECRET` n'est nécessaire que pour lancer l'application. Sans Docker, ils échouent au démarrage du conteneur. Détail de la stratégie et des chiffres dans `RAPPORT_DE_TESTS.md`.
 
 ## 6. Front-end
 
