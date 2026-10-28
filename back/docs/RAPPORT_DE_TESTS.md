@@ -1,6 +1,6 @@
 # Rapport de couverture et de tests — MDD
 
-Projet MDD (« Monde de Dev »), OpenClassrooms P5 option B. Rapport réécrit le 14 octobre 2026 après la refonte de la stratégie de tests (PR #35 à #39), sur `main` après la PR #39. Il remplace la version du 25 septembre 2026, qui décrivait une stratégie en quatre strates (unitaire, `@WebMvcTest`, `@DataJpaTest`, contexte complet) ; le journal de cette ancienne stratégie reste dans `TESTS_REVIEW.md`, daté du 18 septembre 2026.
+Projet MDD (« Monde de Dev »), OpenClassrooms P5 option B. Rapport réécrit le 14 octobre 2026 après la refonte de la stratégie de tests (PR #35 à #39), puis mis à jour le 27 octobre 2026 après la migration des tests d'intégration (PR #56). Il remplace la version du 25 septembre 2026, qui décrivait une stratégie en quatre strates (unitaire, `@WebMvcTest`, `@DataJpaTest`, contexte complet) ; le journal de cette ancienne stratégie reste dans `TESTS_REVIEW.md`, daté du 18 septembre 2026.
 
 ## 1. Périmètre et origine des chiffres
 
