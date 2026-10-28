@@ -302,7 +302,7 @@ describe('Profile', () => {
     expect(unsubscribe.disabled).toBe(true);
     unsubscribe.click();
     // A call that bypasses the disabled button (keyboard, script) is ignored as well.
-    fixture.componentInstance.unsubscribe(profile.subscriptions[0]);
+    fixture.componentInstance.unsubscribeFrom(profile.subscriptions[0]);
     await fixture.whenStable();
 
     httpTesting

@@ -37,10 +37,10 @@ export class TopicList {
       });
   }
 
-  subscribe(topic: TopicResponse): void {
+  subscribeTo(topic: TopicResponse): void {
     this.setPending(topic.id, true);
     this.topicService
-      .subscribe(topic.id)
+      .subscribeTo(topic.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
