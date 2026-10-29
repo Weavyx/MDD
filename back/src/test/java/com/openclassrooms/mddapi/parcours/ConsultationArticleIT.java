@@ -5,6 +5,9 @@ import com.openclassrooms.mddapi.model.Comment;
 import com.openclassrooms.mddapi.model.Post;
 import com.openclassrooms.mddapi.model.User;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.nio.charset.StandardCharsets;
@@ -84,5 +87,23 @@ class ConsultationArticleIT extends ActionIT {
         // Assert
         reponse.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Le paramètre fourni est invalide"));
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void consultation_identifiantNonNumerique_journaliseLeParametreSansLaValeur(CapturedOutput output) throws Exception {
+        // Arrange
+        User lecteur = creerUtilisateur("lecture-journal");
+        connecterEnTantQue(lecteur);
+
+        // Act
+        ResultActions reponse = consulterArticle("segment-journal");
+
+        // Assert
+        reponse.andExpect(status().isBadRequest());
+        assertThat(output.getAll().lines().filter(ligne -> ligne.contains(
+                "Échec de validation : GET /api/posts/{id} ; paramètre id:type ; utilisateur " + lecteur.getId())))
+                .singleElement().asString().contains(" WARN ");
+        assertThat(output.getAll()).doesNotContain("segment-journal");
     }
 }
