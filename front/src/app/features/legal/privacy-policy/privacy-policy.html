@@ -8,8 +8,8 @@
   <ul>
     <li>Votre nom d'utilisateur et votre adresse e-mail.</li>
     <li>
-      Votre mot de passe, conservé uniquement sous forme chiffrée (hachage BCrypt) : il n'est jamais
-      stocké en clair.
+      Votre mot de passe, conservé uniquement sous forme hachée (BCrypt) : il n'est jamais stocké en
+      clair.
     </li>
     <li>
       Vos abonnements aux thèmes, ainsi que les articles et commentaires que vous publiez, avec leur
@@ -34,6 +34,21 @@
     Pour garder votre session ouverte, un jeton de connexion est enregistré dans le stockage local
     de votre navigateur. Il expire au bout de 24 heures et il est supprimé quand vous vous
     déconnectez. MDD n'utilise aucun cookie de suivi ni outil de mesure d'audience.
+  </p>
+
+  <h2>Journal technique</h2>
+  <p>
+    Pour la sécurité du service, l'application enregistre dans un journal technique les connexions
+    réussies, les connexions échouées et les requêtes refusées parce qu'invalides. Chaque ligne
+    contient la date, la nature de l'événement et, lorsqu'il est connu, l'identifiant interne de
+    votre compte : un numéro, jamais votre nom d'utilisateur, votre adresse e-mail ni votre mot de
+    passe. Les messages écrits par l'application ne reprennent aucune valeur que vous saisissez. En
+    cas d'erreur interne du serveur, le message technique de l'erreur peut aussi y figurer.
+  </p>
+  <p>
+    Dans cette version, le journal est seulement affiché par le serveur : l'application ne le
+    conserve pas. Si le service était hébergé, ce journal serait conservé entre six mois et un an,
+    fourchette recommandée par la CNIL pour les données de journalisation.
   </p>
 
   <h2>Durée de conservation</h2>

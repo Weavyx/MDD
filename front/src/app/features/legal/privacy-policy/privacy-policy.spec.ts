@@ -24,6 +24,7 @@ describe('PrivacyPolicy', () => {
       'Pourquoi ces données',
       'Qui peut les voir',
       'Stockage dans votre navigateur',
+      'Journal technique',
       'Durée de conservation',
       'Vos droits',
     ]);
@@ -32,7 +33,7 @@ describe('PrivacyPolicy', () => {
   it('lists the collected data', async () => {
     expect(texts(await render(), 'ul > li')).toEqual([
       "Votre nom d'utilisateur et votre adresse e-mail.",
-      "Votre mot de passe, conservé uniquement sous forme chiffrée (hachage BCrypt) : il n'est jamais stocké en clair.",
+      "Votre mot de passe, conservé uniquement sous forme hachée (BCrypt) : il n'est jamais stocké en clair.",
       'Vos abonnements aux thèmes, ainsi que les articles et commentaires que vous publiez, avec leur date.',
     ]);
   });
