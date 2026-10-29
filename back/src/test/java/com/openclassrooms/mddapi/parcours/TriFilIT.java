@@ -2,8 +2,12 @@ package com.openclassrooms.mddapi.parcours;
 
 import com.openclassrooms.mddapi.model.User;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.test.web.servlet.ResultActions;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -69,5 +73,23 @@ class TriFilIT extends ActionIT {
         // Assert
         reponse.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Le paramètre fourni est invalide"));
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void tri_valeurInvalide_journaliseLeParametreSansLaValeur(CapturedOutput output) throws Exception {
+        // Arrange
+        User lecteur = creerUtilisateur("tri-journal");
+        connecterEnTantQue(lecteur);
+
+        // Act
+        ResultActions reponse = consulterFilTrie("tri-refuse-journal");
+
+        // Assert
+        reponse.andExpect(status().isBadRequest());
+        assertThat(output.getAll().lines().filter(ligne -> ligne.contains(
+                "Échec de validation : GET /api/user/feed ; paramètre sort:Pattern ; utilisateur " + lecteur.getId())))
+                .singleElement().asString().contains(" WARN ");
+        assertThat(output.getAll()).doesNotContain("tri-refuse-journal");
     }
 }

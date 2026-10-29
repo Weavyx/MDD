@@ -33,7 +33,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * La persistance de la connexion entre les sessions relève du front (jeton en
  * {@code localStorage}) : elle est vérifiée par les tests e2e, pas ici.
  */
-@ExtendWith(OutputCaptureExtension.class)
 class ConnexionIT extends ChaineDeSecuriteIT {
 
     @Autowired
@@ -103,9 +102,10 @@ class ConnexionIT extends ChaineDeSecuriteIT {
     }
 
     @Test
-    void connexion_motDePasseIncorrect_journaliseUnEchecSansIdentifiant(CapturedOutput output) throws Exception {
+    @ExtendWith(OutputCaptureExtension.class)
+    void connexion_motDePasseIncorrect_journaliseLEchecAvecLIdentifiantInterne(CapturedOutput output) throws Exception {
         // Arrange
-        creerCompte("connexion-journal", MOT_DE_PASSE);
+        User compte = creerCompte("connexion-journal", MOT_DE_PASSE);
         String corps = corpsConnexion("connexion-journal@mail.com", "Mauvais1!");
 
         // Act
@@ -113,9 +113,42 @@ class ConnexionIT extends ChaineDeSecuriteIT {
 
         // Assert
         reponse.andExpect(status().isUnauthorized());
-        assertThat(output.getAll().lines().filter(ligne -> ligne.contains("Échec de connexion")))
+        assertThat(output.getAll().lines().filter(ligne -> ligne.contains("Échec de connexion : utilisateur " + compte.getId())))
                 .singleElement().asString().contains(" WARN ");
         assertThat(output.getAll()).doesNotContain("connexion-journal", "connexion-journal@mail.com");
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void connexion_identifiantInconnu_journaliseUnEchecSurUnCompteInconnu(CapturedOutput output) throws Exception {
+        // Arrange : aucun compte ne porte cet identifiant
+        String corps = corpsConnexion("journal-inconnu@mail.com", MOT_DE_PASSE);
+
+        // Act
+        ResultActions reponse = envoyerConnexion(corps);
+
+        // Assert
+        reponse.andExpect(status().isUnauthorized());
+        assertThat(output.getAll().lines().filter(ligne -> ligne.contains("Échec de connexion : compte inconnu")))
+                .singleElement().asString().contains(" WARN ");
+        assertThat(output.getAll()).doesNotContain("journal-inconnu");
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void connexion_parEmail_journaliseLaConnexionAvecLIdentifiantInterne(CapturedOutput output) throws Exception {
+        // Arrange
+        User compte = creerCompte("connexion-reussie", MOT_DE_PASSE);
+        String corps = corpsConnexion("connexion-reussie@mail.com", MOT_DE_PASSE);
+
+        // Act
+        ResultActions reponse = envoyerConnexion(corps);
+
+        // Assert
+        reponse.andExpect(status().isOk());
+        assertThat(output.getAll().lines().filter(ligne -> ligne.contains("Connexion réussie : utilisateur " + compte.getId())))
+                .singleElement().asString().contains(" INFO ");
+        assertThat(output.getAll()).doesNotContain("connexion-reussie", "connexion-reussie@mail.com");
     }
 
     @Test

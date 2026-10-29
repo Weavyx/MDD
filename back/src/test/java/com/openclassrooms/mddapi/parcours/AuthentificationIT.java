@@ -39,7 +39,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * ce qui prouve que le jeton est lu puis refusé, et non ignoré, ce sont les mutations du filtre
  * et de {@code JwtService} (voir {@code RAPPORT_DE_TESTS.md}, §9).
  */
-@ExtendWith(OutputCaptureExtension.class)
 class AuthentificationIT extends ChaineDeSecuriteIT {
 
     /** Clé de l'application, pour signer un jeton authentique mais expiré. */
@@ -136,6 +135,7 @@ class AuthentificationIT extends ChaineDeSecuriteIT {
     }
 
     @Test
+    @ExtendWith(OutputCaptureExtension.class)
     void requeteProtegee_jetonSigneAvecUneAutreCle_journaliseUnAvertissementSansLeJeton(CapturedOutput output) throws Exception {
         // Arrange : jeton bien formé et non expiré, mais signé avec une clé inconnue de l'API
         SecretKey autreCle = Jwts.SIG.HS256.key().build();
@@ -154,6 +154,7 @@ class AuthentificationIT extends ChaineDeSecuriteIT {
     }
 
     @Test
+    @ExtendWith(OutputCaptureExtension.class)
     void requeteProtegee_jetonExpire_journaliseUneInformation(CapturedOutput output) throws Exception {
         // Arrange : clé de l'application, expiration une heure dans le passé
         SecretKey cleDeLApplication = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretDeLApplication));
@@ -168,6 +169,7 @@ class AuthentificationIT extends ChaineDeSecuriteIT {
         reponse.andExpect(status().isUnauthorized());
         assertThat(output.getAll().lines().filter(ligne -> ligne.contains("Jeton JWT expiré")))
                 .singleElement().asString().contains(" INFO ");
+        assertThat(output.getAll()).doesNotContain(jeton);
     }
 
     /** Fabrique un JWT HS256 signé avec {@code cle}, avec les dates d'émission et d'expiration voulues. */

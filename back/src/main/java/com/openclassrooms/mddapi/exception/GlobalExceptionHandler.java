@@ -1,22 +1,28 @@
 package com.openclassrooms.mddapi.exception;
 
 import com.openclassrooms.mddapi.dto.ErrorResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.util.ObjectUtils;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.HandlerMapping;
 
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Traduction des exceptions en réponses {@code ErrorResponse}, seul point de mapping
@@ -32,6 +38,11 @@ import java.util.Map;
  *       par choix — un attrape-tout transformerait les 401 en 500.</li>
  * </ul>
  * Aucun message ne reprend une valeur saisie par le client ni un détail SQL.
+ * <p>
+ * Les quatre gestionnaires 400 journalisent l'échec en WARN : méthode HTTP et motif de la route
+ * ({@code /api/posts/{id}}, pas l'adresse reçue), nom de chaque champ ou paramètre en faute avec
+ * le code de sa règle, identifiant interne de l'utilisateur connecté ou « utilisateur anonyme ».
+ * Jamais la valeur reçue, ni le message de l'exception, qui peut la contenir.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -44,13 +55,21 @@ public class GlobalExceptionHandler {
      * sur le même champ (ex. {@code @Size} et {@code @Pattern} du mot de passe), seule
      * la dernière parcourue est conservée. La valeur rejetée n'est jamais renvoyée.
      * Seul handler à renseigner {@code fieldErrors} ; ailleurs il vaut {@code null}.
+     * Le journal reçoit, lui, une entrée par règle en faute, triées.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex,
+                                                          HttpServletRequest request,
+                                                          @AuthenticationPrincipal Long userId) {
         Map<String, String> fieldErrors = new HashMap<>();
         for (FieldError error : ex.getBindingResult().getFieldErrors()) {
             fieldErrors.put(error.getField(), error.getDefaultMessage());
         }
+        String fields = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getField() + ":" + ruleCode(error))
+                .sorted()
+                .collect(Collectors.joining(", "));
+        logValidationFailure(request, "champs " + fields, userId);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                 new ErrorResponse(Instant.now(), 400, "Bad Request", "Requête invalide", fieldErrors)
         );
@@ -111,7 +130,10 @@ public class GlobalExceptionHandler {
      * est générique et ne cite ni le paramètre ni la valeur reçue.
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
+    public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex,
+                                                                          HttpServletRequest request,
+                                                                          @AuthenticationPrincipal Long userId) {
+        logValidationFailure(request, "paramètre " + ex.getName() + ":type", userId);
         return buildResponse(HttpStatus.BAD_REQUEST, "Le paramètre fourni est invalide");
     }
 
@@ -122,7 +144,10 @@ public class GlobalExceptionHandler {
      * routes publiques. Le message ne reprend pas l'erreur d'analyse.
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(HttpMessageNotReadableException ex,
+                                                                      HttpServletRequest request,
+                                                                      @AuthenticationPrincipal Long userId) {
+        logValidationFailure(request, "corps illisible", userId);
         return buildResponse(HttpStatus.BAD_REQUEST, "Le corps de la requête est illisible");
     }
 
@@ -132,8 +157,33 @@ public class GlobalExceptionHandler {
      * aux erreurs de corps, aucun {@code fieldErrors} n'est renseigné.
      */
     @ExceptionHandler(HandlerMethodValidationException.class)
-    public ResponseEntity<ErrorResponse> handleHandlerMethodValidation(HandlerMethodValidationException ex) {
+    public ResponseEntity<ErrorResponse> handleHandlerMethodValidation(HandlerMethodValidationException ex,
+                                                                       HttpServletRequest request,
+                                                                       @AuthenticationPrincipal Long userId) {
+        String parameters = ex.getParameterValidationResults().stream()
+                .flatMap(result -> result.getResolvableErrors().stream()
+                        .map(error -> result.getMethodParameter().getParameterName() + ":" + ruleCode(error)))
+                .sorted()
+                .collect(Collectors.joining(", "));
+        logValidationFailure(request, "paramètre " + parameters, userId);
         return buildResponse(HttpStatus.BAD_REQUEST, "Le paramètre fourni est invalide");
+    }
+
+    /**
+     * Écrit la ligne WARN d'un échec de validation (contenu décrit dans la Javadoc de la classe).
+     * La route est le motif retenu par Spring, pas l'adresse reçue.
+     */
+    private static void logValidationFailure(HttpServletRequest request, String rejected, Long userId) {
+        String user = userId == null ? "utilisateur anonyme" : "utilisateur " + userId;
+        String detail = request.getMethod() + " " + request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE)
+                + " ; " + rejected + " ; " + user;
+        LOGGER.warn("Échec de validation : {}", detail);
+    }
+
+    /** Code court de la règle en faute (dernier code de l'erreur, ex. {@code Size}), sans la valeur. */
+    private static String ruleCode(MessageSourceResolvable error) {
+        String[] codes = error.getCodes();
+        return ObjectUtils.isEmpty(codes) ? "inconnue" : codes[codes.length - 1];
     }
 
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String message) {

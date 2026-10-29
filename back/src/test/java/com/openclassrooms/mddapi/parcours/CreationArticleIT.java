@@ -1,9 +1,13 @@
 package com.openclassrooms.mddapi.parcours;
 
 import com.openclassrooms.mddapi.model.Post;
+import com.openclassrooms.mddapi.model.User;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -110,5 +114,24 @@ class CreationArticleIT extends ActionIT {
         // Assert
         reponse.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors.%s", champ).exists());
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void creation_titreTropLong_journaliseLaRegleEnFauteEtLUtilisateur(CapturedOutput output) throws Exception {
+        // Arrange : titre de 256 caractères (borne : 255), qui commence par un texte propre à ce test
+        User auteur = creerUtilisateur("article-journal");
+        connecterEnTantQue(auteur);
+        String corps = corpsArticle(idDuTheme("Java"), "TitreRefuse" + "x".repeat(245), "Contenu");
+
+        // Act
+        ResultActions reponse = publier(corps);
+
+        // Assert
+        reponse.andExpect(status().isBadRequest());
+        assertThat(output.getAll().lines().filter(ligne -> ligne.contains(
+                "Échec de validation : POST /api/posts ; champs title:Size ; utilisateur " + auteur.getId())))
+                .singleElement().asString().contains(" WARN ");
+        assertThat(output.getAll()).doesNotContain("TitreRefuse");
     }
 }

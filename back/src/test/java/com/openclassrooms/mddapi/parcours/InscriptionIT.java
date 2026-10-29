@@ -4,11 +4,14 @@ import com.jayway.jsonpath.JsonPath;
 import com.openclassrooms.mddapi.model.User;
 import com.openclassrooms.mddapi.security.jwt.JwtService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -188,5 +191,39 @@ class InscriptionIT extends ChaineDeSecuriteIT {
         // Assert
         reponse.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Le corps de la requête est illisible"));
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void inscription_corpsInvalide_journaliseLesReglesEnFauteSansLesValeurs(CapturedOutput output) throws Exception {
+        // Arrange : nom trop court (seule règle en faute : @Size), mot de passe sans chiffre ni ponctuation (seule règle en faute : @Pattern)
+        String corps = corpsInscription("ab", "journal-inscription@mail.com", "MotDePasseRefuse");
+
+        // Act
+        ResultActions reponse = envoyerInscription(corps);
+
+        // Assert
+        reponse.andExpect(status().isBadRequest());
+        assertThat(output.getAll().lines().filter(ligne -> ligne.contains(
+                "Échec de validation : POST /api/auth/register ; champs password:Pattern, username:Size ; utilisateur anonyme")))
+                .singleElement().asString().contains(" WARN ");
+        assertThat(output.getAll()).doesNotContain("MotDePasseRefuse", "journal-inscription@mail.com");
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void inscription_corpsJsonMalforme_journaliseUnCorpsIllisibleSansSonContenu(CapturedOutput output) throws Exception {
+        // Arrange : corps JSON tronqué, qui contient un texte propre à ce test
+        String corps = "{\"username\":\"journal-illisible\"";
+
+        // Act
+        ResultActions reponse = envoyerInscription(corps);
+
+        // Assert
+        reponse.andExpect(status().isBadRequest());
+        assertThat(output.getAll().lines().filter(ligne -> ligne.contains(
+                "Échec de validation : POST /api/auth/register ; corps illisible ; utilisateur anonyme")))
+                .singleElement().asString().contains(" WARN ");
+        assertThat(output.getAll()).doesNotContain("journal-illisible");
     }
 }

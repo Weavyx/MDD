@@ -17,10 +17,10 @@ import java.sql.SQLIntegrityConstraintViolationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@ExtendWith(OutputCaptureExtension.class)
 class GlobalExceptionHandlerTest {
 
     @Test
+    @ExtendWith(OutputCaptureExtension.class)
     void violationDIntegrite_doublonDEmail_renvoie409EtJournaliseLaContrainteSansLaValeur(CapturedOutput output) {
         // Arrange : chaîne d'exceptions d'un doublon d'e-mail sous MySQL, valeur comprise dans les messages
         SQLIntegrityConstraintViolationException cause = new SQLIntegrityConstraintViolationException(
@@ -44,12 +44,14 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    @ExtendWith(OutputCaptureExtension.class)
     void violationDIntegrite_causeSansContrainte_journaliseUneContrainteInconnue(CapturedOutput output) {
-        // Arrange : cause Hibernate qui n'est pas une violation de contrainte (valeur trop longue)
+        // Arrange : cause Hibernate qui n'est pas une violation de contrainte ; messages inventés pour ce test (pas un texte réel de MySQL), porteurs d'une valeur reçue
+        String valeurRecue = "valeur-recue-contrainte-inconnue";
         DataIntegrityViolationException exception = new DataIntegrityViolationException(
-                "could not execute statement [Data too long for column 'title']",
-                new DataException("Data too long for column 'title'",
-                        new SQLException("Data too long for column 'title'", "22001", 1406)));
+                "could not execute statement [valeur refusée : '" + valeurRecue + "']",
+                new DataException("valeur refusée : '" + valeurRecue + "'",
+                        new SQLException("valeur refusée : '" + valeurRecue + "'", "22001", 1406)));
         GlobalExceptionHandler handler = new GlobalExceptionHandler();
 
         // Act
@@ -59,5 +61,6 @@ class GlobalExceptionHandlerTest {
         assertThat(reponse.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(output.getAll().lines().filter(ligne -> ligne.contains("Violation de contrainte : inconnue")))
                 .singleElement().asString().contains(" WARN ");
+        assertThat(output.getAll()).doesNotContain(valeurRecue);
     }
 }
