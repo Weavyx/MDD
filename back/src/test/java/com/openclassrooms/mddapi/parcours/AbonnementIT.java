@@ -2,6 +2,9 @@ package com.openclassrooms.mddapi.parcours;
 
 import com.openclassrooms.mddapi.model.User;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.test.web.servlet.ResultActions;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -76,5 +79,23 @@ class AbonnementIT extends ActionIT {
         // Assert
         reponse.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Le paramètre fourni est invalide"));
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void abonnement_themeExistant_journaliseLAbonnementAvecLesIdentifiantsInternes(CapturedOutput output) throws Exception {
+        // Arrange
+        User compte = creerUtilisateur("abo-journal");
+        connecterEnTantQue(compte);
+        Long idJava = idDuTheme("Java");
+
+        // Act
+        ResultActions reponse = sAbonner(idJava.toString());
+
+        // Assert
+        reponse.andExpect(status().isCreated());
+        assertThat(output.getAll().lines().filter(ligne -> ligne.contains("Abonnement : utilisateur " + compte.getId() + ", thème " + idJava)))
+                .singleElement().asString().contains(" INFO ");
+        assertThat(output.getAll()).doesNotContain("abo-journal", "abo-journal@mail.com");
     }
 }

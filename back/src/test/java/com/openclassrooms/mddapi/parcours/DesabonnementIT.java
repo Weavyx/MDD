@@ -2,6 +2,9 @@ package com.openclassrooms.mddapi.parcours;
 
 import com.openclassrooms.mddapi.model.User;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.test.web.servlet.ResultActions;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -80,5 +83,24 @@ class DesabonnementIT extends ActionIT {
         // Assert
         reponse.andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Ce topic n'existe pas"));
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void desabonnement_themeSuivi_journaliseLeDesabonnementAvecLesIdentifiantsInternes(CapturedOutput output) throws Exception {
+        // Arrange
+        User compte = creerUtilisateur("desabo-journal");
+        Long idJava = idDuTheme("Java");
+        abonner(compte, idJava);
+        connecterEnTantQue(compte);
+
+        // Act
+        ResultActions reponse = seDesabonner(idJava);
+
+        // Assert
+        reponse.andExpect(status().isNoContent());
+        assertThat(output.getAll().lines().filter(ligne -> ligne.contains("Désabonnement : utilisateur " + compte.getId() + ", thème " + idJava)))
+                .singleElement().asString().contains(" INFO ");
+        assertThat(output.getAll()).doesNotContain("desabo-journal", "desabo-journal@mail.com");
     }
 }
