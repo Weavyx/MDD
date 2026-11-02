@@ -15,6 +15,8 @@ import com.openclassrooms.mddapi.model.User;
 import com.openclassrooms.mddapi.repository.SubscriptionRepository;
 import com.openclassrooms.mddapi.repository.TopicRepository;
 import com.openclassrooms.mddapi.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +34,8 @@ import java.util.List;
  */
 @Service
 public class UserService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
+
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final TopicRepository topicRepository;
@@ -121,6 +125,9 @@ public class UserService {
      * violation de clé étrangère au {@code flush} remonte en
      * {@code DataIntegrityViolationException} (409), pas en 404. Le double abonnement est
      * refusé avant l'insertion, et à défaut par la contrainte {@code UNIQUE(user_id, topic_id)}.
+     * <p>
+     * Une fois l'abonnement enregistré, écrit en INFO une ligne de la forme
+     * {@code Abonnement : utilisateur 42, thème 3} : identifiants internes, celui du thème étant lu sur l'entité trouvée en base.
      *
      * @throws TopicNotFoundException     si le topic n'existe pas (404)
      * @throws AlreadySubscribedException si l'abonnement existe déjà (409)
@@ -137,6 +144,8 @@ public class UserService {
         User user = userRepository.getReferenceById(userId);
         Subscription subscription = new Subscription(user, topic);
         subscriptionRepository.save(subscription);
+        Long subscribedTopicId = topic.getId();
+        LOGGER.info("Abonnement : utilisateur {}, thème {}", userId, subscribedTopicId);
     }
 
     /**
@@ -145,15 +154,20 @@ public class UserService {
      * Idempotent : l'absence d'abonnement n'est pas une erreur, le nombre de lignes
      * supprimées est ignoré. Seul un topic inexistant est refusé, afin qu'un identifiant
      * erroné ne soit pas confondu avec un désabonnement réussi.
+     * <p>
+     * Écrit ensuite en INFO une ligne de la forme {@code Désabonnement : utilisateur 42, thème 3},
+     * même si aucun abonnement n'existait : l'état demandé, « non abonné », est atteint.
      *
      * @throws TopicNotFoundException si le topic n'existe pas (404)
      */
     @Transactional
     public void unsubscribe(Long userId, Long topicId) {
-        topicRepository.findById(topicId)
+        Topic topic = topicRepository.findById(topicId)
                 .orElseThrow(() -> new TopicNotFoundException("Ce topic n'existe pas"));
 
         subscriptionRepository.deleteByUserIdAndTopicId(userId, topicId);
+        Long unsubscribedTopicId = topic.getId();
+        LOGGER.info("Désabonnement : utilisateur {}, thème {}", userId, unsubscribedTopicId);
     }
 
     private User findUser(Long userId) {
