@@ -38,10 +38,12 @@
 
   <h2>Journal technique</h2>
   <p>
-    Pour la sécurité du service, l'application enregistre dans un journal technique les connexions
-    réussies, les connexions échouées et les requêtes refusées parce qu'invalides. Chaque ligne
-    contient la date, la nature de l'événement et, lorsqu'il est connu, l'identifiant interne de
-    votre compte : un numéro, jamais votre nom d'utilisateur, votre adresse e-mail ni votre mot de
+    Pour la sécurité et le suivi du service, l'application enregistre dans un journal technique les
+    connexions réussies et échouées, les jetons de connexion expirés ou refusés, les requêtes
+    refusées parce qu'invalides ou contraires à une règle de la base de données, ainsi que les
+    abonnements et désabonnements aux thèmes. Chaque ligne contient la date, la nature de
+    l'événement et, lorsqu'ils sont connus, l'identifiant interne de votre compte et celui du thème
+    concerné : des numéros, jamais votre nom d'utilisateur, votre adresse e-mail ni votre mot de
     passe. Les messages écrits par l'application ne reprennent aucune valeur que vous saisissez. En
     cas d'erreur interne du serveur, le message technique de l'erreur peut aussi y figurer.
   </p>
