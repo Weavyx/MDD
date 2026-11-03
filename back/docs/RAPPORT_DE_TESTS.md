@@ -1,6 +1,6 @@
 # Rapport de couverture et de tests — MDD
 
-Projet MDD (« Monde de Dev »), OpenClassrooms P5 option B. Rapport réécrit le 14 octobre 2026 après la refonte de la stratégie de tests (PR #35 à #39), puis mis à jour le 27 octobre 2026 après la migration des tests d'intégration (PR #56). Il remplace la version du 25 septembre 2026, qui décrivait une stratégie en quatre strates (unitaire, `@WebMvcTest`, `@DataJpaTest`, contexte complet) ; le journal de cette ancienne stratégie reste dans `TESTS_REVIEW.md`, daté du 18 septembre 2026.
+Projet MDD (« Monde de Dév »), OpenClassrooms P5 option B. Rapport réécrit le 14 octobre 2026 après la refonte de la stratégie de tests (PR #35 à #39), puis mis à jour le 27 octobre 2026 après la migration des tests d'intégration (PR #56), et le 3 novembre 2026 après le journal applicatif (PR #58 et #60) et les campagnes de mutations des 29 octobre et 2 novembre 2026. Il remplace la version du 25 septembre 2026, qui décrivait une stratégie en quatre strates (unitaire, `@WebMvcTest`, `@DataJpaTest`, contexte complet) ; le journal de cette ancienne stratégie reste dans `TESTS_REVIEW.md`, daté du 18 septembre 2026.
 
 ## 1. Périmètre et origine des chiffres
 
@@ -16,12 +16,12 @@ La stratégie a été simplifiée le 8 octobre 2026, avec une règle : chaque co
 
 | Niveau | Outil | Vérifie | Ne vérifie pas | Tests [mesuré] |
 |---|---|---|---|---|
-| **Intégration back** | `@SpringBootTest` + MockMvc + MySQL 8.4 (Testcontainers) | Chaque action de la spécification côté API : contrat HTTP, règles métier, état réel en base ; la chaîne de sécurité (filtre JWT, refus d'accès), exercée par l'inscription, la connexion et `AuthentificationIT` ; le nombre de requêtes SQL des lectures principales | Le conteneur de servlets (pages d'erreur) ; les commits réels (transaction annulée après chaque test) ; le rendu | 93 |
+| **Intégration back** | `@SpringBootTest` + MockMvc + MySQL 8.4 (Testcontainers) | Chaque action de la spécification côté API : contrat HTTP, règles métier, état réel en base ; la chaîne de sécurité (filtre JWT, refus d'accès), exercée par l'inscription, la connexion et `AuthentificationIT` ; le nombre de requêtes SQL des lectures principales ; les lignes écrites dans le journal | Le conteneur de servlets (pages d'erreur) ; les commits réels (transaction annulée après chaque test) ; le rendu | 102 |
 | **Unitaire back** | JUnit Jupiter 6, Mockito 5, AssertJ | Les règles fines que l'intégration ne peut pas épingler précisément : bornes, normalisation, claims du jeton, longueur minimale de la clé, découpage CORS, 409 d'une contrainte de la base | Le câblage avec le reste de l'application | 17 |
 | **Unitaire front** | Vitest + jsdom | Composants, services, gardes, intercepteur, validateurs, avec l'API simulée (`HttpTestingController`) | Le vrai serveur | 271 |
 | **End-to-end** | Cypress (Firefox) | Le parcours utilisateur complet dans un vrai navigateur, contre le vrai back et sa base : rendu, routage, gardes, intercepteur, commits réels | Les cas d'erreur fins (laissés aux niveaux inférieurs) | 7 |
 
-Back : **110 tests** = 17 Surefire + 93 Failsafe, 0 échec [mesuré le 27 octobre 2026, commit `90016b8`]. Avant la refonte : 158 tests (57 + 101), dont 67 `@WebMvcTest` et 23 `@DataJpaTest` [mesuré le 8 octobre 2026] ; un même observable y était souvent vérifié deux ou trois fois (service mocké, contrôleur mocké, contexte complet). Les trois derniers `@DataJpaTest` ont été remplacés par la PR #54 par une classe d'intégration qui compte les requêtes SQL (§5).
+Back : **119 tests** = 17 Surefire + 102 Failsafe, 0 échec [mesuré le 3 novembre 2026, commit `e34c397`]. Avant la refonte : 158 tests (57 + 101), dont 67 `@WebMvcTest` et 23 `@DataJpaTest` [mesuré le 8 octobre 2026] ; un même observable y était souvent vérifié deux ou trois fois (service mocké, contrôleur mocké, contexte complet). Les trois derniers `@DataJpaTest` ont été remplacés par la PR #54 par une classe d'intégration qui compte les requêtes SQL (§5).
 
 ## 3. Tests d'intégration back : un fichier par action de la spécification
 
@@ -29,17 +29,17 @@ Package `back/src/test/java/com/openclassrooms/mddapi/parcours/` [code].
 
 | Action de la spécification | Fichier | Cas [mesuré] |
 |---|---|---|
-| S'inscrire | `InscriptionIT` | 18 |
-| Se connecter (e-mail ou nom d'utilisateur) | `ConnexionIT` | 10 |
+| S'inscrire | `InscriptionIT` | 20 |
+| Se connecter (e-mail ou nom d'utilisateur) | `ConnexionIT` | 12 |
 | Consulter son profil | `ConsultationProfilIT` | 3 |
 | Modifier son profil | `ModificationProfilIT` | 14 |
 | Consulter la liste des thèmes | `ConsultationThemesIT` | 3 |
-| S'abonner à un thème | `AbonnementIT` | 4 |
-| Se désabonner | `DesabonnementIT` | 4 |
+| S'abonner à un thème | `AbonnementIT` | 5 |
+| Se désabonner | `DesabonnementIT` | 5 |
 | Consulter son fil d'actualité | `ConsultationFilIT` | 3 |
-| Trier le fil | `TriFilIT` | 3 |
-| Créer un article (auteur et date automatiques) | `CreationArticleIT` | 6 |
-| Consulter un article et ses commentaires | `ConsultationArticleIT` | 3 |
+| Trier le fil | `TriFilIT` | 4 |
+| Créer un article (auteur et date automatiques) | `CreationArticleIT` | 7 |
+| Consulter un article et ses commentaires | `ConsultationArticleIT` | 4 |
 | Commenter (auteur et date automatiques) | `CommentaireIT` | 4 |
 | Transversal : toute route protégée exige un jeton valide, et un jeton valide est accepté pour le bon utilisateur | `AuthentificationIT` | 15 |
 | Transversal : nombre de requêtes SQL des trois lectures principales | `NombreDeRequetesIT` | 3 |
@@ -79,11 +79,11 @@ Cette classe a remplacé, dans la PR #54, les trois tests `@DataJpaTest` qui vé
 
 ### 6.1 Tests unitaires et de composants
 
-`npx ng test --watch=false` : **25 fichiers de spec, 271 tests**, tous verts [mesuré le 23 octobre 2026, commit `ddc4d80` ; aucun commit ne touche `front/` entre cette mesure et le commit `b02daf2`]. Chaque fichier testé a son `*.spec.ts` à côté de lui. Les appels HTTP sont interceptés par `HttpTestingController`, qui vérifie l'URL, la méthode et le corps de chaque requête. Le code de sécurité (service d'authentification, intercepteur, gardes, validateur de mot de passe) est prouvé par mutation manuelle, et chaque spec de feature compte au moins une mutation [PR #30] ; pour les specs modifiées depuis par les PR #46, #51 et #52, la preuve n'est pas retrouvée dans le dépôt ni dans les PR.
+`npx ng test --watch=false` : **25 fichiers de spec, 271 tests**, tous verts [mesuré le 3 novembre 2026, commit `e34c397`]. Chaque fichier testé a son `*.spec.ts` à côté de lui. Les appels HTTP sont interceptés par `HttpTestingController`, qui vérifie l'URL, la méthode et le corps de chaque requête. Le code de sécurité (service d'authentification, intercepteur, gardes, validateur de mot de passe) est prouvé par mutation manuelle, et chaque spec de feature compte au moins une mutation [PR #30] ; pour les specs modifiées depuis par les PR #46, #51 et #52, la preuve n'est pas retrouvée dans le dépôt ni dans les PR. Les specs modifiées par la PR #57 (renommage de l'abonnement) et par la PR #59 (politique de confidentialité) ont été prouvées par mutation : trois mutations pour la première, dont une détectée seulement en relançant la spec seule (un échec dans une spec en fait échouer d'autres en cascade), et deux pour la seconde.
 
 ### 6.2 End-to-end (Cypress)
 
-Contre le back réel sur `http://localhost:8080` et sa base MySQL : **5 specs, 7 tests, 7 verts** [mesuré le 27 octobre 2026, Firefox 158, Cypress 16.1.0, commit `b02daf2`] :
+Contre le back réel sur `http://localhost:8080` et sa base MySQL : **5 specs, 7 tests, 7 verts** [mesuré le 3 novembre 2026, Firefox 159, Cypress 16.1.0, commit `e34c397`] :
 
 | Spec | Tests | Parcours |
 |---|---|---|
@@ -93,7 +93,7 @@ Contre le back réel sur `http://localhost:8080` et sa base MySQL : **5 specs, 7
 | `mobile.cy.ts` | 1 | Connexion, menu burger, « Thèmes » puis déconnexion depuis le menu |
 | `validation.cy.ts` | 1 | Mot de passe faible refusé à l'inscription : message d'erreur, aucune requête, aucune redirection |
 
-Isolement : chaque test crée un utilisateur au nom unique (horodatage et partie aléatoire, `front/cypress/support/users.ts`) ; la base n'est pas remise à zéro entre deux lancements. Firefox plutôt qu'Electron : sous Wayland, Electron sans fenêtre ne termine pas les transitions CSS [PR #27].
+Isolement : les tests qui ont besoin d'un compte en créent un au nom unique (horodatage et partie aléatoire, `front/cypress/support/users.ts`) ; la base n'est pas remise à zéro entre deux lancements. Firefox plutôt qu'Electron : sous Wayland, Electron sans fenêtre ne termine pas les transitions CSS [PR #27].
 
 ## 7. Composants critiques et tests qui les protègent
 
@@ -111,37 +111,40 @@ Isolement : chaque test crée un utilisateur au nom unique (horodatage et partie
 | Extrait du fil | `PostServiceTest` |
 | Chargement anticipé (N+1 évité) | `NombreDeRequetesIT` |
 | Contrat d'erreur `ErrorResponse` | Message exact asserté dans chaque fichier d'action (400, 404, 409) ; JSON malformé dans `InscriptionIT` ; 409 générique de la base dans `GlobalExceptionHandlerTest` |
+| Journal sans valeur reçue de la requête (connexions, jetons refusés ou expirés, échecs de validation, violations de contrainte, abonnements) | Tests du journal de `ConnexionIT`, `InscriptionIT`, `CreationArticleIT`, `ConsultationArticleIT`, `TriFilIT`, `AbonnementIT`, `DesabonnementIT`, deux tests d'`AuthentificationIT` et les deux tests de `GlobalExceptionHandlerTest` : une seule ligne porte le message attendu, au niveau attendu, sans une valeur propre au test |
 | CORS | `SecurityConfigTest` |
 | Gardes, intercepteur, stockage du jeton (front) | Specs `auth.guard`, `guest.guard`, `auth.interceptor`, `auth.service` ; `gardes.cy.ts` |
 | Parcours utilisateur complet | `parcours-complet.cy.ts`, `mobile.cy.ts` |
 
 ## 8. Couverture
 
-### 8.1 Back-end (mesure du 27 octobre 2026)
+### 8.1 Back-end (mesure du 3 novembre 2026)
 
-`./mvnw clean verify`, JaCoCo, 25 classes analysées [mesuré, commit `90016b8`] :
+`./mvnw clean verify`, JaCoCo, 26 classes analysées [mesuré, commit `e34c397`] :
 
 | Métrique | Couvert / total |
 |---|---|
-| Lignes | 289 / 293 = **98,6 %** |
-| Branches | 33 / 34 = **97,1 %** |
+| Lignes | 324 / 328 = **98,8 %** |
+| Branches | 37 / 40 = **92,5 %** |
 
-Mesures précédentes, même commande : 289 / 293 lignes et 32 / 34 branches sur `main` après la PR #54 [mesuré le 23 octobre 2026] ; 277 / 282 lignes et 30 / 32 branches après le passage à jjwt [mesuré le 15 octobre 2026]. Depuis le 23 octobre, la ligne qui vérifie le préfixe `Bearer` dans `JwtAuthenticationFilter` n'a plus de branche manquée. La recommandation de 70 % de la page de présentation est dépassée.
+Mesures précédentes, même commande : 289 / 293 lignes et 33 / 34 branches le 27 octobre 2026, avant le journal de la PR #58, dont les branches ajoutées expliquent la baisse du pourcentage (deux restent non couvertes, ci-dessous) ; 289 / 293 lignes et 32 / 34 branches sur `main` après la PR #54 [mesuré le 23 octobre 2026] ; 277 / 282 lignes et 30 / 32 branches après le passage à jjwt [mesuré le 15 octobre 2026]. Depuis le 23 octobre, la ligne qui vérifie le préfixe `Bearer` dans `JwtAuthenticationFilter` n'a plus de branche manquée. La recommandation de 70 % de la page de présentation est dépassée.
 
 Lignes non couvertes, et pourquoi :
 
 - **`MddApiApplication.main`** (2 lignes) : le contexte est démarré par les tests d'intégration via `@SpringBootTest`, jamais par un appel à `main`. Ni exclusion du périmètre, ni `MockedStatic` : un chiffre expliqué vaut mieux qu'un chiffre obtenu en réduisant le périmètre mesuré.
 - **`NfcPasswordEncoder`** : `upgradeEncoding` (simple délégation, jamais appelée) et la branche `rawPassword == null` de la normalisation.
 - **`UserDetailsImpl.getUsername()`** : imposé par l'interface `UserDetails` de Spring Security, il n'est exécuté par aucun parcours de l'application. Le seul test qui l'appelait vérifiait ce getter isolément ; il a été supprimé plutôt que gardé pour le chiffre.
+- **`AuthenticationSuccessListener`** : la branche où le principal n'est pas un `UserDetailsImpl`. Avec la connexion de l'application, il en est toujours un ; la vérification est gardée pour qu'un autre type de principal ne fasse pas échouer une connexion à cause du journal.
+- **`GlobalExceptionHandler.ruleCode`** : la branche « inconnue », pour une erreur de validation sans code. Le résolveur de messages par défaut de Spring en fournit toujours un ; la branche est gardée parce que le type l'autorise et qu'une défaillance du journal ne doit pas empêcher de répondre.
 - **`dto` et `model`** : absents du rapport, sans exclusion configurée : leur bytecode est généré par Lombok (`@lombok.Generated`), que JaCoCo filtre par défaut. **`repository`** : interfaces Spring Data sans bytecode propre.
 
 Ne figurent plus dans cette liste : le gestionnaire `DataIntegrityViolationException`, couvert par `GlobalExceptionHandlerTest` (§4), et la branche « en-tête sans préfixe `Bearer` » de `JwtAuthenticationFilter`, testée par `AuthentificationIT` depuis le 27 octobre.
 
 La mesure doit être faite avec `clean` : sans lui, `target/jacoco.exec` cumule les exécutions précédentes et affiche comme couvertes des lignes qu'aucun test courant n'exécute (constaté le 9 octobre 2026).
 
-### 8.2 Front-end (mesure du 23 octobre 2026)
+### 8.2 Front-end (mesure du 3 novembre 2026)
 
-`npx ng test --watch=false --coverage` (fournisseur v8), 25 fichiers, 271 tests [mesuré, commit `ddc4d80`] :
+`npx ng test --watch=false --coverage` (fournisseur v8), 25 fichiers, 271 tests [mesuré, commit `e34c397` ; valeurs identiques à la mesure du 23 octobre 2026 sur `ddc4d80`, malgré les PR #57, #59 et #60 qui ont touché le front] :
 
 | Métrique | Couverture |
 |---|---|
@@ -154,7 +157,7 @@ Les fichiers utilitaires de test hors `*.spec.ts`, dont `features/auth/testing.t
 
 ## 9. Qualité des tests : preuve par mutation
 
-Une couverture élevée dit qu'un test exécute une ligne ; elle ne dit pas qu'il échouerait si la ligne était fausse. Chaque test ajouté ou modifié pendant la refonte a donc été confronté à une **mutation** : un bug plausible introduit à la main dans le code de production, qui doit faire échouer le test, puis le code est restauré (sauvegarde du fichier, restauration, `git diff` vide contrôlé après chaque mutation). Aucun outil de mutation testing n'est utilisé.
+Une couverture élevée dit qu'un test exécute une ligne ; elle ne dit pas qu'il échouerait si la ligne était fausse. Chaque test ajouté ou modifié pendant la refonte a donc été confronté à une **mutation** : un bug plausible introduit à la main dans le code de production, qui doit faire échouer le test, puis le code est restauré (sauvegarde du fichier, restauration, `git diff` vide contrôlé après chaque mutation). Aucun outil de mutation testing du marché (comme PIT) n'est utilisé. Pour le journal (PR #58 et #60) et pour les campagnes finales, les mutations du back sont appliquées par un script écrit pour le projet, conservé hors du dépôt et non livré : pour chaque mutation d'une liste écrite à la main (fichier, ligne, remplacement, test attendu), il modifie le code, rejoue la suite complète, classe l'échec (Act, Assert ou ailleurs) et restaure le fichier. Les mutations du front restent faites à la main.
 
 **Critère de détection.** Une mutation n'est comptée comme détectée que si un test attendu échoue **dans son Act ou son Assert**. Un échec dans l'Arrange, sur `viderLeCache()`, ou par une erreur interne d'Hibernate (`AssertionFailure`) ne prouve pas que l'assertion visée fonctionne : la mutation est alors classée « non prouvée » et remplacée.
 
@@ -168,8 +171,12 @@ Une couverture élevée dit qu'un test exécute une ligne ; elle ne dit pas qu'i
 | PR #53 | Tests du journal (`OutputCaptureExtension`) | 9 |
 | PR #54 | Corrections de la revue du 22 octobre : normalisation branchée, dates des lectures, corps du 409, `NombreDeRequetesIT`, isolement des tests du journal | 22 conformes, dont une dont le résultat attendu était qu'un test reste vert |
 | Chantier des 26 et 27 octobre | Les quatorze classes d'intégration (migration vers `ActionIT` et `ChaineDeSecuriteIT`) ; branchement de l'encodeur | 60 (71 exécutions avec les mutations rejouées) |
+| PR #58 | Tests du journal des connexions et des échecs de validation | 25, dont 9 rejouées des PR #53 et #54 (script) |
+| PR #60 | Tests du journal de l'abonnement | 7 (script) |
+| Campagne du 29 octobre (commit `ee6516e`) | Toutes les listes conservées | 93 (68, et les 25 de la PR #58) |
+| Campagne du 2 novembre (dossier `back` identique à celui de `e34c397`) | Toutes les listes conservées et celle de la PR #60 | 100 |
 
-Les lignes des PR #53 et #54 reprennent les descriptions et commentaires de ces PR [PR] ; celle du chantier des 26 et 27 octobre est mesurée [mesuré].
+Les lignes des PR #53 et #54 reprennent les descriptions et commentaires de ces PR [PR] ; celle du chantier des 26 et 27 octobre est mesurée [mesuré], comme celles des PR #58 et #60 et des campagnes (résultats du script).
 
 Les quatorze mutations d'`InscriptionIT`, faites le 9 octobre 2026 avant que ce critère soit formalisé, ont été rejouées le 15 octobre sous ce critère : toutes sont détectées, treize par l'assertion visée et une (`@MaxUtf8Bytes` retiré) par l'exception de BCrypt levée dans l'Act, avant l'assertion sur le message.
 
@@ -179,6 +186,8 @@ Passage à jjwt (15 octobre 2026) : un jeton refusé reçoit la même réponse q
 
 Chantier des 26 et 27 octobre 2026 : chaque test dont le code a changé avec la migration vers `ActionIT` et `ChaineDeSecuriteIT` (§3) a été confronté à ses mutations, la suite complète étant rejouée sous chacune. Deux résultats montrent l'effet de la migration : un jeton accepté pour un autre utilisateur dans `JwtAuthenticationFilter` faisait échouer 27 tests au début de la migration et n'en fait plus échouer qu'un (`AuthentificationIT`, jeton valide) ; une requête de connexion limitée à l'e-mail faisait échouer 5 tests et n'en fait plus échouer qu'un (`ConnexionIT`, connexion par nom). Le chantier a aussi comblé les deux derniers trous relevés le 22 octobre : la date des commentaires dans la réponse du détail d'un article, et l'en-tête `Authorization` sans préfixe `Bearer`. Enfin, remplacer l'encodeur de l'application par BCrypt seul ne fait échouer que le test de connexion NFC de `ConnexionIT` : c'est ce test, et non `NfcPasswordEncoderTest`, qui prouve que la normalisation est branchée.
 
+Campagnes finales. Le 29 octobre puis le 2 novembre 2026, le script a rejoué sur le même code du back toutes les mutations dont la liste a été conservée : 100 le 2 novembre, toutes détectées par le test attendu, dans son Act ou son Assert. Deux ont été adaptées au code actuel : celle qui efface la ligne de journal d'un échec de connexion, réécrite par la PR #58, et la mise en majuscules du nom à l'inscription, désormais détectée par le test d'inscription. Deux mutations de la PR #54 visaient le code remplacé par la PR #58 et ne s'appliquent plus ; celles des PR #35 à #41 n'ont pas de liste conservée et n'ont pas pu être rejouées. Le 2 novembre, la campagne a tourné sur la branche de la PR #60 ; le dossier `back` de `main` après la fusion (commit `e34c397`) est identique, vérifié par `git diff`.
+
 ## 10. Anomalie détectée et corrigée : le JSON malformé
 
 Le test de JSON malformé passait sous MockMvc (400). Vérifié avec `curl` sur le serveur réel, le même appel renvoyait **401** sur une route publique : laissée au mécanisme par défaut de Spring, l'erreur était rendue par la page d'erreur du conteneur, et cette nouvelle passe dans la chaîne de filtres était refusée par Spring Security. MockMvc ne simule pas cette page d'erreur. Correction : un gestionnaire dédié à `HttpMessageNotReadableException`, qui renvoie un 400 `ErrorResponse` « Le corps de la requête est illisible ». Le test, écrit avant la correction, échouait avant et passe après ; `curl` renvoie désormais 400 [PR #36, test `InscriptionIT.inscription_corpsJsonMalforme_retourne400`].
@@ -187,9 +196,10 @@ Le test de JSON malformé passait sous MockMvc (400). Vérifié avec `curl` sur 
 
 | Mesure | Commande | Résultat |
 |---|---|---|
-| Back | `cd back && mise exec -- ./mvnw clean verify` ; couverture dans `target/site/jacoco/jacoco.csv` | 17 + 93 = 110 tests, 0 échec ; lignes 98,6 %, branches 97,1 % (27 octobre 2026) |
-| Front | `cd front && npx ng test --watch=false --coverage` | 25 fichiers, 271 tests ; 99,15 % / 98,49 % / 99,31 % / 99,45 % (23 octobre 2026) |
-| End-to-end | `docker compose up -d` ; back : `cd back && mise exec -- ./mvnw spring-boot:run` (8080) ; front : `cd front && mise exec -- npm start` (4200) ; puis `cd front && mise exec -- npm run e2e:firefox -- --config baseUrl=http://localhost:4200` | 5 specs, 7 tests, 7 verts (27 octobre 2026) |
+| Back | `cd back && mise exec -- ./mvnw clean verify` ; couverture dans `target/site/jacoco/jacoco.csv` | 17 + 102 = 119 tests, 0 échec ; lignes 98,8 %, branches 92,5 % (3 novembre 2026) |
+| Front | `cd front && npx ng test --watch=false --coverage` | 25 fichiers, 271 tests ; 99,15 % / 98,49 % / 99,31 % / 99,45 % (3 novembre 2026) |
+| End-to-end | `docker compose up -d` ; back : `cd back && mise exec -- ./mvnw spring-boot:run` (8080) ; front : `cd front && mise exec -- npm start` (4200) ; puis `cd front && mise exec -- npm run e2e:firefox -- --config baseUrl=http://localhost:4200` | 5 specs, 7 tests, 7 verts (3 novembre 2026) |
+| Mutations du back | Script de campagne, hors dépôt (non livré) | 100 détectées sur 100 (2 novembre 2026) |
 
 Prérequis du back pour les tests : Docker démarré (Testcontainers). Les tests d'intégration fournissent leur propre clé de signature (`AbstractContainerIT`) ; `JWT_SECRET`, en Base64 et d'au moins 32 octets une fois décodé, n'est nécessaire que pour lancer l'application, qui ne démarre pas sans lui (le fichier non versionné `application-local.properties` la référence).
 
@@ -206,6 +216,6 @@ Prérequis du back pour les tests : Docker démarré (Testcontainers). Les tests
 | **Tests end-to-end hors du build Maven et de la CI** | Ils se lancent à la main, back et front démarrés | — |
 | **Doublons restants côté front** : specs des services HTTP déjà vérifiés par les composants, `app.spec.ts`, deux paires de cas proches (`topic-list`, `profile`) | Maintenance un peu plus lourde | Non supprimés avant la soutenance : à fusionner |
 | **Specs front qui simulent des messages que l'API n'envoie pas** (« 72 caractères » dans `login.spec.ts`, `register.spec.ts`, `profile.spec.ts` ; « Topic introuvable » dans `post-create.spec.ts`) | Ces specs vérifient l'affichage d'un message, pas son texte réel | À aligner sur les messages du back |
-| **Pas de mutation testing outillé** (PIT) ni de seuil de couverture bloquant | La preuve par mutation n'est pas rejouable automatiquement ; une baisse de couverture ne casse pas le build | Choix assumé ; à reconsidérer si la suite grossit |
+| **Pas d'outil de mutation testing du marché** (PIT) ni de seuil de couverture bloquant | Les mutations du back ne sont rejouables que sur le poste qui détient le script de campagne, hors dépôt ; celles du front ne sont rejouables qu'à la main ; une baisse de couverture ne casse pas le build | Choix assumé ; à intégrer au dépôt et à la CI, ou à remplacer par PIT, si la suite grossit |
 
-Mesures du 27 octobre 2026 : back, `mise exec -- ./mvnw clean verify` depuis `back/` sur le commit `90016b8`, chiffres de couverture tirés de `target/site/jacoco/jacoco.csv` ; mêmes résultats sur `b02daf2`, après le retrait de trois dépendances de test inutilisées ; end-to-end sur `b02daf2`. Front : mesure du 23 octobre 2026 sur `ddc4d80` ; aucun commit ne touche `front/` entre cette mesure et `b02daf2`.
+Mesures du 3 novembre 2026 sur `main`, commit `e34c397` : back, `mise exec -- ./mvnw clean verify` depuis `back/`, cas par classe tirés de `target/surefire-reports` et `target/failsafe-reports`, couverture tirée de `target/site/jacoco/jacoco.csv` ; front, `npx ng test --watch=false --coverage` ; end-to-end, commande du §11, Firefox 159. Mutations : campagnes du script du 29 octobre 2026 (commit `ee6516e`) et du 2 novembre 2026 (branche de la PR #60, dont le dossier `back` est identique à celui de `e34c397`, vérifié par `git diff`).

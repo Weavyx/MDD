@@ -84,7 +84,7 @@ Tests unitaires (`*Test`), sans prérequis.
 ./mvnw verify
 ```
 
-Ajoute les tests d'intégration (`*IT`). Il faut Docker démarré (Testcontainers lance son propre `mysql:8.4`) et `JWT_SECRET` dans l'environnement. Le rapport de couverture JaCoCo est écrit dans `back/target/site/jacoco/index.html`.
+Ajoute les tests d'intégration (`*IT`). Il faut Docker démarré (Testcontainers lance son propre `mysql:8.4`) ; les tests fournissent leur propre clé de signature, `JWT_SECRET` n'est nécessaire que pour lancer l'application. Le rapport de couverture JaCoCo est écrit dans `back/target/site/jacoco/index.html`.
 
 **Front-end** (depuis `front/`) :
 

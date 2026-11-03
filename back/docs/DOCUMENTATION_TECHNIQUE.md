@@ -1,6 +1,6 @@
 # Documentation technique — MDD
 
-Projet MDD (« Monde de Dev »), OpenClassrooms P5 option B. Document établi le 19 septembre 2026 sur le code de `back/` (Spring Boot 4.1.0, Java 21, MySQL 8.4), mis à jour le 24 septembre 2026 sur `main`, commit `9581c70` compris (`@NotBlank` sur le mot de passe d'inscription) : le contrat décrit est celui de `main`. Section 6 (front-end) ajoutée le 25 septembre 2026 sur `main`, commit `860544c` (PR #25) compris. Mis à jour le 25 septembre 2026 sur `main`, commit `2a01fc9` compris (PR #26 à #30 : pages légales, tests end-to-end, correctifs de la revue adverse).
+Projet MDD (« Monde de Dév »), OpenClassrooms P5 option B. Document établi le 19 septembre 2026 sur le code de `back/` (Spring Boot 4.1.0, Java 21, MySQL 8.4), mis à jour le 24 septembre 2026 sur `main`, commit `9581c70` compris (`@NotBlank` sur le mot de passe d'inscription) : le contrat décrit est celui de `main`. Section 6 (front-end) ajoutée le 25 septembre 2026 sur `main`, commit `860544c` (PR #25) compris. Mis à jour le 25 septembre 2026 sur `main`, commit `2a01fc9` compris (PR #26 à #30 : pages légales, tests end-to-end, correctifs de la revue adverse).
 
 **Périmètre.** Le back-end et le front-end Angular (`front/`) couvrent le MVP : les huit pages (accueil, inscription, connexion, fil, article, création d'article, thèmes, profil) sont routées dans `front/src/app/app.routes.ts` et consomment les onze endpoints décrits ici (tableau en §6.4). Les sections 1 à 5 documentent l'API et l'environnement, la section 6 l'architecture du front. Aucun template n'a été fourni par la mission pour ce livrable ; la structure suit les indicateurs de la grille (« endpoints, schémas de données, dépendances techniques », « configuration de l'environnement »).
 
@@ -181,7 +181,7 @@ Aucun secret n'est dans le dépôt. Les valeurs vivent dans un fichier `.env` à
 | Variable | Lue par | Usage |
 |---|---|---|
 | `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `MYSQL_PORT` | `docker-compose.yml` (nativement) et `application.properties` / `application-local.properties` (comme variables d'environnement du processus) | Conteneur `mdd-mysql` et datasource de l'application (`jdbc:mysql://localhost:${MYSQL_PORT}/${MYSQL_DATABASE}`) |
-| `JWT_SECRET` | `application-local.properties` (`mdd.jwt.secret=${JWT_SECRET}`) | Clé HMAC-SHA256, **en Base64, ≥ 32 octets décodés** (ex. `openssl rand -base64 32`). Non contrôlée au démarrage |
+| `JWT_SECRET` | `application-local.properties` (`mdd.jwt.secret=${JWT_SECRET}`) | Clé HMAC-SHA256, **en Base64, ≥ 32 octets décodés** (ex. `openssl rand -base64 32`). Longueur contrôlée au démarrage : une clé de moins de 256 bits empêche l'application de démarrer (`Keys.hmacShaKeyFor`) |
 | `MDD_CORS_ALLOWED_ORIGINS` (optionnelle) | `application.properties` | Origines CORS séparées par des virgules, espaces autour retirés, entrées vides ignorées ; défaut `http://localhost:4200`. Configuration de réserve pour un déploiement sur deux domaines (§1) |
 
 `back/src/main/resources/application-local.properties` est gitignoré et **doit être créé à la main** sur un clone frais, avec deux lignes :
