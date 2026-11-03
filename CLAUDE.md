@@ -14,7 +14,7 @@ MDD ("Monde de Dév"), OpenClassrooms P5 option B. Mono-repo: `back/` Spring Boo
 ```
 
 - JaCoCo report is produced by `verify` in `target/site/jacoco/` (one agent for both Surefire and Failsafe; no threshold, no excludes on purpose). Measure coverage with `./mvnw clean verify`: without `clean`, `target/jacoco.exec` accumulates previous runs and reports lines that no current test executes.
-- Maven does **not** read the root `.env`: `mise.toml` loads it into the shell (`mise trust` once), otherwise export its variables before `verify` or `spring-boot:run` (`mise exec -- ./mvnw verify` outside an activated shell). `application-local.properties` (gitignored) holds only `spring.datasource.password=${MYSQL_PASSWORD}` and `mdd.jwt.secret=${JWT_SECRET}`; every `*IT` fails at context load with `Could not resolve placeholder 'JWT_SECRET'` if the variable is missing. `./mvnw test` alone needs nothing.
+- Maven does **not** read the root `.env`: `mise.toml` loads it into the shell (`mise trust` once), otherwise export its variables before `verify` or `spring-boot:run` (`mise exec -- ./mvnw verify` outside an activated shell). `application-local.properties` (gitignored) holds only `spring.datasource.password=${MYSQL_PASSWORD}` and `mdd.jwt.secret=${JWT_SECRET}`; the application does not start without `JWT_SECRET`, but the `*IT` classes do not need it: `AbstractContainerIT` supplies `mdd.jwt.secret`. `./mvnw test` alone needs nothing.
 - `docker compose up -d` at the root starts `mdd-mysql` from the same `.env`.
 
 ### Frontend (`front/`)

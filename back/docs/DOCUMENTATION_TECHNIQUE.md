@@ -181,7 +181,7 @@ Aucun secret n'est dans le dépôt. Les valeurs vivent dans un fichier `.env` à
 | Variable | Lue par | Usage |
 |---|---|---|
 | `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `MYSQL_PORT` | `docker-compose.yml` (nativement) et `application.properties` / `application-local.properties` (comme variables d'environnement du processus) | Conteneur `mdd-mysql` et datasource de l'application (`jdbc:mysql://localhost:${MYSQL_PORT}/${MYSQL_DATABASE}`) |
-| `JWT_SECRET` | `application-local.properties` (`mdd.jwt.secret=${JWT_SECRET}`) | Clé HMAC-SHA256, **en Base64, ≥ 32 octets décodés** (ex. `openssl rand -base64 32`). Non contrôlée au démarrage |
+| `JWT_SECRET` | `application-local.properties` (`mdd.jwt.secret=${JWT_SECRET}`) | Clé HMAC-SHA256, **en Base64, ≥ 32 octets décodés** (ex. `openssl rand -base64 32`). Longueur contrôlée au démarrage : une clé de moins de 256 bits empêche l'application de démarrer (`Keys.hmacShaKeyFor`) |
 | `MDD_CORS_ALLOWED_ORIGINS` (optionnelle) | `application.properties` | Origines CORS séparées par des virgules, espaces autour retirés, entrées vides ignorées ; défaut `http://localhost:4200`. Configuration de réserve pour un déploiement sur deux domaines (§1) |
 
 `back/src/main/resources/application-local.properties` est gitignoré et **doit être créé à la main** sur un clone frais, avec deux lignes :
