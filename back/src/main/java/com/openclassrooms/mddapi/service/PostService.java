@@ -26,7 +26,7 @@ import java.util.List;
  * <p>
  * Les articles et commentaires sont immuables une fois créés : aucune méthode de
  * modification ni de suppression n'existe, par choix de périmètre. L'auteur et la date
- * ne viennent jamais du client : l'auteur est l'id du JWT, la date est posée par la base.
+ * ne viennent jamais du client : l'auteur est l'id du JWT, la date est posée par Hibernate ({@code @CreationTimestamp}).
  */
 @Service
 public class PostService {

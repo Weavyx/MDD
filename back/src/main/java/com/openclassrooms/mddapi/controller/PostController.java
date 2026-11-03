@@ -26,7 +26,7 @@ public class PostController {
     /**
      * 201 sans corps, avec {@code Location: /api/posts/{id}} ; 400 {@code fieldErrors} ;
      * 404 si {@code topicId} est inconnu. L'auteur et la date ne sont pas dans le corps :
-     * ils viennent du jeton et de la base.
+     * ils viennent du jeton et du serveur ({@code @CreationTimestamp} d'Hibernate).
      */
     @PostMapping
     public ResponseEntity<Void> create(@AuthenticationPrincipal Long userId, @Valid @RequestBody CreatePostRequest request) {
